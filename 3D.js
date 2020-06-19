@@ -10,22 +10,19 @@ var geometry = new THREE.BoxGeometry(20,20,20);
 var material = new THREE.MeshNormalMaterial( {color:0x669966, wireframe:true});
 var object = new THREE.Mesh(geometry, material);
 
-var newobject = function(xPosition, yPosition){
+
+var newobject = function(xPosition, yPosition, zPosition=0){ //function that makes an object and position it at input coordinates
 	var object = new THREE.Mesh(geometry,material);
 	object.position.x = xPosition;
 	object.position.y = yPosition;
 	scene.add(object);
 	renderer.render(scene,camera);};
 
-
-
 camera.position.z =70;
+newobject(0,0);
 
-var first = newobject(0,0);
 
 
-newobject(-40,-40);
-newobject(40,40);
 
 
 
