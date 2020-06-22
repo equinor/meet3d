@@ -23,7 +23,7 @@ camera.position.z =70;
 newobject(0,0);
 
 
-function update(){
+function update(){  //function to update frame
 	renderer.render(scene, camera);
 	requestAnimationFrame(update);
 }
