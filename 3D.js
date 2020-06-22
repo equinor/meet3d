@@ -16,13 +16,15 @@ var newobject = function(xPosition, yPosition, zPosition=0){ //function that mak
 	object.position.x = xPosition;
 	object.position.y = yPosition;
 	scene.add(object);
-	renderer.render(scene,camera);};
+	//renderer.render(scene,camera);};
+};
 
 camera.position.z =70;
 newobject(0,0);
 
 
-
-
-
-
+function update(){
+	renderer.render(scene, camera);
+	requestAnimationFrame(update);
+}
+update();
