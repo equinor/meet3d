@@ -1,5 +1,6 @@
 
 
+/*
 var scene = new THREE.Scene();
 var camera = new THREE.PerspectiveCamera(100, window.innerWidth / window.outerWidth, 0.1, 1000);
 var renderer = new THREE.WebGLRenderer();
@@ -24,8 +25,4 @@ camera.position.z =70;
 
 newobject(0,0);
 
-
-
-
-
-
+*/
