@@ -1,6 +1,5 @@
 'use strict';
 
-
 // https://codelabs.developers.google.com/codelabs/webrtc-web/#6
 
 var os = require('os');
@@ -34,7 +33,6 @@ io.sockets.on('connection', function(socket) {
 
     var clientsInRoom = io.sockets.adapter.rooms[room];
     var numClients = clientsInRoom ? Object.keys(clientsInRoom.sockets).length : 0;
-
     log('Room ' + room + ' now has ' + numClients + ' client(s)');
 
     if (numClients === 0) {
@@ -62,6 +60,10 @@ io.sockets.on('connection', function(socket) {
         }
       });
     }
+  });
+
+  socket.on('bye', function(){
+    console.log('received bye');
   });
 
 });
