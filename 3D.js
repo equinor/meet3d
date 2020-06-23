@@ -1,4 +1,9 @@
-
+/*changes made by Emma to Lene's file :
+-UserList instead of IdList
+-each User has an Object property
+-added getter for the object's position
+-added object movement with arrow key (movement with the mouse could still be added later)
+*/
 
 var scene = new THREE.Scene();
 var camera = new THREE.PerspectiveCamera(100, window.innerWidth / window.outerWidth, 0.1, 1000);
@@ -6,12 +11,14 @@ var renderer = new THREE.WebGLRenderer();
 
 scene.background = new THREE.Color( 0xf0f0f0 );
 
+camera.position.x =0;
+camera.position.y =0;
 camera.position.z =70;
 var light = new THREE.PointLight( 0xff0000, 1, 100 );
 light.position.set( 50, 50, 50 );
 scene.add( light );
 
-//make a floor to rhe scene
+//make a floor to the scene
 var floor = new THREE.Mesh(
 	new THREE.PlaneGeometry(100,100,100),
 	new THREE.MeshBasicMaterial({color : "skyblue", wireframe :true})
@@ -37,14 +44,15 @@ var makeNewObject = function(xPosition, yPosition, zPosition){
 	object.position.y = yPosition;
 	object.position.z = zPosition;
 	scene.add(object);
+	return object;
 };
 
-//list to store all the id´s
-var idlist =[];
+//list to store all the Users
+var UserList = [];
 
 //function to add a users id to the id list
-var addToIdList = function(id){
-	idlist.push(id);
+var addToUserList = function(User){
+	UserList.push(User);
 };
 
 
@@ -54,14 +62,96 @@ class user{
 	constructor(id, name, xPosition, yPosition, zPosition){
 	this.name = name,
 	this.id = id,
-	makeNewObject(xPosition, yPosition, zPosition),
-	addToIdList(id)};
+	this.object = makeNewObject(xPosition, yPosition, zPosition), //access to the user's avatar could be useful
+	addToUserList(this)};
 	getName(){return this.name};
 	getId(){return this.id};
+	//access to the user's avatar's position could be useful
+	getxPosition(){return this.object.position.x;}
+	getyPosition(){return this.object.position.y;}
+	getzPosition(){return this.object.position.z;}
+	moveObject(direction){
+		//center the camera on the character (this seem to conflict with the settings of the scene)
+		//camera.position.x = this.object.position.x;
+		//camera.position.y = this.object.position.y;
+		//camera.position.z = this.object.position.z + 70; //10 so as to hover above the object
+	
+		switch (direction){
+			case "up":
+				this.object.position.y += 1;
+				camera.position.y += 1;
+				break;
+			case "down":
+				this.object.position.y -= 1;
+				camera.position.y -= 1;
+				break;
+			case "right":
+				this.object.position.x += 1;
+				camera.position.x += 1;
+				break;
+			case "left":
+				this.object.position.x -= 1;
+				camera.position.x -= 1;
+				break;
+			/*case "right-up":
+				this.object.position.x += 1;
+				this.object.position.y += 1;
+				camera.position.x += 1;
+				camera.position.y += 1;
+				break;
+			case "left-up":
+				this.object.position.x -= 1;
+				this.object.position.y += 1;
+				camera.position.x -= 1;
+				camera.position.y += 1;
+				break;*/
+			default :
+				break; 
+		}
+	}
 };
 
+  //var keysPressed = {};
+  document.addEventListener("keydown", onDocumentKeyDown, false);
+  function onDocumentKeyDown(event) {
+	var key = event.key;
+	//keysPressed[event.key] = true;
+	switch (key){
+		case 'w':
+		case 'arrow up':
+			/*if ((keysPressed['d']) || (keysPressed['arrow right'])) {
+				UserList[0].object("right-up");
+			} else if ((keysPressed['a']) || (keysPressed['arrow left'])) { 
+				  UserList[0].object("left-up");
+			} else { */
+				UserList[0].moveObject("up");
+			//}
+			break;
+		case 's':
+		case 'arrow down':
+			UserList[0].moveObject("down");
+			break;
+		case 'd':
+		case 'arrow right':
+			UserList[0].moveObject("right");
+			break;
+		case 'a':
+		case 'arrow left':
+			UserList[0].moveObject("left");
+			break;
+		default:
+			break;
+	  }
+	keysPressed[event.key] = true;
+  }
+
+  //document.addEventListener("keyup", onDocumentKeyUp, false);
+  //function onDocumentKeyUp(event) {
+	  //keysPressed = {};
+  //}
+
 var user1 = new user(5, "Lene", 10, 10, 10)
-console.log(idlist);
+console.log(UserList);
 
 
 //If we want to load an object from a file. 
