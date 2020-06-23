@@ -11,7 +11,7 @@ var floor = new THREE.Mesh(
 	new THREE.MeshBasicMaterial({color : "skyblue", wireframe :true})
 );
 
-floor.rotation.x += Math.PI/2; //can rotate the floor
+floor.rotation.x += Math.PI/2; //can rotate the floor/plane
 scene.add( floor ); 
 
 
@@ -23,10 +23,11 @@ var material = new THREE.MeshNormalMaterial( {color:0x669966, wireframe:true});
 var object = new THREE.Mesh(geometry, material);
 
 
-var makenewobject = function(xPosition, yPosition, zPosition=0){ //function that makes an object and position it at input coordinates
+var makenewobject = function(xPosition, yPosition, zPosition){ //function that makes an object and position it at input coordinates
 	var object = new THREE.Mesh(geometry,material);
 	object.position.x = xPosition;
 	object.position.y = yPosition;
+	object.position.z = zPosition;
 	scene.add(object);
 };
 
@@ -39,9 +40,10 @@ class user{
 	makenewobject(xPosition, yPosition, zPosition)}
 };
 
+let user1 = new user(5, "Lene", 10, 10, 10)
+
 camera.position.z =70;
-user1= new user(5, "lene", 0,0,0);
-console.log(user1.name);
+
 
 var light = new THREE.PointLight( 0xff0000, 1, 100 );
 light.position.set( 50, 50, 50 );
