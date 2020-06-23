@@ -31,7 +31,7 @@ var material = new THREE.MeshNormalMaterial( {color:0x669966, wireframe:true});
 var object = new THREE.Mesh(geometry, material);
 
 //function that makes an object and position it at input coordinates
-var makenewobject = function(xPosition, yPosition, zPosition){ 
+var makeNewObject = function(xPosition, yPosition, zPosition){ 
 	var object = new THREE.Mesh(geometry,material);
 	object.position.x = xPosition;
 	object.position.y = yPosition;
@@ -39,18 +39,29 @@ var makenewobject = function(xPosition, yPosition, zPosition){
 	scene.add(object);
 };
 
+//list to store all the id´s
+var idlist =[];
+
+//function to add a users id to the id list
+var addToIdList = function(id){
+	idlist.push(id);
+};
+
 
 //A user class. The constructor calls the makenewobject function.
+//constructor adds a users id to the id list
 class user{
 	constructor(id, name, xPosition, yPosition, zPosition){
 	this.name = name,
 	this.id = id,
-	makenewobject(xPosition, yPosition, zPosition)}
-	getname(){return this.name};
-	getid(){return this.id};
+	makeNewObject(xPosition, yPosition, zPosition),
+	addToIdList(id)};
+	getName(){return this.name};
+	getId(){return this.id};
 };
 
-let user1 = new user(5, "Lene", 10, 10, 10)
+var user1 = new user(5, "Lene", 10, 10, 10)
+console.log(idlist);
 
 
 //If we want to load an object from a file. 
@@ -78,7 +89,7 @@ controls.maxDistance = 100;
 
 
 //function to change name of user.
-function namechange(userer, newname){
+function nameChange(userer, newname){
 	userer.name = newname;
 }
 
