@@ -12,8 +12,6 @@ var floor = new THREE.Mesh(
 );
 
 floor.rotation.x += Math.PI/2;
-
-//floor.rotation.x = 90;
 scene.add( floor ); 
 
 
