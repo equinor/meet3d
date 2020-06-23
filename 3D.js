@@ -6,6 +6,12 @@ var renderer = new THREE.WebGLRenderer();
 
 scene.background = new THREE.Color( 0xf0f0f0 );
 
+camera.position.z =70;
+var light = new THREE.PointLight( 0xff0000, 1, 100 );
+light.position.set( 50, 50, 50 );
+scene.add( light );
+
+//make a floor to rhe scene
 var floor = new THREE.Mesh(
 	new THREE.PlaneGeometry(100,100,100),
 	new THREE.MeshBasicMaterial({color : "skyblue", wireframe :true})
@@ -18,12 +24,14 @@ scene.add( floor );
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild( renderer.domElement);
 
+
+//choose which object to make when the makeobjectfunction is called
 var geometry = new THREE.BoxGeometry(20,20,20);
 var material = new THREE.MeshNormalMaterial( {color:0x669966, wireframe:true});
 var object = new THREE.Mesh(geometry, material);
 
-
-var makenewobject = function(xPosition, yPosition, zPosition){ //function that makes an object and position it at input coordinates
+//function that makes an object and position it at input coordinates
+var makenewobject = function(xPosition, yPosition, zPosition){ 
 	var object = new THREE.Mesh(geometry,material);
 	object.position.x = xPosition;
 	object.position.y = yPosition;
@@ -32,22 +40,18 @@ var makenewobject = function(xPosition, yPosition, zPosition){ //function that m
 };
 
 
-//A user class. The constructor calls the make new object function.
+//A user class. The constructor calls the makenewobject function.
 class user{
 	constructor(id, name, xPosition, yPosition, zPosition){
 	this.name = name,
 	this.id = id,
 	makenewobject(xPosition, yPosition, zPosition)}
+	getname(){return this.name};
+	getid(){return this.id};
 };
 
 let user1 = new user(5, "Lene", 10, 10, 10)
 
-camera.position.z =70;
-
-
-var light = new THREE.PointLight( 0xff0000, 1, 100 );
-light.position.set( 50, 50, 50 );
-scene.add( light );
 
 //If we want to load an object from a file. 
 /*var loader = new THREE.ObjectLoader();
@@ -59,7 +63,8 @@ function handeler(){
 }*/
 
 
-function update(){  //function to update frame
+//function to update frame
+function update(){  
 	renderer.render(scene, camera);
 	requestAnimationFrame(update);
 }
@@ -70,4 +75,10 @@ update();
 var controls = new THREE.OrbitControls( camera, renderer.domElement );
 controls.minDistance = 1;
 controls.maxDistance = 100;
+
+
+//function to change name of user.
+function namechange(userer, newname){
+	userer.name = newname;
+}
 
