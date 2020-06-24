@@ -151,7 +151,7 @@ class user{
 	  //keysPressed = {};
   //}
 
-var user1 = new user(5, "Lene", 10, 10, 10)
+var user1 = new user(5, "test", 10, 10, 10)
 console.log(UserList);
 
 
