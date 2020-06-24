@@ -1,6 +1,8 @@
+<!DOCTYPE html>
 <html>
 	<head>
 		<title>3D Conference</title>
+		<meta charset="UTF-8" />
 		<style>
 			body { margin: 0; }
 			canvas { display: block; }
@@ -9,15 +11,23 @@
 	<body>
 		<h1>Realtime communication with WebRTC</h1>
 
+		<div>
+			<input type="text" id="roomName" placeholder="Enter a room name here!"></input>
+			<input type="button" id="start" onclick="init()" value="Open room"></input>
+		</div>
+
 	  <div>
-	    <button id="startButton">Start</button>
-	    <button id="callButton">Call</button>
-	    <button id="hangupButton">Hang Up</button>
+	    <button id="leaveButton" onclick="leave()" hidden>Leave Room</button>
 	  </div>
 
 		<div id="videos">
 	    <video id="localVideo" autoplay muted></video>
 	    <video id="remoteVideo" autoplay></video>
+	  </div>
+
+		<div id="audio">
+			<audio id="localAudio" autoplay></audio>
+	    <audio id="remoteAudio" autoplay></audio>
 	  </div>
 
 	  <script src="/socket.io/socket.io.js"></script>

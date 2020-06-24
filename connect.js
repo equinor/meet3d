@@ -1,12 +1,32 @@
 'use strict';
 
+var roomName = document.getElementById("roomName");
+var localVideo = document.getElementById("localVideo");
+var localAudio = document.getElementById("localAudio");
+var remoteVideo = document.getElementById("remoteVideo");
+var remoteAudio = document.getElementById("remoteAudio");
+var leaveRoom = document.getElementById("leaveButton");
+var startButton = document.getElementById("start");
+
+roomName.addEventListener("keyup", function(event) {
+    if (event.keyCode === 13) { // This is the 'enter' key-press
+      event.preventDefault();
+      init()
+    }
+  });
+
 var isChannelReady = false;
 var isInitiator = false;
 var isStarted = false;
 var localStream;
 var pc;
 var remoteStream;
+var remoteTrack;
 var turnReady;
+var room;
+var socket;
+var ourID;
+var userIDs = [];
 
 var pcConfig = {
   'iceServers': [{
@@ -20,108 +40,124 @@ var sdpConstraints = {
   offerToReceiveVideo: true
 };
 
-/////////////////////////////////////////////
+var constraints = {
+  vaudio: true
+};
 
-var room = 'foo';
-// Could prompt for room name:
-// room = prompt('Enter room name:');
+function init() {
 
-var socket = io.connect();
+  if (roomName.value === '' || room) {
+    alert('Please enter a room name')
+    return
+  }
 
-if (room !== '') {
-  socket.emit('create or join', room);
-  console.log('Attempted to create or  join room', room);
+  room = roomName.value;
+  roomName.hidden = true;
+  startButton.hidden = true;
+  leaveButton.hidden = false;
+  socket = io.connect();
+
+  if (room !== '') {
+    socket.emit('join/create', room);
+    console.log('Attempted to create or  join room', room);
+  }
+
+  socket.on('created', function(room) {
+    let connectionInfo = room.split(':')
+    console.log('Created room ' + connectionInfo[0]);
+    ourID = connectionInfo[1]
+    isInitiator = true;
+  });
+
+  socket.on('full', function(room) {
+    console.log('Room ' + room + ' is full');
+  });
+
+  socket.on('join', function (room) {
+    let connectionInfo = room.split(':')
+    if (connectionInfo[1] === ourID) {
+      return
+    }
+    console.log('User ', connectionInfo[1], ' joined room ', connectionInfo[0])
+    userIDs.push(connectionInfo[1])
+    console.log('Another peer made a request to join room ' + connectionInfo[0]);
+    isChannelReady = true;
+  });
+
+  socket.on('joined', function(room) {
+    let connectionInfo = room.split(':')
+    console.log('joined: ' + connectionInfo[0]);
+    ourID = connectionInfo[1]
+    isChannelReady = true;
+  });
+
+  socket.on('log', function(array) {
+    console.log.apply(console, array);
+  });
+
+  // This client receives a message
+  socket.on('message', function(message) {
+    console.log('Client received message:', message);
+    if (message === 'got user media') {
+      maybeStart();
+    } else if (message.type === 'offer') {
+      if (!isInitiator && !isStarted) {
+        maybeStart();
+      }
+      pc.setRemoteDescription(new RTCSessionDescription(message));
+      doAnswer();
+    } else if (message.type === 'answer' && isStarted) {
+      pc.setRemoteDescription(new RTCSessionDescription(message));
+    } else if (message.type === 'candidate' && isStarted) {
+      var candidate = new RTCIceCandidate({
+        sdpMLineIndex: message.label,
+        candidate: message.candidate
+      });
+      pc.addIceCandidate(candidate);
+    } else if (message === 'bye' && isStarted) {
+      handleRemoteHangup();
+    }
+  });
+
+  navigator.mediaDevices.getUserMedia({
+    audio: true,
+    video: false
+  })
+  .then(gotStream)
+  .catch(function(e) {
+    console.log(e)
+    alert('getUserMedia() error: ' + e.name);
+  });
+
+  console.log('Getting user media with constraints', constraints);
+
+  if (location.hostname !== 'localhost') {
+    requestTurn(
+      'https://computeengineondemand.appspot.com/turn?username=41784574&key=4080218913'
+    );
+  }
 }
-
-socket.on('created', function(room) {
-  console.log('Created room ' + room);
-  isInitiator = true;
-});
-
-socket.on('full', function(room) {
-  console.log('Room ' + room + ' is full');
-});
-
-socket.on('join', function (room){
-  console.log('Another peer made a request to join room ' + room);
-  console.log('This peer is the initiator of room ' + room + '!');
-  isChannelReady = true;
-});
-
-socket.on('joined', function(room) {
-  console.log('joined: ' + room);
-  isChannelReady = true;
-});
-
-socket.on('log', function(array) {
-  console.log.apply(console, array);
-});
-
-////////////////////////////////////////////////
 
 function sendMessage(message) {
   console.log('Client sending message: ', message);
   socket.emit('message', message);
 }
 
-// This client receives a message
-socket.on('message', function(message) {
-  console.log('Client received message:', message);
-  if (message === 'got user media') {
-    maybeStart();
-  } else if (message.type === 'offer') {
-    if (!isInitiator && !isStarted) {
-      maybeStart();
-    }
-    pc.setRemoteDescription(new RTCSessionDescription(message));
-    doAnswer();
-  } else if (message.type === 'answer' && isStarted) {
-    pc.setRemoteDescription(new RTCSessionDescription(message));
-  } else if (message.type === 'candidate' && isStarted) {
-    var candidate = new RTCIceCandidate({
-      sdpMLineIndex: message.label,
-      candidate: message.candidate
-    });
-    pc.addIceCandidate(candidate);
-  } else if (message === 'bye' && isStarted) {
-    handleRemoteHangup();
-  }
-});
-
-////////////////////////////////////////////////////
-
-var localVideo = document.querySelector('#localVideo');
-var remoteVideo = document.querySelector('#remoteVideo');
-
-navigator.mediaDevices.getUserMedia({
-  audio: false,
-  video: true
-})
-.then(gotStream)
-.catch(function(e) {
-  alert('getUserMedia() error: ' + e.name);
-});
+function changePos(x, y, z) {
+  socket.emit('pos', x + ':' + y + ':' + z);
+}
 
 function gotStream(stream) {
   console.log('Adding local stream.');
   localStream = stream;
   localVideo.srcObject = stream;
+  //localAudio.srcObject = stream; // Do not repeat our sound for now
+
   sendMessage('got user media');
   if (isInitiator) {
+    console.log("Initiating room")
     maybeStart();
   }
-}
-
-var constraints = {
-  video: true
-};
-
-console.log('Getting user media with constraints', constraints);
-
-if (location.hostname !== 'localhost') {
-  requestTurn(
-    'https://computeengineondemand.appspot.com/turn?username=41784574&key=4080218913'
-  );
 }
 
 function maybeStart() {
@@ -138,18 +174,14 @@ function maybeStart() {
   }
 }
 
-window.onbeforeunload = function() {
-  sendMessage('bye');
-};
-
-/////////////////////////////////////////////////////////
-
 function createPeerConnection() {
   try {
     pc = new RTCPeerConnection(null);
     pc.onicecandidate = handleIceCandidate;
     pc.onaddstream = handleRemoteStreamAdded;
+    pc.onaddtrack = handleRemoteTrackAdded;
     pc.onremovestream = handleRemoteStreamRemoved;
+    pc.onremovetrack = handleRemoteTrackRemoved;
     console.log('Created RTCPeerConnnection');
   } catch (e) {
     console.log('Failed to create PeerConnection, exception: ' + e.message);
@@ -234,24 +266,44 @@ function handleRemoteStreamAdded(event) {
   remoteVideo.srcObject = remoteStream;
 }
 
+function handleRemoteTrackAdded(event) {
+  console.log('Remote stream added.');
+  remoteTrack = event.stream;
+  remoteAudio.srcObject = remoteTrack;
+}
+
 function handleRemoteStreamRemoved(event) {
   console.log('Remote stream removed. Event: ', event);
 }
 
-function hangup() {
-  console.log('Hanging up.');
-  stop();
-  sendMessage('bye');
+function handleRemoteTrackRemoved(event) {
+  console.log('REMOVED A TRACK, LET\'S CHANGE THIS LATER')
 }
 
 function handleRemoteHangup() {
   console.log('Session terminated.');
-  stop();
-  isInitiator = false;
+  leave();
 }
 
-function stop() {
+function leave() {
   isStarted = false;
-  pc.close();
-  pc = null;
+  roomName.hidden = false;
+  startButton.hidden = false;
+  leaveButton.hidden = true;
+  isInitiator = false;
+  remoteStream = null;
+  remoteTrack = null;
+  localStream = null;
+  isChannelReady = false;
+  userIDs = [];
+
+  stop();
+
+  if (room) {
+    room = null;
+  }
+  if (pc !== undefined) {
+    pc.close();
+    pc = null;
+  }
 }
