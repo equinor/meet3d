@@ -30,6 +30,11 @@ io.sockets.on('connection', function(socket) {
     socket.broadcast.emit('message', message);
   });
 
+  socket.on('left', function() {
+    log('User ' + socket.id + " is leaving");
+    socket.broadcast.emit('left', socket.id);
+  })
+
   socket.on('join/create', function(room) {
     log('Received request to create or join room ' + room);
 

@@ -80,8 +80,9 @@ function init() {
     }
     console.log('User ', connectionInfo[1], ' joined room ', connectionInfo[0])
     userIDs.push(connectionInfo[1])
-    console.log('Another peer made a request to join room ' + connectionInfo[0]);
     isChannelReady = true;
+
+    // Here we should call a 3D.js function which adds a new user to the 3D environment
   });
 
   socket.on('joined', function(room) {
@@ -95,14 +96,30 @@ function init() {
     console.log.apply(console, array);
   });
 
+  socket.on('pos', function(data) {
+    let dataArray = data.split(':')
+    if (dataArray[0] === ourID) { // If we moved: do nothing
+      return
+    }
+    // changeUserPosition(dataArray[0], dataArray[1]) // Change position of user
+  });
+
+  socket.on('left', function(user) {
+    const index = userIDs.indexOf(user);
+    if (index > -1) {
+      userIDs.splice(index, 1);
+    }
+    console.log("User " + user + " left")
+  });
+
   // This client receives a message
   socket.on('message', function(message) {
     console.log('Client received message:', message);
     if (message === 'got user media') {
-      maybeStart();
+      tryConnect();
     } else if (message.type === 'offer') {
       if (!isInitiator && !isStarted) {
-        maybeStart();
+        tryConnect();
       }
       pc.setRemoteDescription(new RTCSessionDescription(message));
       doAnswer();
@@ -122,19 +139,15 @@ function init() {
   navigator.mediaDevices.getUserMedia({
     audio: true,
     video: false
-  })
-  .then(gotStream)
-  .catch(function(e) {
+  }).then(gotStream).catch(function(e) {
     console.log(e)
     alert('getUserMedia() error: ' + e.name);
   });
 
   console.log('Getting user media with constraints', constraints);
 
-  if (location.hostname !== 'localhost') {
-    requestTurn(
-      'https://computeengineondemand.appspot.com/turn?username=41784574&key=4080218913'
-    );
+  if (location.hostname !== 'localhost') { // If we are not hosting locally
+    requestTurn('https://computeengineondemand.appspot.com/turn?username=41784574&key=4080218913');
   }
 }
 
@@ -156,12 +169,12 @@ function gotStream(stream) {
   sendMessage('got user media');
   if (isInitiator) {
     console.log("Initiating room")
-    maybeStart();
+    tryConnect();
   }
 }
 
-function maybeStart() {
-  console.log('>>>>>>> maybeStart() ', isStarted, localStream, isChannelReady);
+function tryConnect() {
+  console.log('>>>>>>> tryConnect() ', isStarted, localStream, isChannelReady);
   if (!isStarted && typeof localStream !== 'undefined' && isChannelReady) {
     console.log('>>>>>> creating peer connection');
     createPeerConnection();
@@ -179,9 +192,8 @@ function createPeerConnection() {
     pc = new RTCPeerConnection(null);
     pc.onicecandidate = handleIceCandidate;
     pc.onaddstream = handleRemoteStreamAdded;
-    pc.onaddtrack = handleRemoteTrackAdded;
+    //pc.ontrack = handleRemoteTrackAdded;
     pc.onremovestream = handleRemoteStreamRemoved;
-    pc.onremovetrack = handleRemoteTrackRemoved;
     console.log('Created RTCPeerConnnection');
   } catch (e) {
     console.log('Failed to create PeerConnection, exception: ' + e.message);
@@ -261,23 +273,16 @@ function requestTurn(turnURL) {
 }
 
 function handleRemoteStreamAdded(event) {
-  console.log('Remote stream added.');
+  console.log('Remote stream added2.');
   remoteStream = event.stream;
-  remoteVideo.srcObject = remoteStream;
-}
+  //remoteVideo.srcObject = remoteStream;
+  remoteAudio.srcObject = remoteStream;
 
-function handleRemoteTrackAdded(event) {
-  console.log('Remote stream added.');
-  remoteTrack = event.stream;
-  remoteAudio.srcObject = remoteTrack;
+  // This is where we want to pipe the audio into a 3D.js user object
 }
 
 function handleRemoteStreamRemoved(event) {
   console.log('Remote stream removed. Event: ', event);
-}
-
-function handleRemoteTrackRemoved(event) {
-  console.log('REMOVED A TRACK, LET\'S CHANGE THIS LATER')
 }
 
 function handleRemoteHangup() {
@@ -286,6 +291,7 @@ function handleRemoteHangup() {
 }
 
 function leave() {
+
   isStarted = false;
   roomName.hidden = false;
   startButton.hidden = false;
@@ -300,6 +306,7 @@ function leave() {
   stop();
 
   if (room) {
+    socket.emit('left');
     room = null;
   }
   if (pc !== undefined) {
