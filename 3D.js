@@ -46,7 +46,7 @@ var makeNewObject = function(xPosition, yPosition, zPosition){
 	return object;
 };
 
-//list to store all the id´s
+//list to store all the Users
 var UserList =[];
 
 //function to add a user to the UsersList
@@ -86,110 +86,102 @@ function findUser(id){
 	return false;
 }
 
-/*moveObject(direction){
-	//center the camera on the character (this seem to conflict with the settings of the scene)
-	//camera.position.x = this.object.position.x;
-	//camera.position.y = this.object.position.y;
-	//camera.position.z = this.object.position.z + 70; //10 so as to hover above the object
-	switch (direction){
-		case "up":
-			this.object.position.y += 1;
-			camera.position.y += 1;
-			break;
-		case "down":
-			this.object.position.y -= 1;
-			camera.position.y -= 1;
-			break;
-		case "right":
-			this.object.position.x += 1;
-			camera.position.x += 1;
-			break;
-		case "left":
-			this.object.position.x -= 1;
-			camera.position.x -= 1;
-			break;
-		case "right-up":
-			this.object.position.x += 1;
-			this.object.position.y += 1;
-			camera.position.x += 1;
-			camera.position.y += 1;
-			break;
-		case "left-up":
-			this.object.position.x -= 1;
-			this.object.position.y += 1;
-			camera.position.x -= 1;
-			camera.position.y += 1;
-			break;
-		default :
-			break; 
-	}
-}*/
-
-  //var keysPressed = {};
-  document.addEventListener("keydown", onDocumentKeyDown, false);
-  function onDocumentKeyDown(event) {
+var keysPressed = {};
+document.addEventListener("keydown", onDocumentKeyDown, false);
+function onDocumentKeyDown(event) {
 	var key = event.key;
-	//keysPressed[event.key] = true;
+	keysPressed[event.key] = true;
 	console.log(findUser(myID));
 	console.log(findUser(myID).getxPosition());
 	console.log(findUser(myID).getyPosition());
 	console.log(findUser(myID).getzPosition());
+	console.log(keysPressed);
 	switch (key){
 		case 'w':
 		case 'arrow up':
-			/*if ((keysPressed['d']) || (keysPressed['arrow right'])) {
-				UserList[0].object("right-up");
+			if ((keysPressed['d']) || (keysPressed['arrow right'])) {
+				console.log("UP-RIGHT");
+				findUser(myID).setPosition(findUser(myID).getxPosition() + 1, findUser(myID).getyPosition() + 1, findUser(myID).getzPosition());
+				camera.position.x += 1;
+				camera.position.y += 1;
 			} else if ((keysPressed['a']) || (keysPressed['arrow left'])) { 
-				  UserList[0].object("left-up");
-			} else { */
-			console.log("UP");
-			findUser(myID).setPosition(findUser(myID).getxPosition(), findUser(myID).getyPosition() + 1, findUser(myID).getzPosition());
-			camera.position.y += 1;
-			//}
+				console.log("UP-LEFT");
+				findUser(myID).setPosition(findUser(myID).getxPosition() - 1, findUser(myID).getyPosition() + 1, findUser(myID).getzPosition());
+				camera.position.x -= 1;
+				camera.position.y += 1;
+			} else {
+				console.log("UP");
+				findUser(myID).setPosition(findUser(myID).getxPosition(), findUser(myID).getyPosition() + 1, findUser(myID).getzPosition());
+				camera.position.y += 1;
+			}
 			break;
 		case 's':
 		case 'arrow down':
-			console.log("DOWN");
-			findUser(myID).setPosition(findUser(myID).getxPosition(), findUser(myID).getyPosition() - 1, findUser(myID).getzPosition());
-			camera.position.y -= 1;
+			if ((keysPressed['d']) || (keysPressed['arrow right'])) {
+				console.log("DOWN-RIGHT");
+				findUser(myID).setPosition(findUser(myID).getxPosition() + 1, findUser(myID).getyPosition() - 1, findUser(myID).getzPosition());
+				camera.position.x += 1;
+				camera.position.y -= 1;
+			} else if ((keysPressed['a']) || (keysPressed['arrow left'])) { 
+				console.log("DOWN-LEFT");
+				findUser(myID).setPosition(findUser(myID).getxPosition() - 1, findUser(myID).getyPosition() - 1, findUser(myID).getzPosition());
+				camera.position.x -= 1;
+				camera.position.y -= 1;
+			} else {
+				console.log("DOWN");
+				findUser(myID).setPosition(findUser(myID).getxPosition(), findUser(myID).getyPosition() - 1, findUser(myID).getzPosition());
+				camera.position.y -= 1;
+			}
 			break;
 		case 'd':
 		case 'arrow right':
-			console.log("RIGHT");
-			findUser(myID).setPosition(findUser(myID).getxPosition() + 1, findUser(myID).getyPosition(), findUser(myID).getzPosition());
-			camera.position.x += 1;
+			if ((keysPressed['w']) || (keysPressed['arrow up'])) {
+				console.log("RIGHT-UP");
+				findUser(myID).setPosition(findUser(myID).getxPosition() + 1, findUser(myID).getyPosition() + 1, findUser(myID).getzPosition());
+				camera.position.x += 1;
+				camera.position.y += 1;
+			} else if ((keysPressed['s']) || (keysPressed['arrow down'])) { 
+				console.log("RIGHT-DOWN");
+				findUser(myID).setPosition(findUser(myID).getxPosition() + 1, findUser(myID).getyPosition() - 1, findUser(myID).getzPosition());
+				camera.position.x += 1;
+				camera.position.y -= 1;
+			} else {
+				console.log("RIGHT");
+				findUser(myID).setPosition(findUser(myID).getxPosition() + 1, findUser(myID).getyPosition(), findUser(myID).getzPosition());
+				camera.position.x += 1;
+			}
 			break;
 		case 'a':
 		case 'arrow left':
-			console.log("LEFT");
-			findUser(myID).setPosition(findUser(myID).getxPosition() - 1, findUser(myID).getyPosition(), findUser(myID).getzPosition());
-			camera.position.x -= 1;
+			if ((keysPressed['w']) || (keysPressed['arrow up'])) {
+				console.log("LEFT-UP");
+				findUser(myID).setPosition(findUser(myID).getxPosition() - 1, findUser(myID).getyPosition() + 1, findUser(myID).getzPosition());
+				camera.position.x -= 1;
+				camera.position.y += 1;
+			} else if ((keysPressed['s']) || (keysPressed['arrow down'])) { 
+				console.log("LEFT-DOWN");
+				findUser(myID).setPosition(findUser(myID).getxPosition() - 1, findUser(myID).getyPosition() - 1, findUser(myID).getzPosition());
+				camera.position.x -= 1;
+				camera.position.y -= 1;
+			} else {
+				console.log("LEFT");
+				findUser(myID).setPosition(findUser(myID).getxPosition() - 1, findUser(myID).getyPosition(), findUser(myID).getzPosition());
+				camera.position.x -= 1;
+			}
 			break;
 		default:
 			break;
-	  }
-	//keysPressed[event.key] = true;
-  }
+	}
+}
 
-  //document.addEventListener("keyup", onDocumentKeyUp, false);
-  //function onDocumentKeyUp(event) {
-	  //keysPressed = {};
-  //}
+  document.addEventListener("keyup", onDocumentKeyUp, false);
+  function onDocumentKeyUp(event) {
+	delete keysPressed[event.key];
+  }
 
 const myID = new user(0, "test", 10, 10, 0).getId();
 console.log(myID);
-//var user1 = new user(5, "test", 10, 10, 10)
 console.log(UserList);
-
-
-//If we want to load an object from a file. 
-/*var loader = new THREE.ObjectLoader();
-loader.load(URL, handeler());
-function handeler(){
-	var mesh = new THREE.Mesh(geometry, material);
-	scene.add(mesh);
-}*/
-
 
 //function to update frame
 function update(){  
