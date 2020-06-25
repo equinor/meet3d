@@ -101,7 +101,7 @@ function init() {
     if (dataArray[0] === ourID) { // If we moved: do nothing
       return
     }
-    // changeUserPosition(dataArray[0], dataArray[1]) // Change position of user
+    // changeUserPosition(dataArray[0], dataArray[1], dataArray[2], dataArray[3]) // Change position of user
   });
 
   socket.on('left', function(user) {
