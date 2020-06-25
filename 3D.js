@@ -1,5 +1,5 @@
-/*
-changes made by Emma to Lene's file :
+
+/*changes made by Emma to Lene's file :
 -UserList instead of IdList
 -each User has an Object property
 -added getter for the object's position
@@ -12,12 +12,14 @@ var renderer = new THREE.WebGLRenderer();
 
 scene.background = new THREE.Color( 0xf0f0f0 );
 
+camera.position.x =0;
+camera.position.y =0;
 camera.position.z =70;
 var light = new THREE.PointLight( 0xff0000, 1, 100 );
 light.position.set( 50, 50, 50 );
 scene.add( light );
 
-//make a floor to rhe scene
+//make a floor to the scene
 var floor = new THREE.Mesh(
 	new THREE.PlaneGeometry(100,100,100),
 	new THREE.MeshBasicMaterial({color : "skyblue", wireframe :true})
@@ -43,87 +45,72 @@ var makeNewObject = function(xPosition, yPosition, zPosition){
 	object.position.y = yPosition;
 	object.position.z = zPosition;
 	scene.add(object);
+	return object;
 };
 
-//list to store all the id´s
-var idlist =[];
+//list to store all the Users
+var UserList = [];
 
-//function to add a user to the UsersList
+//function to add a users id to the id list
 var addToUserList = function(User){
 	UserList.push(User);
 };
 
 
 //A user class. The constructor calls the makenewobject function.
-//constructor adds a user to Userlist
+//constructor adds a users id to the id list
 class user{
 	constructor(id, name, xPosition, yPosition, zPosition){
 	this.name = name,
 	this.id = id,
-	this.object = makeNewObject(xPosition, yPosition, zPosition),
+	this.object = makeNewObject(xPosition, yPosition, zPosition), //access to the user's avatar could be useful
 	addToUserList(this)};
 	getName(){return this.name};
 	getId(){return this.id};
+	//access to the user's avatar's position could be useful
 	getxPosition(){return this.object.position.x;}
 	getyPosition(){return this.object.position.y;}
 	getzPosition(){return this.object.position.z;}
-	moveObject(xPosition, yPosition, zPosition){
-		this.object.position.x = xPosition;
-		this.object.position.y = yPosition;
-		this.object.position.z = zPosition;
+	moveObject(direction){
+		//center the camera on the character (this seem to conflict with the settings of the scene)
+		//camera.position.x = this.object.position.x;
+		//camera.position.y = this.object.position.y;
+		//camera.position.z = this.object.position.z + 70; //10 so as to hover above the object
+	
+		switch (direction){
+			case "up":
+				this.object.position.y += 1;
+				camera.position.y += 1;
+				break;
+			case "down":
+				this.object.position.y -= 1;
+				camera.position.y -= 1;
+				break;
+			case "right":
+				this.object.position.x += 1;
+				camera.position.x += 1;
+				break;
+			case "left":
+				this.object.position.x -= 1;
+				camera.position.x -= 1;
+				break;
+			/*case "right-up":
+				this.object.position.x += 1;
+				this.object.position.y += 1;
+				camera.position.x += 1;
+				camera.position.y += 1;
+				break;
+			case "left-up":
+				this.object.position.x -= 1;
+				this.object.position.y += 1;
+				camera.position.x -= 1;
+				camera.position.y += 1;
+				break;*/
+			default :
+				break; 
+		}
 	}
 };
-
-function findUser(id){
-	var i;
-	for (i = 0; i < UserList.length; i++) {
-  		if (id == UserList[i].getId()){
-			  console.log(UserList[i].getId());
-			  return UserList[i];
-		  }
-	}
-	return false;
-}
-
-/*moveObject(direction){
-	//center the camera on the character (this seem to conflict with the settings of the scene)
-	//camera.position.x = this.object.position.x;
-	//camera.position.y = this.object.position.y;
-	//camera.position.z = this.object.position.z + 70; //10 so as to hover above the object
-
-	switch (direction){
-		case "up":
-			this.object.position.y += 1;
-			camera.position.y += 1;
-			break;
-		case "down":
-			this.object.position.y -= 1;
-			camera.position.y -= 1;
-			break;
-		case "right":
-			this.object.position.x += 1;
-			camera.position.x += 1;
-			break;
-		case "left":
-			this.object.position.x -= 1;
-			camera.position.x -= 1;
-			break;
-		case "right-up":
-			this.object.position.x += 1;
-			this.object.position.y += 1;
-			camera.position.x += 1;
-			camera.position.y += 1;
-			break;
-		case "left-up":
-			this.object.position.x -= 1;
-			this.object.position.y += 1;
-			camera.position.x -= 1;
-			camera.position.y += 1;
-			break;
-		default :
-			break; 
-	}
-}*/
 
   //var keysPressed = {};
   document.addEventListener("keydown", onDocumentKeyDown, false);
@@ -138,29 +125,25 @@ function findUser(id){
 			} else if ((keysPressed['a']) || (keysPressed['arrow left'])) { 
 				  UserList[0].object("left-up");
 			} else { */
-			findUser(myID).moveObject(findUser(myID).getxPosition(), findUser(myID).getyPosition() + 1, findUser(myID).getzPosition());
-			camera.position.y += 1;
+				UserList[0].moveObject("up");
 			//}
 			break;
 		case 's':
 		case 'arrow down':
-			findUser(myID).moveObject(findUser(myID).getxPosition(), findUser(myID).getyPosition() - 1, findUser(myID).getzPosition());
-			camera.position.y -= 1;
+			UserList[0].moveObject("down");
 			break;
 		case 'd':
 		case 'arrow right':
-			findUser(myID).moveObject(findUser(myID).getxPosition() + 1, findUser(myID).getyPosition(), findUser(myID).getzPosition());
-			camera.position.x += 1;
+			UserList[0].moveObject("right");
 			break;
 		case 'a':
 		case 'arrow left':
-			findUser(myID).moveObject(findUser(myID).getxPosition() - 1, findUser(myID).getyPosition(), findUser(myID).getzPosition());
-			camera.position.x -= 1;
+			UserList[0].moveObject("left");
 			break;
 		default:
 			break;
 	  }
-	//keysPressed[event.key] = true;
+	keysPressed[event.key] = true;
   }
 
   //document.addEventListener("keyup", onDocumentKeyUp, false);
@@ -168,9 +151,7 @@ function findUser(id){
 	  //keysPressed = {};
   //}
 
-const myID = new user(0, "test", 10, 10, 0).getId();
-console.log(myID);
-//var user1 = new user(5, "test", 10, 10, 10)
+var user1 = new user(5, "test", 10, 10, 10)
 console.log(UserList);
 
 
@@ -202,4 +183,6 @@ controls.maxDistance = 100;
 function nameChange(userer, newname){
 	userer.name = newname;
 }
+
+
 
