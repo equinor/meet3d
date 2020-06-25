@@ -1,21 +1,41 @@
+<!DOCTYPE html>
 <html>
 	<head>
-		<title>My first three.js app</title>
+		<link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon"> 
+		<title>3D Conference</title>
+		<meta charset="UTF-8" />
 		<style>
 			body { margin: 0; }
 			canvas { display: block; }
 		</style>
 	</head>
 	<body>
-		<p> We can put other stuff here like buttons </p>
-		<input type="button" onclick="buttonA()">I am a button</button>
-		<script src="https://meet.jit.si/libs/lib-jitsi-meet.min.js"></script>
+		<h1>Realtime communication with WebRTC</h1>
+
+		<div>
+			<input type="text" id="roomName" placeholder="Enter a room name here!"></input>
+			<input type="button" id="start" onclick="init()" value="Open room"></input>
+		</div>
+
+	  <div>
+	    <button id="leaveButton" onclick="leave()" hidden>Leave Room</button>
+	  </div>
+
+		<div id="videos">
+	    <video id="localVideo" autoplay muted></video>
+	    <video id="remoteVideo" autoplay></video>
+	  </div>
+
+		<div id="audio">
+			<audio id="localAudio" autoplay></audio>
+	    <audio id="remoteAudio" autoplay></audio>
+	  </div>
+
+	  <script src="/socket.io/socket.io.js"></script>
+	  <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+	  <script src="connect.js"></script>
 		<script src="three.js"></script>
 		<script src="OrbitControls.js"></script>
 		<script src="3D.js"></script>
-		<script src="jitsiConference.js"></script>
-		
-		
-		
 	</body>
 </html>

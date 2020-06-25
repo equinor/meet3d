@@ -164,7 +164,6 @@ function handeler(){
 	scene.add(mesh);
 }*/
 
-
 //function to update frame
 function update(){  
 	renderer.render(scene, camera);
@@ -183,4 +182,3 @@ controls.maxDistance = 100;
 function nameChange(userer, newname){
 	userer.name = newname;
 }
-
