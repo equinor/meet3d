@@ -13,21 +13,24 @@
 		<h1>Realtime communication with WebRTC</h1>
 
 		<div>
-			<input type="text" id="roomName" placeholder="Enter a room name here!"></input>
-			<input type="button" id="start" onclick="init()" value="Open room"></input>
+			Username:
+			<input type="text" id="username" placeholder="Enter a username here!"></input>
 		</div>
 
-	  <div>
-	    <button id="leaveButton" onclick="leave()" hidden>Leave Room</button>
-	  </div>
+		<div>
+			Room name:
+			<input type="text" id="roomName" placeholder="Enter a room name here!"></input>
+			<input type="button" id="start" onclick="init()" value="Open room"></input>
+			<button id="leaveButton" onclick="leave()" hidden>Leave Room</button>
+		</div>
 
-		<div id="videos">
-	    <video id="localVideo" autoplay muted></video>
-	    <video id="remoteVideo" autoplay></video>
-	  </div>
+		<div id="users" hidden>
+			<p> Participants in the conference:</p>
+			<ul id="connectionList">
+			</ul>
+		</div>
 
 		<div id="audio">
-			<audio id="localAudio" autoplay></audio>
 	    <!-- Remote audio tracks are added here -->
 	  </div>
 

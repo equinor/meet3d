@@ -34,9 +34,9 @@ io.sockets.on('connection', function(socket) {
   }
 
   socket.on('message', function(message) {
-    //log('Client said: ', message);
-    // for a real app, would be room-only (not broadcast)
-    //io.sockets.in(users[socket.id].room).emit('message', message);
+
+    // Let's maybe use this for a chat later
+
   });
 
   socket.on('gotMedia', function() {
@@ -44,27 +44,17 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('offer', function(data) {
-    //let dataArray = data.split('&')
-    //users[dataArray[0]].socket.emit('offer', socket.id + '&' + dataArray[1])
-    console.log("\noffer")
-    console.log(data)
-    users[data.id].socket.emit('offer', {id: socket.id, offer: data.offer})
+
+    users[data.id].socket.emit('offer', {id: socket.id, offer: data.offer, name: data.name})
   });
 
   socket.on('answer', function(data) {
-    //let dataArray = data.split('&')
-    //{id: socket.id, offer: data.offer}
-    console.log("\nanswer")
-    console.log(data)
+
     users[data.id].socket.emit('answer', {id: socket.id, answer: data.answer})
   });
 
   socket.on('candidate', function(data) {
 
-    //let dataArray = data.split('&')
-    //users[data.id].socket.emit('offer', data.candidateData)
-    console.log("\ncandidate")
-    console.log(data)
     io.sockets.in(users[socket.id].room).emit('candidate', {id: socket.id, candidateData: data})
   });
 
@@ -79,7 +69,11 @@ io.sockets.on('connection', function(socket) {
     io.sockets.in(users[socket.id].room).emit('left', socket.id);
   })
 
-  socket.on('join/create', function(room) {
+  socket.on('join/create', function(startInfo) {
+
+    let room = startInfo.room;
+    let name = startInfo.name;
+
     log('Received request to create or join room ' + room);
 
     var clientsInRoom = io.sockets.adapter.rooms[room];
@@ -107,12 +101,12 @@ io.sockets.on('connection', function(socket) {
       socket.emit('joined', room + ':' + socket.id);
       //console.log('Client ID ' + socket.id + ' joined room ' + room);
 
-      io.sockets.in(room).emit('join', room + ":" + socket.id);
+      io.sockets.in(room).emit('join', {name: name, id: socket.id});
       socket.join(room);
 
       io.sockets.in(room).emit('ready');
     } else { // Someone tried to join a full room
-      socket.emit('full', room);
+      io.sockets.in(room).emit('full', room);
     }
   });
 
@@ -128,8 +122,7 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('pos', function(pos) {
-    // Format:  id:x:y:z
-    socket.broadcast.emit('pos', socket.id + ':' + pos);
+    io.sockets.in(users[socket.id].room).emit('pos', {id: socket.id, x: pos.x, y: pos.y, z: pos.z});
   });
 
 });
