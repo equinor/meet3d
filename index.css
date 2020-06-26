@@ -1,0 +1,32 @@
+* {
+  font-family: arial;
+}
+
+chat ul {
+  height:400px;
+  width:500px;
+  overflow-x: hidden;
+  list-style-type: none;
+  font-family: arial;
+  font-size: 14px;
+}
+
+chat ul li {
+  border-bottom: solid;
+  border-width: 1px;
+  list-style-type: none;
+  font-family: arial;
+  padding-bottom: 5px;
+  padding-top: 5px;
+  overflow-wrap: break-word;
+}
+
+chat {
+  border-style: groove;
+  margin-left: 50px;
+  background-color: #cccccc;
+}
+
+.users {
+  vertical-align: top;
+}

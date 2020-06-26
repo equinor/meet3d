@@ -6,6 +6,9 @@ var startButton = document.getElementById("start");
 var connectionList = document.getElementById("connectionList");
 var users = document.getElementById("users");
 var username = document.getElementById("username");
+var chatReceive = document.getElementById("chatReceive");
+var chatBox = document.getElementById("chatBox");
+var chatSend = document.getElementById("chatSend");
 
 username.addEventListener("keyup", function(event) {
     if (event.keyCode === 13) { // This is the 'enter' key-press
@@ -21,12 +24,20 @@ roomName.addEventListener("keyup", function(event) {
     }
   });
 
+chatSend.addEventListener("keyup", function(event) {
+    if (event.keyCode === 13) { // This is the 'enter' key-press
+      event.preventDefault();
+      sendChat()
+    }
+  });
+
 var localStream; // This is our local audio stream
 var turnReady;
 var room; // This is the name of our conference room
 var socket; // This is the SocketIO connection to the signalling server
 var ourID; // This is our unique ID
 var connections = {} // The key is the socket id, and the value is {name: username, stream: mediastream, connection: PeerConnection}
+const maxChatLength = 20; // The chat will only hold this many messages at a time
 
 var pcConfig = {
   'iceServers': [{
@@ -40,6 +51,7 @@ var sdpConstraints = {
   offerToReceiveVideo: true
 };
 
+// Our local media constraints
 var constraints = {
   audio: true
 };
@@ -59,13 +71,16 @@ function init() {
   room = roomName.value;
   username.readOnly = true;
   users.hidden = false;
+  users.style.display = "inline-block"
   roomName.readOnly = "readonly";
   startButton.hidden = true;
   leaveButton.hidden = false;
   connectionList.hidden = false;
+  chatBox.hidden = false;
+  chatBox.style.display = "inline-block";
   socket = io.connect();
 
-  if (room !== '') {
+  if (room !== '') { // Check that the room does not already exist
     let startInfo = {
       room: room, // The room we want to join
       name: username.value // Our username
@@ -74,17 +89,19 @@ function init() {
     console.log('Attempting to join ', room);
   }
 
-  socket.on('created', function(room) {
-    let connectionInfo = room.split(':')
-    console.log('Created room ' + connectionInfo[0]);
-    ourID = connectionInfo[1]
+  // We created and joined a room
+  socket.on('created', function(connectionInfo) {
+    console.log('Created room ' + connectionInfo.room);
+    ourID = connectionInfo.id;
   });
 
+  // The room we tried to join is full
   socket.on('full', function(room) {
     console.log('Room ' + room + ' is full');
     alert('Room ' + room + ' is full')
   });
 
+  // A new user joined the room
   socket.on('join', function (startInfo) {
     if (startInfo.id === ourID) {
       return
@@ -96,16 +113,18 @@ function init() {
     // Here we should call a 3D.js function which adds a new user to the 3D environment
   });
 
-  socket.on('joined', function(room) {
-    let connectionInfo = room.split(':')
-    console.log('joined: ' + connectionInfo[0]);
-    ourID = connectionInfo[1]
+  // We joined a conference
+  socket.on('joined', function(connectionInfo) {
+    console.log('We joined: ' + connectionInfo.room);
+    ourID = connectionInfo.id;
   });
 
+  // The server sent a log message
   socket.on('log', function(array) {
     console.log.apply(console, array);
   });
 
+  // A user moved in the 3D space
   socket.on('pos', function(data) {
     if (data.id === ourID) { // If we moved: do nothing
       return
@@ -113,6 +132,7 @@ function init() {
     // changeUserPosition(data.id, data.x, data.y, data.z) // Change position of user
   });
 
+  // A user left the conference
   socket.on('left', function(id) {
     console.log("User " + connections[id].name + " left")
     removeHTMLAudio(id)
@@ -120,13 +140,20 @@ function init() {
     delete connections[id]
   });
 
-  // This client receives a message
-  socket.on('message', function(message) {
-    console.log('Client received message:', message);
+  // Receiving a chat message
+  socket.on('chat', function(message) {
+    console.log(message)
+    let name;
+    if (message.id == ourID) {
+      name = username.value;
+    } else {
+      name = connections[message.id].name;
+    }
 
-    // We can use this SocketIO tag for a chat in the future
+    addChat(name, message.message);
   });
 
+  // A new user joins the conference and is ready to communicate
   socket.on('gotMedia', function(id) {
     if (id === ourID) return;
     sendOffer(id)
@@ -148,7 +175,6 @@ function init() {
   });
 
   socket.on('answer', function(message) {
-
     let id = message.id
     let answerDescription = message.answer
 
@@ -186,6 +212,7 @@ function init() {
   }
 }
 
+// Sends an offer to a new user with our local PeerConnection description
 function sendOffer(id) {
   console.log('>>>>>> Creating peer connection to user ' + connections[id].name);
   connections[id].connection = createPeerConnection(id);
@@ -205,6 +232,7 @@ function sendOffer(id) {
   });
 }
 
+// Sends a reply to an offer with our local PeerConnection description
 function sendAnswer(id, offerDescription) {
   if (connections[id].connection == undefined) {
     connections[id].connection = createPeerConnection(id);
@@ -229,11 +257,7 @@ function sendAnswer(id, offerDescription) {
   });
 }
 
-function sendMessage(message) {
-  console.log('Client sending message: ', message);
-  socket.emit('message', message);
-}
-
+// Function which tells other users our new 3D position
 function changePos(x, y, z) {
   socket.emit('pos', {x: x, y: y, z: z});
 }
@@ -257,8 +281,6 @@ function createPeerConnection(id) {
 
     pc = new RTCPeerConnection(null);
     pc.onicecandidate = handleIceCandidate;
-    //pc.onaddstream = handleRemoteStreamAdded;
-
     pc.onaddstream = function (event) {
       console.log('Remote stream added.');
       console.log(event)
@@ -275,17 +297,18 @@ function createPeerConnection(id) {
 
     //pc.ontrack = handleRemoteTrackAdded;
     pc.onremovestream = handleRemoteStreamRemoved;
+
     console.log('>>>>> Created RTCPeerConnnection');
+
   } catch (e) {
     console.log('Failed to create PeerConnection, exception: ' + e.message);
-    alert('Cannot create RTCPeerConnection object.');
+    alert('Cannot create RTCPeerConnection.');
     return;
   }
   return pc
 }
 
 function handleIceCandidate(event) {
-
   if (event.candidate) {
 
     socket.emit('candidate', {
@@ -299,6 +322,7 @@ function handleIceCandidate(event) {
   }
 }
 
+// Tries to find a TURN server
 function requestTurn(turnURL) {
   var turnExists = false;
   for (var i in pcConfig.iceServers) {
@@ -327,22 +351,6 @@ function requestTurn(turnURL) {
     xhr.send();
   }
 }
-
-/*
-function handleRemoteStreamAdded(event) {
-  console.log('Remote stream added.');
-  console.log(event)
-  remoteStream = event.stream;
-
-  let newAudioNode = document.createElement("audio")
-  newAudioNode.srcObject = remoteStream
-  newAudioNode.id = remoteStream.id
-  newAudioNode.autoplay = true
-  document.getElementById("audio").appendChild(newAudioNode)
-
-  // This is where we want to pipe the audio into a 3D.js user object
-}
-*/
 
 function handleRemoteStreamRemoved(event) {
   console.log('Remote stream removed. Event: ', event);
@@ -388,14 +396,37 @@ function removeConnectionHTMLList(id) {
   }
 }
 
+function addChat(name, message) {
+  let newMessage = document.createElement("li")
+  newMessage.innerHTML = name + ': ' + message;
+  chatReceive.appendChild(newMessage)
+  if (chatReceive.children.length > maxChatLength) {
+    chatReceive.removeChild(chatReceive.childNodes[0]); // Limits the number of messages
+  }
+
+  chatReceive.scrollTop = chatReceive.scrollHeight; // Maintains the scroll at the bottom
+}
+
+function sendChat() {
+
+  if (chatSend.value == '') return;
+
+  socket.emit('chat', chatSend.value);
+
+  chatSend.value = '';
+}
+
 function leave() {
 
   roomName.readOnly = false;
   username.readOnly = false;
   startButton.hidden = false;
   leaveButton.hidden = true;
+  chatBox.hidden = true;
+  chatBox.style.display = "none";
   localStream = null;
   users.hidden = true;
+  users.style.display = "none"
   connectionList.innerHTML = '';
   for (let id in connections) {
     connections[id].connection.close()

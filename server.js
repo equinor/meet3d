@@ -33,10 +33,8 @@ io.sockets.on('connection', function(socket) {
     socket.emit('log', array);
   }
 
-  socket.on('message', function(message) {
-
-    // Let's maybe use this for a chat later
-
+  socket.on('chat', function(message) {
+    io.sockets.in(users[socket.id].room).emit('chat', {id: socket.id, message: message})
   });
 
   socket.on('gotMedia', function() {
@@ -44,17 +42,14 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('offer', function(data) {
-
     users[data.id].socket.emit('offer', {id: socket.id, offer: data.offer, name: data.name})
   });
 
   socket.on('answer', function(data) {
-
     users[data.id].socket.emit('answer', {id: socket.id, answer: data.answer})
   });
 
   socket.on('candidate', function(data) {
-
     io.sockets.in(users[socket.id].room).emit('candidate', {id: socket.id, candidateData: data})
   });
 
@@ -90,7 +85,7 @@ io.sockets.on('connection', function(socket) {
       log('Client ID ' + socket.id + ' created room ' + room);
       //console.log('Client ID ' + socket.id + ' created room ' + room);
 
-      socket.emit('created', room + ':' + socket.id);
+      socket.emit('created', {room: room, id: socket.id});
 
     } else if (numClients > 0 && numClients < maxUsers) { // Room joined
       log('Client ID ' + socket.id + ' joined room ' + room);
@@ -98,7 +93,7 @@ io.sockets.on('connection', function(socket) {
       rooms[room].push(socket)
       users[socket.id] = new User(room, socket)
 
-      socket.emit('joined', room + ':' + socket.id);
+      socket.emit('joined', {room: room, id: socket.id});
       //console.log('Client ID ' + socket.id + ' joined room ' + room);
 
       io.sockets.in(room).emit('join', {name: name, id: socket.id});
