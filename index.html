@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html>
 	<head>
-		<link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon"> 
+		<link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon">
 		<title>3D Conference</title>
 		<meta charset="UTF-8" />
+		<link rel="stylesheet" href="index.css">
 		<style>
 			body { margin: 0; }
 			canvas { display: block; }
@@ -13,29 +14,40 @@
 		<h1>Realtime communication with WebRTC</h1>
 
 		<div>
-			<input type="text" id="roomName" placeholder="Enter a room name here!"></input>
-			<input type="button" id="start" onclick="init()" value="Open room"></input>
+			Username:
+			<input type="text" id="username" placeholder="Enter a username here!"></input>
 		</div>
 
-	  <div>
-	    <button id="leaveButton" onclick="leave()" hidden>Leave Room</button>
-	  </div>
-
-		<div id="videos">
-	    <video id="localVideo" autoplay muted></video>
-	    <video id="remoteVideo" autoplay></video>
-	  </div>
+		<div>
+			Room name:
+			<input type="text" id="roomName" placeholder="Enter a room name here!"></input>
+			<input type="button" id="start" onclick="init()" value="Open room"></input>
+			<button id="leaveButton" onclick="leave()" hidden>Leave Room</button>
+		</div>
 
 		<div id="audio">
-			<audio id="localAudio" autoplay></audio>
-	    <audio id="remoteAudio" autoplay></audio>
+	    <!-- Remote audio tracks are added here -->
 	  </div>
+
+		</br>
+
+		<chat id="chatBox" hidden>
+			<ul id="chatReceive">
+				<!-- New chat messages go here -->
+			</ul>
+			<input type="text" id="chatSend" style="width:490px;" placeholder="Type a message here!"></input>
+			<input type="button" onclick="sendChat()" value="Send"></input>
+		</chat>
+
+		<div class="users" id="users" hidden>
+			<p> Other users in the room:</p>
+			<ul id="connectionList">
+			</ul>
+		</div>
 
 	  <script src="/socket.io/socket.io.js"></script>
 	  <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
 	  <script src="connect.js"></script>
 		<script src="three.js"></script>
-		<script src="OrbitControls.js"></script>
-		<script src="3D.js"></script>
 	</body>
 </html>

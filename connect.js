@@ -1,12 +1,21 @@
 'use strict';
 
 var roomName = document.getElementById("roomName");
-var localVideo = document.getElementById("localVideo");
-var localAudio = document.getElementById("localAudio");
-var remoteVideo = document.getElementById("remoteVideo");
-var remoteAudio = document.getElementById("remoteAudio");
 var leaveRoom = document.getElementById("leaveButton");
 var startButton = document.getElementById("start");
+var connectionList = document.getElementById("connectionList");
+var users = document.getElementById("users");
+var username = document.getElementById("username");
+var chatReceive = document.getElementById("chatReceive");
+var chatBox = document.getElementById("chatBox");
+var chatSend = document.getElementById("chatSend");
+
+username.addEventListener("keyup", function(event) {
+    if (event.keyCode === 13) { // This is the 'enter' key-press
+      event.preventDefault();
+      init()
+    }
+  });
 
 roomName.addEventListener("keyup", function(event) {
     if (event.keyCode === 13) { // This is the 'enter' key-press
@@ -15,18 +24,20 @@ roomName.addEventListener("keyup", function(event) {
     }
   });
 
-var isChannelReady = false;
-var isInitiator = false;
-var isStarted = false;
-var localStream;
-var pc;
-var remoteStream;
-var remoteTrack;
+chatSend.addEventListener("keyup", function(event) {
+    if (event.keyCode === 13) { // This is the 'enter' key-press
+      event.preventDefault();
+      sendChat()
+    }
+  });
+
+var localStream; // This is our local audio stream
 var turnReady;
-var room;
-var socket;
-var ourID;
-var userIDs = [];
+var room; // This is the name of our conference room
+var socket; // This is the SocketIO connection to the signalling server
+var ourID; // This is our unique ID
+var connections = {} // The key is the socket id, and the value is {name: username, stream: mediastream, connection: PeerConnection}
+const maxChatLength = 20; // The chat will only hold this many messages at a time
 
 var pcConfig = {
   'iceServers': [{
@@ -40,100 +51,150 @@ var sdpConstraints = {
   offerToReceiveVideo: true
 };
 
+// Our local media constraints
 var constraints = {
-  vaudio: true
+  audio: true
 };
 
 function init() {
 
-  if (roomName.value === '' || room) {
+  if (username.value === '') {
+    alert('Please enter a username')
+    return
+  }
+
+  if (roomName.value === '') {
     alert('Please enter a room name')
     return
   }
 
   room = roomName.value;
-  roomName.hidden = true;
+  username.readOnly = true;
+  users.hidden = false;
+  users.style.display = "inline-block"
+  roomName.readOnly = "readonly";
   startButton.hidden = true;
   leaveButton.hidden = false;
+  connectionList.hidden = false;
+  chatBox.hidden = false;
+  chatBox.style.display = "inline-block";
   socket = io.connect();
 
-  if (room !== '') {
-    socket.emit('join/create', room);
-    console.log('Attempted to create or  join room', room);
+  if (room !== '') { // Check that the room does not already exist
+    let startInfo = {
+      room: room, // The room we want to join
+      name: username.value // Our username
+    }
+    socket.emit('join/create', startInfo);
+    console.log('Attempting to join ', room);
   }
 
-  socket.on('created', function(room) {
-    let connectionInfo = room.split(':')
-    console.log('Created room ' + connectionInfo[0]);
-    ourID = connectionInfo[1]
-    isInitiator = true;
+  // We created and joined a room
+  socket.on('created', function(connectionInfo) {
+    console.log('Created room ' + connectionInfo.room);
+    ourID = connectionInfo.id;
   });
 
+  // The room we tried to join is full
   socket.on('full', function(room) {
     console.log('Room ' + room + ' is full');
+    alert('Room ' + room + ' is full')
   });
 
-  socket.on('join', function (room) {
-    let connectionInfo = room.split(':')
-    if (connectionInfo[1] === ourID) {
+  // A new user joined the room
+  socket.on('join', function (startInfo) {
+    if (startInfo.id === ourID) {
       return
     }
-    console.log('User ', connectionInfo[1], ' joined room ', connectionInfo[0])
-    userIDs.push(connectionInfo[1])
-    isChannelReady = true;
+    connections[startInfo.id] = {}
+    connections[startInfo.id].name = startInfo.name
+    console.log('User ', startInfo.name, ' joined room ', room)
 
     // Here we should call a 3D.js function which adds a new user to the 3D environment
   });
 
-  socket.on('joined', function(room) {
-    let connectionInfo = room.split(':')
-    console.log('joined: ' + connectionInfo[0]);
-    ourID = connectionInfo[1]
-    isChannelReady = true;
+  // We joined a conference
+  socket.on('joined', function(connectionInfo) {
+    console.log('We joined: ' + connectionInfo.room);
+    ourID = connectionInfo.id;
   });
 
+  // The server sent a log message
   socket.on('log', function(array) {
     console.log.apply(console, array);
   });
 
+  // A user moved in the 3D space
   socket.on('pos', function(data) {
-    let dataArray = data.split(':')
-    if (dataArray[0] === ourID) { // If we moved: do nothing
+    if (data.id === ourID) { // If we moved: do nothing
       return
     }
-    // changeUserPosition(dataArray[0], dataArray[1]) // Change position of user
+    // changeUserPosition(data.id, data.x, data.y, data.z) // Change position of user
   });
 
-  socket.on('left', function(user) {
-    const index = userIDs.indexOf(user);
-    if (index > -1) {
-      userIDs.splice(index, 1);
-    }
-    console.log("User " + user + " left")
+  // A user left the conference
+  socket.on('left', function(id) {
+    console.log("User " + connections[id].name + " left")
+    removeHTMLAudio(id)
+    removeConnectionHTMLList(id)
+    delete connections[id]
   });
 
-  // This client receives a message
-  socket.on('message', function(message) {
-    console.log('Client received message:', message);
-    if (message === 'got user media') {
-      tryConnect();
-    } else if (message.type === 'offer') {
-      if (!isInitiator && !isStarted) {
-        tryConnect();
-      }
-      pc.setRemoteDescription(new RTCSessionDescription(message));
-      doAnswer();
-    } else if (message.type === 'answer' && isStarted) {
-      pc.setRemoteDescription(new RTCSessionDescription(message));
-    } else if (message.type === 'candidate' && isStarted) {
-      var candidate = new RTCIceCandidate({
-        sdpMLineIndex: message.label,
-        candidate: message.candidate
-      });
-      pc.addIceCandidate(candidate);
-    } else if (message === 'bye' && isStarted) {
-      handleRemoteHangup();
+  // Receiving a chat message
+  socket.on('chat', function(message) {
+    console.log(message)
+    let name;
+    if (message.id == ourID) {
+      name = username.value;
+    } else {
+      name = connections[message.id].name;
     }
+
+    addChat(name, message.message);
+  });
+
+  // A new user joins the conference and is ready to communicate
+  socket.on('gotMedia', function(id) {
+    if (id === ourID) return;
+    sendOffer(id)
+  });
+
+  socket.on('offer', function(message) {
+
+    let id = message.id
+    let name = message.name
+    let offerDescription = message.offer
+
+    if (id === ourID) return;
+
+    connections[id] = {}
+    connections[id].name = name
+    sendAnswer(id, offerDescription)
+
+    appendConnectionHTMLList(id)
+  });
+
+  socket.on('answer', function(message) {
+    let id = message.id
+    let answerDescription = message.answer
+
+    if (id === ourID) return;
+    connections[id].connection.setRemoteDescription(new RTCSessionDescription(answerDescription));
+
+    appendConnectionHTMLList(id)
+  });
+
+  socket.on('candidate', function(message) {
+
+    let id = message.id
+    let answerDescription = message.candidateData
+    if (id === ourID) return;
+
+    var candidate = new RTCIceCandidate({
+      sdpMLineIndex: answerDescription.label,
+      candidate: answerDescription.candidate
+    });
+    connections[id].connection.addIceCandidate(candidate);
   });
 
   navigator.mediaDevices.getUserMedia({
@@ -151,61 +212,106 @@ function init() {
   }
 }
 
-function sendMessage(message) {
-  console.log('Client sending message: ', message);
-  socket.emit('message', message);
+// Sends an offer to a new user with our local PeerConnection description
+function sendOffer(id) {
+  console.log('>>>>>> Creating peer connection to user ' + connections[id].name);
+  connections[id].connection = createPeerConnection(id);
+  connections[id].connection.addStream(localStream);
+
+  connections[id].connection.createOffer().then(function(description) {
+    connections[id].connection.setLocalDescription(description);
+    socket.emit('offer', {
+      id: id,
+      name: username.value,
+      offer: description
+    });
+
+  }, function (e) {
+    console.log("Failed to create offer: " + e)
+    return
+  });
 }
 
+// Sends a reply to an offer with our local PeerConnection description
+function sendAnswer(id, offerDescription) {
+  if (connections[id].connection == undefined) {
+    connections[id].connection = createPeerConnection(id);
+    connections[id].connection.addStream(localStream);
+  } else if (connections[id].signalingState == "stable") {
+    return
+  }
+
+  console.log('>>>>>> Sending answer to connection to user ' + connections[id].name);
+
+  connections[id].connection.setRemoteDescription(new RTCSessionDescription(offerDescription));
+
+  connections[id].connection.createAnswer().then(function(description) {
+    connections[id].connection.setLocalDescription(description);
+    socket.emit('answer', {
+      id: id,
+      answer: description
+    });
+  }, function (e) {
+    console.log("Failed to create answer: " + e)
+    return
+  });
+}
+
+// Function which tells other users our new 3D position
 function changePos(x, y, z) {
-  socket.emit('pos', x + ':' + y + ':' + z);
+  socket.emit('pos', {x: x, y: y, z: z});
 }
 
 function gotStream(stream) {
   console.log('Adding local stream.');
   localStream = stream;
-  localVideo.srcObject = stream;
+  //localVideo.srcObject = stream; // We are not using video for now
   //localAudio.srcObject = stream; // Do not repeat our sound for now
 
-  sendMessage('got user media');
-  if (isInitiator) {
-    console.log("Initiating room")
-    tryConnect();
-  }
+  socket.emit('gotMedia');
 }
 
-function tryConnect() {
-  console.log('>>>>>>> tryConnect() ', isStarted, localStream, isChannelReady);
-  if (!isStarted && typeof localStream !== 'undefined' && isChannelReady) {
-    console.log('>>>>>> creating peer connection');
-    createPeerConnection();
-    pc.addStream(localStream);
-    isStarted = true;
-    console.log('isInitiator', isInitiator);
-    if (isInitiator) {
-      doCall();
-    }
-  }
-}
+function createPeerConnection(id) {
+  let pc;
 
-function createPeerConnection() {
   try {
+    if (connections[id] == undefined) {
+      connections[id] = {}
+    }
+
     pc = new RTCPeerConnection(null);
     pc.onicecandidate = handleIceCandidate;
-    pc.onaddstream = handleRemoteStreamAdded;
+    pc.onaddstream = function (event) {
+      console.log('Remote stream added.');
+      console.log(event)
+      connections[id].audio = event.stream
+
+      let newAudioNode = document.createElement("audio")
+      newAudioNode.srcObject = event.stream
+      newAudioNode.id = id
+      newAudioNode.autoplay = true
+      document.getElementById("audio").appendChild(newAudioNode)
+
+      // This is where we want to pipe the audio into a 3D.js user object
+    }
+
     //pc.ontrack = handleRemoteTrackAdded;
     pc.onremovestream = handleRemoteStreamRemoved;
-    console.log('Created RTCPeerConnnection');
+
+    console.log('>>>>> Created RTCPeerConnnection');
+
   } catch (e) {
     console.log('Failed to create PeerConnection, exception: ' + e.message);
-    alert('Cannot create RTCPeerConnection object.');
+    alert('Cannot create RTCPeerConnection.');
     return;
   }
+  return pc
 }
 
 function handleIceCandidate(event) {
-  console.log('icecandidate event: ', event);
   if (event.candidate) {
-    sendMessage({
+
+    socket.emit('candidate', {
       type: 'candidate',
       label: event.candidate.sdpMLineIndex,
       id: event.candidate.sdpMid,
@@ -216,33 +322,7 @@ function handleIceCandidate(event) {
   }
 }
 
-function handleCreateOfferError(event) {
-  console.log('createOffer() error: ', event);
-}
-
-function doCall() {
-  console.log('Sending offer to peer');
-  pc.createOffer(setLocalAndSendMessage, handleCreateOfferError);
-}
-
-function doAnswer() {
-  console.log('Sending answer to peer.');
-  pc.createAnswer().then(
-    setLocalAndSendMessage,
-    onCreateSessionDescriptionError
-  );
-}
-
-function setLocalAndSendMessage(sessionDescription) {
-  pc.setLocalDescription(sessionDescription);
-  console.log('setLocalAndSendMessage sending message', sessionDescription);
-  sendMessage(sessionDescription);
-}
-
-function onCreateSessionDescriptionError(error) {
-  trace('Failed to create session description: ' + error.toString());
-}
-
+// Tries to find a TURN server
 function requestTurn(turnURL) {
   var turnExists = false;
   for (var i in pcConfig.iceServers) {
@@ -272,17 +352,26 @@ function requestTurn(turnURL) {
   }
 }
 
-function handleRemoteStreamAdded(event) {
-  console.log('Remote stream added2.');
-  remoteStream = event.stream;
-  //remoteVideo.srcObject = remoteStream;
-  remoteAudio.srcObject = remoteStream;
-
-  // This is where we want to pipe the audio into a 3D.js user object
-}
-
 function handleRemoteStreamRemoved(event) {
   console.log('Remote stream removed. Event: ', event);
+
+  let children = document.getElementById("audio").children
+  for (let i = 0; i < children.length; i++) {
+    if (children[i].srcObject.id == event.stream.id) {
+      document.getElementById("audio").removeChild(children[i])
+      return
+    }
+  }
+}
+
+function removeHTMLAudio(id) {
+  let children = document.getElementById("audio").children
+  for (let i = 0; i < children.length; i++) {
+    if (children[i].id == id) {
+      document.getElementById("audio").removeChild(children[i])
+      return
+    }
+  }
 }
 
 function handleRemoteHangup() {
@@ -290,27 +379,64 @@ function handleRemoteHangup() {
   leave();
 }
 
+function appendConnectionHTMLList(id) {
+  let item = document.createElement("li")
+  item.id = id;
+  item.innerHTML = connections[id].name;
+  connectionList.appendChild(item)
+}
+
+function removeConnectionHTMLList(id) {
+  let children = connectionList.children
+  for (let i = 0; i < children.length; i++) {
+    if (children[i].id == id) {
+      connectionList.removeChild(children[i])
+      return
+    }
+  }
+}
+
+function addChat(name, message) {
+  let newMessage = document.createElement("li")
+  newMessage.innerHTML = name + ': ' + message;
+  chatReceive.appendChild(newMessage)
+  if (chatReceive.children.length > maxChatLength) {
+    chatReceive.removeChild(chatReceive.childNodes[0]); // Limits the number of messages
+  }
+
+  chatReceive.scrollTop = chatReceive.scrollHeight; // Maintains the scroll at the bottom
+}
+
+function sendChat() {
+
+  if (chatSend.value == '') return;
+
+  socket.emit('chat', chatSend.value);
+
+  chatSend.value = '';
+}
+
 function leave() {
 
-  isStarted = false;
-  roomName.hidden = false;
+  roomName.readOnly = false;
+  username.readOnly = false;
   startButton.hidden = false;
   leaveButton.hidden = true;
-  isInitiator = false;
-  remoteStream = null;
-  remoteTrack = null;
+  chatBox.hidden = true;
+  chatBox.style.display = "none";
   localStream = null;
-  isChannelReady = false;
-  userIDs = [];
+  users.hidden = true;
+  users.style.display = "none"
+  connectionList.innerHTML = '';
+  for (let id in connections) {
+    connections[id].connection.close()
+  }
+  connections = {}
 
   stop();
 
   if (room) {
     socket.emit('left');
     room = null;
-  }
-  if (pc !== undefined) {
-    pc.close();
-    pc = null;
   }
 }
