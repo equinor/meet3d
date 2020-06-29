@@ -1,12 +1,5 @@
 'use strict';
 
-// https://codelabs.developers.google.com/codelabs/webrtc-web/#6
-
-const maxUsers = 5
-var rooms = {}
-
-var users = {}
-
 var os = require('os');
 var nodeStatic = require('node-static');
 var http = require('http');
@@ -17,21 +10,12 @@ var app = http.createServer(function(req, res) {
   fileServer.serve(req, res);
 }).listen(8080);
 
-function addRoom(firstUser) {
-  let users = []
-  users.push(firstUser)
-  rooms.push(users)
-}
+const maxUsers = 5
+var rooms = {}
+var users = {}
 
 var io = socketIO.listen(app);
 io.sockets.on('connection', function(socket) {
-
-  // convenience function to log server messages on the client
-  function log() {
-    var array = ['Message from server:'];
-    array.push.apply(array, arguments);
-    socket.emit('log', array);
-  }
 
   socket.on('chat', function(message) {
     io.sockets.in(users[socket.id].room).emit('chat', {id: socket.id, message: message})
@@ -53,14 +37,16 @@ io.sockets.on('connection', function(socket) {
     io.sockets.in(users[socket.id].room).emit('candidate', {id: socket.id, candidateData: data})
   });
 
+  socket.on('pos', function(pos) {
+    io.sockets.in(users[socket.id].room).emit('pos', {id: socket.id, x: pos.x, y: pos.y, z: pos.z});
+  });
+
   socket.on('disconnect', function() {
-    // io.emit('user disconnected');
     if (users[socket.id] !== undefined)
       io.sockets.in(users[socket.id].room).emit('left', socket.id);
   });
 
   socket.on('left', function() {
-    log('User ' + socket.id + " is leaving");
     io.sockets.in(users[socket.id].room).emit('left', socket.id);
   })
 
@@ -69,11 +55,8 @@ io.sockets.on('connection', function(socket) {
     let room = startInfo.room;
     let name = startInfo.name;
 
-    log('Received request to create or join room ' + room);
-
     var clientsInRoom = io.sockets.adapter.rooms[room];
     var numClients = clientsInRoom ? Object.keys(clientsInRoom.sockets).length : 0;
-    log('Room ' + room + ' now has ' + numClients + ' client(s)');
 
     if (numClients === 0) { // Room created
 
@@ -82,19 +65,15 @@ io.sockets.on('connection', function(socket) {
       users[socket.id] = new User(room, socket)
 
       socket.join(room);
-      log('Client ID ' + socket.id + ' created room ' + room);
-      //console.log('Client ID ' + socket.id + ' created room ' + room);
 
       socket.emit('created', {room: room, id: socket.id});
 
     } else if (numClients > 0 && numClients < maxUsers) { // Room joined
-      log('Client ID ' + socket.id + ' joined room ' + room);
 
       rooms[room].push(socket)
       users[socket.id] = new User(room, socket)
 
       socket.emit('joined', {room: room, id: socket.id});
-      //console.log('Client ID ' + socket.id + ' joined room ' + room);
 
       io.sockets.in(room).emit('join', {name: name, id: socket.id});
       socket.join(room);
@@ -114,10 +93,6 @@ io.sockets.on('connection', function(socket) {
         }
       });
     }
-  });
-
-  socket.on('pos', function(pos) {
-    io.sockets.in(users[socket.id].room).emit('pos', {id: socket.id, x: pos.x, y: pos.y, z: pos.z});
   });
 
 });

@@ -9,13 +9,13 @@ chat ul {
   list-style-type: none;
   font-family: arial;
   font-size: 14px;
+  padding: 10px;
 }
 
 chat ul li {
   border-bottom: solid;
   border-width: 1px;
   list-style-type: none;
-  font-family: arial;
   padding-bottom: 5px;
   padding-top: 5px;
   overflow-wrap: break-word;
@@ -29,4 +29,20 @@ chat {
 
 .users {
   vertical-align: top;
+  height:400px;
+  width:300px;
+  border-style: groove;
+  background-color: #80b3ff;
+}
+
+.users ul {
+  list-style-type: none;
+  padding-left: 15px;
+}
+
+.users ul li {
+  border-bottom: solid;
+  border-width: 1px;
+  list-style-type: none;
+  padding-bottom: 5px;
 }
