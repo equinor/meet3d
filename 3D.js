@@ -13,6 +13,8 @@ var userCount = 0;
 
 const distance = 15;
 
+var listener;
+
 function init3D() {
 	scene = new THREE.Scene();
 	camera = new THREE.PerspectiveCamera(100, window.innerWidth / window.outerWidth, 0.1, 1000);
@@ -31,6 +33,7 @@ function init3D() {
 	var floor = new THREE.Mesh(
 		new THREE.PlaneGeometry(100,100,100),
 		new THREE.MeshBasicMaterial({color : "skyblue", wireframe :true})
+	
 	);
 
 	floor.rotation.x += Math.PI / 2; //can rotate the floor/plane
@@ -60,6 +63,11 @@ function init3D() {
 
 	document.addEventListener("keydown", onDocumentKeyDown, false);
 	document.addEventListener("keyup", onDocumentKeyUp, false);
+
+
+	listener = new THREE.AudioListener();
+	findUser(myID).object.add(listener);
+	
 }
 
 //function to add a user to the UsersMap
@@ -91,10 +99,28 @@ function changeUserPosition(id, x, y, z) {
 	findUser(id).setPosition(x, y, z);
 }
 
-function userGotMedia(id, media) {
-	findUser(id).setMedia(media)
-	// Here we also want to connect the media to the PositionalAudio object
+function userGotMedia(id, mediaStream) {
+	findUser(id).setMedia(mediaStream);
+	var posAudio = new THREE.PositionalAudio(listener);
+	posAudio.setRefDistance(5);
+	posAudio.setDirectionalCone(180,320,0.1);
+	posAudio.setRolloffFactor(10);
+	const audio1 = posAudio.context.createMediaStreamSource(mediaStream);
+
+	try{
+		posAudio.setNodeSource(audio1);
+		findUser(id).object.add(posAudio)
+	}
+	catch(err){
+		console.log(err);
+
+	};
+	
+		
 }
+	
+	// Here we also want to connect the media to the PositionalAudio object
+
 
 function userLeft(id) {
 	if (removeUser(id)) {
