@@ -34,7 +34,8 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('candidate', function(data) {
-    io.sockets.in(users[socket.id].room).emit('candidate', {id: socket.id, candidateData: data})
+    //io.sockets.in(users[socket.id].room).emit('candidate', {id: socket.id, candidateData: data})
+    users[data.id].socket.emit('candidate', {id: socket.id, candidateData: data.info})
   });
 
   socket.on('pos', function(pos) {

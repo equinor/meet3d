@@ -79,6 +79,8 @@ function init() {
   chatBox.style.display = "inline-block";
   socket = io.connect();
 
+  init3D(); // Renders the 3D environment
+
   if (room !== '') { // Check that the room does not already exist
     let startInfo = {
       room: room, // The room we want to join
@@ -109,7 +111,7 @@ function init() {
     connections[startInfo.id].name = startInfo.name
     console.log('User ', startInfo.name, ' joined room ', room)
 
-    // Here we should call a 3D.js function which adds a new user to the 3D environment
+    newUserJoined(startInfo.id, startInfo.name) // Add new user to 3D environment
   });
 
   // We joined a conference
@@ -128,7 +130,7 @@ function init() {
     if (data.id === ourID) { // If we moved: do nothing
       return
     }
-    // changeUserPosition(data.id, data.x, data.y, data.z) // Change position of user
+    changeUserPosition(data.id, data.x, data.y, data.z) // Change position of user
   });
 
   // A user left the conference
@@ -136,11 +138,13 @@ function init() {
     console.log("User " + connections[id].name + " left")
     removeHTMLAudio(id)
     removeConnectionHTMLList(id)
+    userLeft(id) // Removes the user from the 3D environment
     delete connections[id]
   });
 
   // Receiving a chat message
   socket.on('chat', function(message) {
+    console.log(message)
     let name;
     if (message.id == ourID) {
       name = username.value;
@@ -157,8 +161,8 @@ function init() {
     sendOffer(id)
   });
 
+  // We have received a PeerConnection offer
   socket.on('offer', function(message) {
-
     let id = message.id
     let name = message.name
     let offerDescription = message.offer
@@ -168,10 +172,11 @@ function init() {
     connections[id] = {}
     connections[id].name = name
     sendAnswer(id, offerDescription)
-
     appendConnectionHTMLList(id)
+    newUserJoined(id, name) // Add new user to 3D environment
   });
 
+  // We have received an answer to our PeerConnection offer
   socket.on('answer', function(message) {
     let id = message.id
     let answerDescription = message.answer
@@ -182,6 +187,7 @@ function init() {
     appendConnectionHTMLList(id)
   });
 
+  // We have received an ICE candidate from a user we are connecting to
   socket.on('candidate', function(message) {
 
     let id = message.id
@@ -195,23 +201,19 @@ function init() {
     connections[id].connection.addIceCandidate(candidate);
   });
 
-  // ===========================================================================
+  // Gets the audio stream from our microphone
   navigator.mediaDevices.getUserMedia({
     audio: true,
     video: false
-  }).then(gotStream).catch(function(e) {
+  }).then(gotLocalStream).catch(function(e) {
     console.log(e)
     alert('getUserMedia() error: ' + e.name);
   });
 
-  console.log('Getting user media with constraints', constraints);
-
   if (location.hostname !== 'localhost') { // If we are not hosting locally
     requestTurn('https://computeengineondemand.appspot.com/turn?username=41784574&key=4080218913');
   }
-  // ===========================================================================
 }
-
 
 // Sends an offer to a new user with our local PeerConnection description
 function sendOffer(id) {
@@ -263,17 +265,14 @@ function changePos(x, y, z) {
   socket.emit('pos', {x: x, y: y, z: z});
 }
 
-// Called when we have initialised a local stream
-function gotStream(stream) {
+// Called when we have got a local media stream
+function gotLocalStream(stream) {
   console.log('Adding local stream.');
   localStream = stream;
   //localVideo.srcObject = stream; // We are not using video for now
-  //localAudio.srcObject = stream; // Do not repeat our sound for now
-
   socket.emit('gotMedia');
 }
 
-// Creates a peer connection to the user with the given id
 function createPeerConnection(id) {
   let pc;
 
@@ -283,20 +282,27 @@ function createPeerConnection(id) {
     }
 
     pc = new RTCPeerConnection(null);
-    pc.onicecandidate = handleIceCandidate;
+    pc.onicecandidate = function (event) {
+      if (event.candidate) {
+        socket.emit('candidate', {
+          id: id,
+          info: {
+            type: 'candidate',
+            label: event.candidate.sdpMLineIndex,
+            id: event.candidate.sdpMid,
+            candidate: event.candidate.candidate
+          }
+        });
+      } else {
+        console.log('End of candidates.');
+      }
+    };
     pc.ontrack = function (event) {
       console.log('Remote stream added.');
       console.log(event)
       connections[id].audio = event.streams[0] // TODO: verify that this will always be zero
-
-      let newAudioNode = document.createElement("audio")
-      newAudioNode.srcObject = event.streams[0] // TODO: verify that this will always be zero
-      newAudioNode.id = id
-      newAudioNode.autoplay = true
-      document.getElementById("audio").appendChild(newAudioNode)
-
-      // This is where we want to pipe the audio into a 3D.js user object
-    }
+      userGotMedia(id, event.streams[0]) // Adds track to 3D environment
+    };
     pc.onremovestream = handleRemoteStreamRemoved;
     pc.ondatachannel = function (event) {
       console.log("received data channel event")
@@ -311,18 +317,18 @@ function createPeerConnection(id) {
       });
 
       event.channel.addEventListener("message", (event) => {
-        dataChannelReceive(id, event.data)
+        dataChannelReceive(id, event.data) // Called when we receive a DataChannel message
       });
-    }
+    };
 
-    console.log('>>>>> Created RTCPeerConnnection to user ' + connections[id].name);
+    console.log('>>>>> Created RTCPeerConnnection');
 
   } catch (e) {
     console.log('Failed to create PeerConnection, exception: ' + e.message);
     alert('Cannot create RTCPeerConnection.');
     return;
   }
-  return pc
+  return pc;
 }
 
 // Creates a new data channel to the user with the given id
@@ -340,6 +346,7 @@ function initialiseDataChannel(id) {
   });
 }
 
+// Transmit
 function handleIceCandidate(event) {
   if (event.candidate) {
 
@@ -392,7 +399,6 @@ function handleRemoteStreamRemoved(event) {
   }
 }
 
-// Removes HTML audio object corresponding to the stream that was removed based on a user ID
 function removeHTMLAudio(id) {
   let children = document.getElementById("audio").children
   for (let i = 0; i < children.length; i++) {
@@ -453,7 +459,6 @@ function sendChat() {
   for (let id in connections) {
     connections[id].dataChannel.send(chatSend.value)
   }
-
   */
 
   chatSend.value = '';
@@ -474,9 +479,10 @@ function leave() {
   connectionList.innerHTML = '';
   for (let id in connections) {
     connections[id].connection.close()
-    connections[id].dataChannel.close()
   }
   connections = {}
+
+  // Here we also need to close the 3D environment!
 
   stop();
 
