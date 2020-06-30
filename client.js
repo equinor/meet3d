@@ -129,7 +129,7 @@ function init() {
     if (data.id === ourID) { // If we moved: do nothing
       return
     }
-    // changeUserPosition(data.id, data.x, data.y, data.z) // Change position of user
+    changeUserPosition(data.id, data.x, data.y, data.z) // Change position of user
   });
 
   // A user left the conference
@@ -171,7 +171,6 @@ function init() {
     connections[id] = {}
     connections[id].name = name
     sendAnswer(id, offerDescription)
-
     appendConnectionHTMLList(id)
     newUserJoined(id, name) // Add new user to 3D environment
   });

@@ -54,6 +54,7 @@ function init3D() {
 	controls = new THREE.OrbitControls( camera, renderer.domElement );
 	controls.minDistance = 1;
 	controls.maxDistance = 100;
+	controls.maxPolarAngle = Math.PI * 0.5; // Does not let you clip through the floor
 
 	myID = new user(0, "test", 10, 10, 0).getId();
 
@@ -80,9 +81,14 @@ function findUser(id){
 var UserMap = new Map();
 
 function newUserJoined(id, name) {
-	let newUser = new user(id, name, 0, distance * userCount, distance * userCount); // This does not look great at the moment
+	console.log("Adding new user to the environment: " + name)
+	let newUser = new user(id, name, distance * userCount, distance * userCount, 0); // This does not look great at the moment
 	addToUserMap(newUser);
 	userCount++
+}
+
+function changeUserPosition(id, x, y, z) {
+	findUser(id).setPosition(x, y, z);
 }
 
 function userGotMedia(id, media) {
@@ -109,18 +115,18 @@ var makeNewObject = function(xPosition, yPosition, zPosition){
 
 //A user class. The constructor calls the makenewobject function.
 //constructor adds a user to UserMap
-class user{
-	constructor(id, name, xPosition, yPosition, zPosition){
+class user {
+	constructor(id, name, xPosition, yPosition, zPosition) {
 		this.name = name,
 		this.id = id,
 		this.object = makeNewObject(xPosition, yPosition, zPosition),
 		addToUserMap(this)};
-		getName(){return this.name};
-		getId(){return this.id};
-		getxPosition(){return this.object.position.x;}
-		getyPosition(){return this.object.position.y;}
-		getzPosition(){return this.object.position.z;}
-		setPosition(xPosition, yPosition, zPosition){
+		getName(){ return this.name };
+		getId(){ return this.id };
+		getxPosition(){ return this.object.position.x; }
+		getyPosition(){ return this.object.position.y; }
+		getzPosition(){ return this.object.position.z; }
+		setPosition(xPosition, yPosition, zPosition) {
 			this.object.position.x = xPosition;
 			this.object.position.y = yPosition;
 			this.object.position.z = zPosition;
@@ -134,71 +140,74 @@ class user{
 var keysPressed = {};
 function onDocumentKeyDown(event) {
 	var key = event.key;
+	let ourUser = findUser(myID)
 	keysPressed[event.key] = true;
 	switch (key){
 		case 'w':
 		case 'arrow up':
 			if ((keysPressed['d']) || (keysPressed['arrow right'])) {
-				findUser(myID).setPosition(findUser(myID).getxPosition() + speed, findUser(myID).getyPosition() + speed, findUser(myID).getzPosition());
+				ourUser.setPosition(ourUser.getxPosition() + speed, ourUser.getyPosition() + speed, ourUser.getzPosition());
 				camera.position.x += speed;
 				camera.position.y += speed;
 			} else if ((keysPressed['a']) || (keysPressed['arrow left'])) {
-				findUser(myID).setPosition(findUser(myID).getxPosition() - speed, findUser(myID).getyPosition() + speed, findUser(myID).getzPosition());
+				ourUser.setPosition(ourUser.getxPosition() - speed, ourUser.getyPosition() + speed, ourUser.getzPosition());
 				camera.position.x -= speed;
 				camera.position.y += speed;
 			} else {
-				findUser(myID).setPosition(findUser(myID).getxPosition(), findUser(myID).getyPosition() + speed, findUser(myID).getzPosition());
+				ourUser.setPosition(ourUser.getxPosition(), ourUser.getyPosition() + speed, ourUser.getzPosition());
 				camera.position.y += speed;
 			}
 			break;
 		case 's':
 		case 'arrow down':
 			if ((keysPressed['d']) || (keysPressed['arrow right'])) {
-				findUser(myID).setPosition(findUser(myID).getxPosition() + speed, findUser(myID).getyPosition() - speed, findUser(myID).getzPosition());
+				ourUser.setPosition(ourUser.getxPosition() + speed, ourUser.getyPosition() - speed, ourUser.getzPosition());
 				camera.position.x += speed;
 				camera.position.y -= speed;
 			} else if ((keysPressed['a']) || (keysPressed['arrow left'])) {
-				findUser(myID).setPosition(findUser(myID).getxPosition() - speed, findUser(myID).getyPosition() - speed, findUser(myID).getzPosition());
+				ourUser.setPosition(ourUser.getxPosition() - speed, ourUser.getyPosition() - speed, ourUser.getzPosition());
 				camera.position.x -= speed;
 				camera.position.y -= speed;
 			} else {
-				findUser(myID).setPosition(findUser(myID).getxPosition(), findUser(myID).getyPosition() - speed, findUser(myID).getzPosition());
+				ourUser.setPosition(ourUser.getxPosition(), ourUser.getyPosition() - speed, ourUser.getzPosition());
 				camera.position.y -= speed;
 			}
 			break;
 		case 'd':
 		case 'arrow right':
 			if ((keysPressed['w']) || (keysPressed['arrow up'])) {
-				findUser(myID).setPosition(findUser(myID).getxPosition() + speed, findUser(myID).getyPosition() + speed, findUser(myID).getzPosition());
+				ourUser.setPosition(ourUser.getxPosition() + speed, ourUser.getyPosition() + speed, ourUser.getzPosition());
 				camera.position.x += speed;
 				camera.position.y += speed;
 			} else if ((keysPressed['s']) || (keysPressed['arrow down'])) {
-				findUser(myID).setPosition(findUser(myID).getxPosition() + speed, findUser(myID).getyPosition() - speed, findUser(myID).getzPosition());
+				ourUser.setPosition(ourUser.getxPosition() + speed, ourUser.getyPosition() - speed, ourUser.getzPosition());
 				camera.position.x += speed;
 				camera.position.y -= speed;
 			} else {
-				findUser(myID).setPosition(findUser(myID).getxPosition() + speed, findUser(myID).getyPosition(), findUser(myID).getzPosition());
+				ourUser.setPosition(ourUser.getxPosition() + speed, ourUser.getyPosition(), ourUser.getzPosition());
 				camera.position.x += speed;
 			}
 			break;
 		case 'a':
 		case 'arrow left':
 			if ((keysPressed['w']) || (keysPressed['arrow up'])) {
-				findUser(myID).setPosition(findUser(myID).getxPosition() - speed, findUser(myID).getyPosition() + speed, findUser(myID).getzPosition());
+				ourUser.setPosition(ourUser.getxPosition() - speed, ourUser.getyPosition() + speed, ourUser.getzPosition());
 				camera.position.x -= speed;
 				camera.position.y += speed;
 			} else if ((keysPressed['s']) || (keysPressed['arrow down'])) {
-				findUser(myID).setPosition(findUser(myID).getxPosition() - speed, findUser(myID).getyPosition() - speed, findUser(myID).getzPosition());
+				ourUser.setPosition(ourUser.getxPosition() - speed, ourUser.getyPosition() - speed, ourUser.getzPosition());
 				camera.position.x -= speed;
 				camera.position.y -= speed;
 			} else {
-				findUser(myID).setPosition(findUser(myID).getxPosition() - speed, findUser(myID).getyPosition(), findUser(myID).getzPosition());
+				ourUser.setPosition(ourUser.getxPosition() - speed, ourUser.getyPosition(), ourUser.getzPosition());
 				camera.position.x -= speed;
 			}
 			break;
 		default:
 			break;
 	}
+
+	changePos(ourUser.getxPosition(), ourUser.getyPosition(), ourUser.getzPosition())
 }
 
 function onDocumentKeyUp(event) {
