@@ -141,7 +141,6 @@ function init() {
 
   // Receiving a chat message
   socket.on('chat', function(message) {
-    console.log(message)
     let name;
     if (message.id == ourID) {
       name = username.value;
