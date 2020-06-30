@@ -165,43 +165,43 @@ function onDocumentKeyDown(event) {
 		case 'w':
 		case 'arrow up':
 			if ((keysPressed['d']) || (keysPressed['arrow right'])) {
-				ourUser.setPosition(ourUser.getxPosition() + speed, ourUser.getyPosition() + speed, ourUser.getzPosition());
+				ourUser.setPosition(ourUser.getxPosition() + speed, ourUser.getyPosition(), ourUser.getzPosition() + speed);
 				camera.position.x += speed;
-				camera.position.y += speed;
+				camera.position.z += speed;
 			} else if ((keysPressed['a']) || (keysPressed['arrow left'])) {
-				ourUser.setPosition(ourUser.getxPosition() - speed, ourUser.getyPosition() + speed, ourUser.getzPosition());
+				ourUser.setPosition(ourUser.getxPosition() - speed, ourUser.getyPosition(), ourUser.getzPosition() + speed);
 				camera.position.x -= speed;
-				camera.position.y += speed;
+				camera.position.z += speed;
 			} else {
-				ourUser.setPosition(ourUser.getxPosition(), ourUser.getyPosition() + speed, ourUser.getzPosition());
-				camera.position.y += speed;
+				ourUser.setPosition(ourUser.getxPosition(), ourUser.getyPosition(), ourUser.getzPosition() + speed);
+				camera.position.z += speed;
 			}
 			break;
 		case 's':
 		case 'arrow down':
 			if ((keysPressed['d']) || (keysPressed['arrow right'])) {
-				ourUser.setPosition(ourUser.getxPosition() + speed, ourUser.getyPosition() - speed, ourUser.getzPosition());
+				ourUser.setPosition(ourUser.getxPosition() + speed, ourUser.getyPosition(), ourUser.getzPosition() - speed);
 				camera.position.x += speed;
-				camera.position.y -= speed;
+				camera.position.z -= speed;
 			} else if ((keysPressed['a']) || (keysPressed['arrow left'])) {
-				ourUser.setPosition(ourUser.getxPosition() - speed, ourUser.getyPosition() - speed, ourUser.getzPosition());
+				ourUser.setPosition(ourUser.getxPosition() - speed, ourUser.getyPosition(), ourUser.getzPosition() - speed);
 				camera.position.x -= speed;
-				camera.position.y -= speed;
+				camera.position.z -= speed;
 			} else {
-				ourUser.setPosition(ourUser.getxPosition(), ourUser.getyPosition() - speed, ourUser.getzPosition());
-				camera.position.y -= speed;
+				ourUser.setPosition(ourUser.getxPosition(), ourUser.getyPosition(), ourUser.getzPosition() - speed);
+				camera.position.z -= speed;
 			}
 			break;
 		case 'd':
 		case 'arrow right':
 			if ((keysPressed['w']) || (keysPressed['arrow up'])) {
-				ourUser.setPosition(ourUser.getxPosition() + speed, ourUser.getyPosition() + speed, ourUser.getzPosition());
+				ourUser.setPosition(ourUser.getxPosition() + speed, ourUser.getyPosition(), ourUser.getzPosition() + speed);
 				camera.position.x += speed;
-				camera.position.y += speed;
+				camera.position.z += speed;
 			} else if ((keysPressed['s']) || (keysPressed['arrow down'])) {
-				ourUser.setPosition(ourUser.getxPosition() + speed, ourUser.getyPosition() - speed, ourUser.getzPosition());
+				ourUser.setPosition(ourUser.getxPosition() + speed, ourUser.getyPosition(), ourUser.getzPosition() - speed);
 				camera.position.x += speed;
-				camera.position.y -= speed;
+				camera.position.z -= speed;
 			} else {
 				ourUser.setPosition(ourUser.getxPosition() + speed, ourUser.getyPosition(), ourUser.getzPosition());
 				camera.position.x += speed;
@@ -210,13 +210,13 @@ function onDocumentKeyDown(event) {
 		case 'a':
 		case 'arrow left':
 			if ((keysPressed['w']) || (keysPressed['arrow up'])) {
-				ourUser.setPosition(ourUser.getxPosition() - speed, ourUser.getyPosition() + speed, ourUser.getzPosition());
+				ourUser.setPosition(ourUser.getxPosition() - speed, ourUser.getyPosition(), ourUser.getzPosition() + speed);
 				camera.position.x -= speed;
-				camera.position.y += speed;
+				camera.position.z += speed;
 			} else if ((keysPressed['s']) || (keysPressed['arrow down'])) {
-				ourUser.setPosition(ourUser.getxPosition() - speed, ourUser.getyPosition() - speed, ourUser.getzPosition());
+				ourUser.setPosition(ourUser.getxPosition() - speed, ourUser.getyPosition(), ourUser.getzPosition() - speed);
 				camera.position.x -= speed;
-				camera.position.y -= speed;
+				camera.position.z -= speed;
 			} else {
 				ourUser.setPosition(ourUser.getxPosition() - speed, ourUser.getyPosition(), ourUser.getzPosition());
 				camera.position.x -= speed;
