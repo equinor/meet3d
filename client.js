@@ -137,6 +137,7 @@ function init() {
     console.log("User " + connections[id].name + " left")
     removeHTMLAudio(id)
     removeConnectionHTMLList(id)
+    userLeft(id) // Removes the user from the 3D environment
     delete connections[id]
   });
 
@@ -285,21 +286,19 @@ function createPeerConnection(id) {
 
     pc = new RTCPeerConnection(null);
     pc.onicecandidate = handleIceCandidate;
-    pc.onaddstream = function (event) {
+    pc.ontrack = function (event) {
       console.log('Remote stream added.');
       console.log(event)
-      connections[id].audio = event.stream
+      connections[id].audio = event.streams[0] // TODO: verify that this will always be zero
 
       let newAudioNode = document.createElement("audio")
-      newAudioNode.srcObject = event.stream
+      newAudioNode.srcObject = event.streams[0] // TODO: verify that this will always be zero
       newAudioNode.id = id
       newAudioNode.autoplay = true
       document.getElementById("audio").appendChild(newAudioNode)
 
-      // This is where we want to pipe the audio into a 3D.js user object
+      userGotMedia(id, event.streams[0])
     }
-
-    //pc.ontrack = handleRemoteTrackAdded;
     pc.onremovestream = handleRemoteStreamRemoved;
 
     console.log('>>>>> Created RTCPeerConnnection');
@@ -378,11 +377,6 @@ function removeHTMLAudio(id) {
   }
 }
 
-function handleRemoteHangup() {
-  console.log('Session terminated.');
-  leave();
-}
-
 function appendConnectionHTMLList(id) {
   let item = document.createElement("li")
   item.id = id;
@@ -436,6 +430,8 @@ function leave() {
     connections[id].connection.close()
   }
   connections = {}
+
+  // Here we also need to close the 3D environment!
 
   stop();
 

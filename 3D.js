@@ -80,13 +80,21 @@ function findUser(id){
 var UserMap = new Map();
 
 function newUserJoined(id, name) {
-	let newUser = new user(id, name, 0, distance * userCount, distance * userCount);
+	let newUser = new user(id, name, 0, distance * userCount, distance * userCount); // This does not look great at the moment
 	addToUserMap(newUser);
 	userCount++
 }
 
+function userGotMedia(id, media) {
+	findUser(id).setMedia(media)
+	// Here we also want to connect the media to the PositionalAudio object
+}
+
 function userLeft(id) {
-	if (removeUser(id)) userCount--;
+	if (removeUser(id)) {
+		// Here we also need to remove them from the scene
+		userCount--;
+	}
 }
 
 //function that makes an object and position it at input coordinates
@@ -116,6 +124,10 @@ class user{
 			this.object.position.x = xPosition;
 			this.object.position.y = yPosition;
 			this.object.position.z = zPosition;
+		}
+		getMedia(){return this.media};
+		setMedia(media) {
+			this.media = media;
 		}
 };
 
