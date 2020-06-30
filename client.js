@@ -291,9 +291,9 @@ function createPeerConnection(id) {
       connections[id].audio = event.streams[0] // TODO: verify that this will always be zero
 
       let newAudioNode = document.createElement("audio")
-      newAudioNode.srcObject = event.streams[0] // TODO: verify that this will always be zero
+      //newAudioNode.srcObject = event.streams[0] // TODO: verify that this will always be zero
       newAudioNode.id = id
-      newAudioNode.autoplay = true
+      //newAudioNode.autoplay = true
       document.getElementById("audio").appendChild(newAudioNode)
 
       userGotMedia(id, event.streams[0])

@@ -33,7 +33,7 @@ function init3D() {
 	var floor = new THREE.Mesh(
 		new THREE.PlaneGeometry(100,100,100),
 		new THREE.MeshBasicMaterial({color : "skyblue", wireframe :true})
-	
+
 	);
 
 	floor.rotation.x += Math.PI / 2; //can rotate the floor/plane
@@ -67,7 +67,7 @@ function init3D() {
 
 	listener = new THREE.AudioListener();
 	findUser(myID).object.add(listener);
-	
+
 }
 
 //function to add a user to the UsersMap
@@ -107,20 +107,13 @@ function userGotMedia(id, mediaStream) {
 	posAudio.setRolloffFactor(10);
 	const audio1 = posAudio.context.createMediaStreamSource(mediaStream);
 
-	try{
+	try {
 		posAudio.setNodeSource(audio1);
 		findUser(id).object.add(posAudio)
-	}
-	catch(err){
+	} catch(err){
 		console.log(err);
-
 	};
-	
-		
 }
-	
-	// Here we also want to connect the media to the PositionalAudio object
-
 
 function userLeft(id) {
 	if (removeUser(id)) {
