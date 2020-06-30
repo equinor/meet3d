@@ -82,7 +82,7 @@ var UserMap = new Map();
 
 function newUserJoined(id, name) {
 	console.log("Adding new user to the environment: " + name)
-	let newUser = new user(id, name, distance * userCount, distance * userCount, 0); // This does not look great at the moment
+	let newUser = new user(id, name, 10, 10, distance * userCount); // This does not look great at the moment
 	addToUserMap(newUser);
 	userCount++
 }
