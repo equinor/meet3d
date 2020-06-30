@@ -9,6 +9,9 @@ var object
 var speed
 
 var myID
+var userCount = 0;
+
+const distance = 15;
 
 function init3D() {
 	scene = new THREE.Scene();
@@ -75,6 +78,16 @@ function findUser(id){
 
 //map to store the Users
 var UserMap = new Map();
+
+function newUserJoined(id, name) {
+	let newUser = new user(id, name, 0, distance * userCount, distance * userCount);
+	addToUserMap(newUser);
+	userCount++
+}
+
+function userLeft(id) {
+	if (removeUser(id)) userCount--;
+}
 
 //function that makes an object and position it at input coordinates
 var makeNewObject = function(xPosition, yPosition, zPosition){

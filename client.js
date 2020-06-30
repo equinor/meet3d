@@ -110,7 +110,7 @@ function init() {
     connections[startInfo.id].name = startInfo.name
     console.log('User ', startInfo.name, ' joined room ', room)
 
-    // Here we should call a 3D.js function which adds a new user to the 3D environment
+    newUserJoined(startInfo.id, startInfo.name) // Add new user to 3D environment
   });
 
   // We joined a conference
@@ -172,6 +172,7 @@ function init() {
     sendAnswer(id, offerDescription)
 
     appendConnectionHTMLList(id)
+    newUserJoined(id, name) // Add new user to 3D environment
   });
 
   socket.on('answer', function(message) {
@@ -212,7 +213,7 @@ function init() {
   }
 
 
-  init3D();
+  init3D(); // Renders the 3D environment
 }
 
 // Sends an offer to a new user with our local PeerConnection description
