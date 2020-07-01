@@ -5,4 +5,4 @@ In this project we are creating a conferencing web application which allows the 
 These features are implemented using WebRTC connections and the Three.js JavaScript library.
 
 Below is a diagram showing the signalling process in client.js. In this case the "Server" represents the interaction with the server.js program.
-![A diagram showing the WebRTC signalling process](https://github.com/equinor/meet3d/blob/webrtc-connection/signalling-diagram.png)
+![A diagram showing the WebRTC signalling process](https://github.com/equinor/meet3d/blob/WebRTC-signalling)
