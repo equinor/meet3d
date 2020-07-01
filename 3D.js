@@ -6,16 +6,16 @@ var controls
 var geometry
 var material
 var object
-var speed
 var myID
 var requestID = undefined
 
 var userCount = 0;
 const distance = 15;
 
-const maxX = 200;
-const maxY = 200;
-const maxZ = 200;
+const maxX = 100;
+const maxY = 100; // This is probably not needed
+const maxZ = 100;
+const speed = 3;
 
 var listener;
 
@@ -35,8 +35,8 @@ function init3D() {
 
 	//make a floor to the scene
 	var floor = new THREE.Mesh(
-		new THREE.PlaneGeometry(100,100,100),
-		new THREE.MeshBasicMaterial({color : "skyblue", wireframe :true})
+		new THREE.PlaneGeometry(maxX * 2, maxZ * 2, maxX * 2, maxZ * 2),
+		new THREE.MeshBasicMaterial({color: 0x0000ff, wireframe: true})
 	);
 
 	floor.rotation.x += Math.PI / 2; //can rotate the floor/plane
@@ -49,15 +49,18 @@ function init3D() {
 
 	//choose which object to make when the makeobjectfunction is called
 	geometry = new THREE.BoxGeometry(20, 20, 20);
-	material = new THREE.MeshNormalMaterial( {color:0x669966, wireframe:true});
+	material = new THREE.MeshBasicMaterial( {color: 0x669966, wireframe: false});
 	object = new THREE.Mesh(geometry, material);
-	speed = 1;
 
 	//lets you move the camera with the mouse
 	controls = new THREE.OrbitControls( camera, renderer.domElement );
+	controls.enableKeys = false;
+	controls.enablePan = false;
 	controls.minDistance = 1;
 	controls.maxDistance = 100;
 	controls.maxPolarAngle = Math.PI * 0.5; // Does not let you clip through the floor
+	controls.minAzimuthAngle = 0; // Prevents left-right rotation of camera
+	controls.maxAzimuthAngle = 0; // Prevents left-right rotation of camera
 
 	myID = new user(0, "test", 10, 10, 0).getId();
 
@@ -145,10 +148,34 @@ class user {
 		getxPosition(){ return this.object.position.x; }
 		getyPosition(){ return this.object.position.y; }
 		getzPosition(){ return this.object.position.z; }
+		setxPosition(xPosition) {
+			if (xPosition < maxX && xPosition > -maxX) {
+				this.object.position.x = xPosition;
+				return true
+			} else {
+				return false
+			}
+		}
+		setyPosition(yPosition) {
+			if (yPosition < maxY && yPosition > -maxY) {
+				this.object.position.y = yPosition;
+				return true
+			} else {
+				return false
+			}
+		}
+		setzPosition(zPosition) {
+			if (zPosition < maxZ && zPosition > -maxZ) {
+				this.object.position.z = zPosition;
+				return true
+			} else {
+				return false
+			}
+		}
 		setPosition(xPosition, yPosition, zPosition) {
-			this.object.position.x = xPosition;
-			this.object.position.y = yPosition;
-			this.object.position.z = zPosition;
+			if (xPosition < maxX && xPosition > -maxX) this.object.position.x = xPosition;
+			if (yPosition < maxY && yPosition > -maxY) this.object.position.y = yPosition;
+			if (zPosition < maxZ && zPosition > -maxZ) this.object.position.z = zPosition;
 		}
 		getMedia(){return this.media};
 		setMedia(media) {
@@ -161,65 +188,53 @@ function onDocumentKeyDown(event) {
 	var key = event.key;
 	let ourUser = findUser(myID)
 	keysPressed[event.key] = true;
-	switch (key){
+	switch (key) {
 		case 'w':
 		case 'arrow up':
 			if ((keysPressed['d']) || (keysPressed['arrow right'])) {
-				ourUser.setPosition(ourUser.getxPosition() + speed, ourUser.getyPosition(), ourUser.getzPosition() - speed);
-				camera.position.x += speed;
-				camera.position.z -= speed;
+				if (ourUser.setxPosition(ourUser.getxPosition() + speed)) camera.position.x += speed;
+				if (ourUser.setzPosition(ourUser.getzPosition() - speed)) camera.position.z -= speed;
 			} else if ((keysPressed['a']) || (keysPressed['arrow left'])) {
-				ourUser.setPosition(ourUser.getxPosition() - speed, ourUser.getyPosition(), ourUser.getzPosition() - speed);
-				camera.position.x -= speed;
-				camera.position.z -= speed;
+				if (ourUser.setxPosition(ourUser.getxPosition() - speed)) camera.position.x -= speed;
+				if (ourUser.setzPosition(ourUser.getzPosition() - speed)) camera.position.z -= speed;
 			} else {
-				ourUser.setPosition(ourUser.getxPosition(), ourUser.getyPosition(), ourUser.getzPosition() - speed);
-				camera.position.z -= speed;
+				if (ourUser.setzPosition(ourUser.getzPosition() - speed)) camera.position.z -= speed;
 			}
 			break;
 		case 's':
 		case 'arrow down':
 			if ((keysPressed['d']) || (keysPressed['arrow right'])) {
-				ourUser.setPosition(ourUser.getxPosition() + speed, ourUser.getyPosition(), ourUser.getzPosition() + speed);
-				camera.position.x += speed;
-				camera.position.z += speed;
+				if (ourUser.setxPosition(ourUser.getxPosition() + speed)) camera.position.x += speed;
+				if (ourUser.setzPosition(ourUser.getzPosition() + speed)) camera.position.z += speed;
 			} else if ((keysPressed['a']) || (keysPressed['arrow left'])) {
-				ourUser.setPosition(ourUser.getxPosition() - speed, ourUser.getyPosition(), ourUser.getzPosition() + speed);
-				camera.position.x -= speed;
-				camera.position.z += speed;
+				if (ourUser.setxPosition(ourUser.getxPosition() - speed)) camera.position.x -= speed;
+				if (ourUser.setzPosition(ourUser.getzPosition() + speed)) camera.position.z += speed;
 			} else {
-				ourUser.setPosition(ourUser.getxPosition(), ourUser.getyPosition(), ourUser.getzPosition() + speed);
-				camera.position.z += speed;
+				if (ourUser.setzPosition(ourUser.getzPosition() + speed)) camera.position.z += speed;
 			}
 			break;
 		case 'd':
 		case 'arrow right':
 			if ((keysPressed['w']) || (keysPressed['arrow up'])) {
-				ourUser.setPosition(ourUser.getxPosition() + speed, ourUser.getyPosition(), ourUser.getzPosition() - speed);
-				camera.position.x += speed;
-				camera.position.z -= speed;
+				if (ourUser.setxPosition(ourUser.getxPosition() + speed)) camera.position.x += speed;
+				if (ourUser.setzPosition(ourUser.getzPosition() - speed)) camera.position.z -= speed;
 			} else if ((keysPressed['s']) || (keysPressed['arrow down'])) {
-				ourUser.setPosition(ourUser.getxPosition() + speed, ourUser.getyPosition(), ourUser.getzPosition() + speed);
-				camera.position.x += speed;
-				camera.position.z += speed;
+				if (ourUser.setxPosition(ourUser.getxPosition() + speed)) camera.position.x += speed;
+				if (ourUser.setzPosition(ourUser.getzPosition() + speed)) camera.position.z += speed;
 			} else {
-				ourUser.setPosition(ourUser.getxPosition() + speed, ourUser.getyPosition(), ourUser.getzPosition());
-				camera.position.x += speed;
+				if (ourUser.setxPosition(ourUser.getxPosition() + speed)) camera.position.x += speed;
 			}
 			break;
 		case 'a':
 		case 'arrow left':
 			if ((keysPressed['w']) || (keysPressed['arrow up'])) {
-				ourUser.setPosition(ourUser.getxPosition() - speed, ourUser.getyPosition(), ourUser.getzPosition() - speed);
-				camera.position.x -= speed;
-				camera.position.z -= speed;
+				if (ourUser.setxPosition(ourUser.getxPosition() - speed)) camera.position.x -= speed;
+				if (ourUser.setzPosition(ourUser.getzPosition() - speed)) camera.position.z -= speed;
 			} else if ((keysPressed['s']) || (keysPressed['arrow down'])) {
-				ourUser.setPosition(ourUser.getxPosition() - speed, ourUser.getyPosition(), ourUser.getzPosition() + speed);
-				camera.position.x -= speed;
-				camera.position.z += speed;
+				if (ourUser.setxPosition(ourUser.getxPosition() - speed)) camera.position.x -= speed;
+				if (ourUser.setzPosition(ourUser.getzPosition() + speed)) camera.position.z += speed;
 			} else {
-				ourUser.setPosition(ourUser.getxPosition() - speed, ourUser.getyPosition(), ourUser.getzPosition());
-				camera.position.x -= speed;
+				if (ourUser.setxPosition(ourUser.getxPosition() - speed)) camera.position.x -= speed;
 			}
 			break;
 		default:
