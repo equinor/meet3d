@@ -7,10 +7,10 @@ var geometry
 var material
 var object
 var speed
-
 var myID
-var userCount = 0;
+var requestID = undefined
 
+var userCount = 0;
 const distance = 15;
 
 var listener;
@@ -33,25 +33,21 @@ function init3D() {
 	var floor = new THREE.Mesh(
 		new THREE.PlaneGeometry(100,100,100),
 		new THREE.MeshBasicMaterial({color : "skyblue", wireframe :true})
-
 	);
 
 	floor.rotation.x += Math.PI / 2; //can rotate the floor/plane
 	scene.add( floor );
 
-
 	renderer.setSize(window.innerWidth, window.innerHeight);
 	document.body.appendChild( renderer.domElement);
 
-	renderer.domElement.id = "scene";
+	renderer.domElement.id = "scene"; // Adds an ID to the canvas element
 
 	//choose which object to make when the makeobjectfunction is called
 	geometry = new THREE.BoxGeometry(20, 20, 20);
 	material = new THREE.MeshNormalMaterial( {color:0x669966, wireframe:true});
 	object = new THREE.Mesh(geometry, material);
 	speed = 1;
-
-	update();
 
 	//lets you move the camera with the mouse
 	controls = new THREE.OrbitControls( camera, renderer.domElement );
@@ -64,24 +60,24 @@ function init3D() {
 	document.addEventListener("keydown", onDocumentKeyDown, false);
 	document.addEventListener("keyup", onDocumentKeyUp, false);
 
-
 	listener = new THREE.AudioListener();
 	findUser(myID).object.add(listener);
 
+	update();
 }
 
 //function to add a user to the UsersMap
-function addToUserMap(User){
+function addToUserMap(User) {
 	UserMap.set(User.getId(), User);
 	return UserMap;
 }
 
 //return true if a user with the id passed in parameter was a part of the UserMap and removed, false otherwise
-function removeUser(id){
+function removeUser(id) {
 	return UserMap.delete(id);
 }
 
-function findUser(id){
+function findUser(id) {
 	return UserMap.get(id);
 }
 
@@ -234,12 +230,31 @@ function onDocumentKeyUp(event) {
 }
 
 //function to update frame
-function update(){
+function update() {
 	renderer.render(scene, camera);
-	requestAnimationFrame(update);
+	requestID = requestAnimationFrame(update);
 }
 
 //function to change name of user.
-function nameChange(userer, newname){
+function nameChange(userer, newname) {
 	userer.name = newname;
+}
+
+function leave3D() {
+	document.removeEventListener("keydown", onDocumentKeyDown);
+	document.removeEventListener("keyup", onDocumentKeyUp);
+	document.getElementById("scene").outerHTML = '' // Deletes the scene
+	controls = null;
+	renderer = null;
+	camera = null;
+	scene = null;
+	controls = null;
+	geometry = null;
+	material = null;
+	object = null;
+	speed = null;
+	myID = null;
+	userCount = 0;
+	window.cancelAnimationFrame(requestID); // Stops rendering the scene
+	requestID = undefined;
 }
