@@ -46,7 +46,7 @@ function init3D() {
 	renderer.domElement.id = "scene";
 
 	//choose which object to make when the makeobjectfunction is called
-	geometry = new THREE.BoxGeometry(20, 20, 20);
+	geometry = new THREE.BoxGeometry(10, 20, 10);
 	material = new THREE.MeshNormalMaterial( {color:0x669966, wireframe:true});
 	object = new THREE.Mesh(geometry, material);
 	speed = 1;
@@ -102,9 +102,8 @@ function changeUserPosition(id, x, y, z) {
 function userGotMedia(id, mediaStream) {
 	findUser(id).setMedia(mediaStream);
 	var posAudio = new THREE.PositionalAudio(listener);
-	posAudio.setRefDistance(5);
-	posAudio.setDirectionalCone(180,320,0.1);
-	posAudio.setRolloffFactor(10);
+	posAudio.setRefDistance(20);
+	posAudio.setRolloffFactor(2);
 	const audio1 = posAudio.context.createMediaStreamSource(mediaStream);
 
 	try {
