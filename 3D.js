@@ -13,6 +13,10 @@ var requestID = undefined
 var userCount = 0;
 const distance = 15;
 
+const maxX = 200;
+const maxY = 200;
+const maxZ = 200;
+
 var listener;
 
 function init3D() {
@@ -161,21 +165,6 @@ function onDocumentKeyDown(event) {
 		case 'w':
 		case 'arrow up':
 			if ((keysPressed['d']) || (keysPressed['arrow right'])) {
-				ourUser.setPosition(ourUser.getxPosition() + speed, ourUser.getyPosition(), ourUser.getzPosition() + speed);
-				camera.position.x += speed;
-				camera.position.z += speed;
-			} else if ((keysPressed['a']) || (keysPressed['arrow left'])) {
-				ourUser.setPosition(ourUser.getxPosition() - speed, ourUser.getyPosition(), ourUser.getzPosition() + speed);
-				camera.position.x -= speed;
-				camera.position.z += speed;
-			} else {
-				ourUser.setPosition(ourUser.getxPosition(), ourUser.getyPosition(), ourUser.getzPosition() + speed);
-				camera.position.z += speed;
-			}
-			break;
-		case 's':
-		case 'arrow down':
-			if ((keysPressed['d']) || (keysPressed['arrow right'])) {
 				ourUser.setPosition(ourUser.getxPosition() + speed, ourUser.getyPosition(), ourUser.getzPosition() - speed);
 				camera.position.x += speed;
 				camera.position.z -= speed;
@@ -188,16 +177,31 @@ function onDocumentKeyDown(event) {
 				camera.position.z -= speed;
 			}
 			break;
-		case 'd':
-		case 'arrow right':
-			if ((keysPressed['w']) || (keysPressed['arrow up'])) {
+		case 's':
+		case 'arrow down':
+			if ((keysPressed['d']) || (keysPressed['arrow right'])) {
 				ourUser.setPosition(ourUser.getxPosition() + speed, ourUser.getyPosition(), ourUser.getzPosition() + speed);
 				camera.position.x += speed;
 				camera.position.z += speed;
-			} else if ((keysPressed['s']) || (keysPressed['arrow down'])) {
+			} else if ((keysPressed['a']) || (keysPressed['arrow left'])) {
+				ourUser.setPosition(ourUser.getxPosition() - speed, ourUser.getyPosition(), ourUser.getzPosition() + speed);
+				camera.position.x -= speed;
+				camera.position.z += speed;
+			} else {
+				ourUser.setPosition(ourUser.getxPosition(), ourUser.getyPosition(), ourUser.getzPosition() + speed);
+				camera.position.z += speed;
+			}
+			break;
+		case 'd':
+		case 'arrow right':
+			if ((keysPressed['w']) || (keysPressed['arrow up'])) {
 				ourUser.setPosition(ourUser.getxPosition() + speed, ourUser.getyPosition(), ourUser.getzPosition() - speed);
 				camera.position.x += speed;
 				camera.position.z -= speed;
+			} else if ((keysPressed['s']) || (keysPressed['arrow down'])) {
+				ourUser.setPosition(ourUser.getxPosition() + speed, ourUser.getyPosition(), ourUser.getzPosition() + speed);
+				camera.position.x += speed;
+				camera.position.z += speed;
 			} else {
 				ourUser.setPosition(ourUser.getxPosition() + speed, ourUser.getyPosition(), ourUser.getzPosition());
 				camera.position.x += speed;
@@ -206,13 +210,13 @@ function onDocumentKeyDown(event) {
 		case 'a':
 		case 'arrow left':
 			if ((keysPressed['w']) || (keysPressed['arrow up'])) {
-				ourUser.setPosition(ourUser.getxPosition() - speed, ourUser.getyPosition(), ourUser.getzPosition() + speed);
-				camera.position.x -= speed;
-				camera.position.z += speed;
-			} else if ((keysPressed['s']) || (keysPressed['arrow down'])) {
 				ourUser.setPosition(ourUser.getxPosition() - speed, ourUser.getyPosition(), ourUser.getzPosition() - speed);
 				camera.position.x -= speed;
 				camera.position.z -= speed;
+			} else if ((keysPressed['s']) || (keysPressed['arrow down'])) {
+				ourUser.setPosition(ourUser.getxPosition() - speed, ourUser.getyPosition(), ourUser.getzPosition() + speed);
+				camera.position.x -= speed;
+				camera.position.z += speed;
 			} else {
 				ourUser.setPosition(ourUser.getxPosition() - speed, ourUser.getyPosition(), ourUser.getzPosition());
 				camera.position.x -= speed;
