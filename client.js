@@ -324,14 +324,13 @@ function createPeerConnection(id) {
 
 // Creates a new data channel to the user with the given id
 function createDataChannel(id) {
-  //var tempConnection = connections[id].connection.createDataChannel("Chat", {negotiated: true, id: 1});
   var tempConnection = connections[id].connection.createDataChannel("Chat");
-  tempConnection.addEventListener("open", (event) => {
+  tempConnection.addEventListener("open", () => {
     connections[id].dataChannel = tempConnection
     console.log("Datachannel established to " + connections[id].name)
   });
 
-  tempConnection.addEventListener("close", (event) => {
+  tempConnection.addEventListener("close", () => {
     connections[id].dataChannel = null;
     console.log("Datachannel closed to " + connections[id].name)
   });
@@ -412,7 +411,7 @@ function addChat(name, message) {
   var time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
 
   let newMessage = document.createElement("li")
-  newMessage.innerHTML = '<time>' + time + '</time> ' + name + ': ' + message;
+  newMessage.innerHTML = '<time>' + time + '</time> | <chatName>' + name + '</chatName>: ' + message;
   chatReceive.appendChild(newMessage)
   if (chatReceive.children.length > maxChatLength) {
     chatReceive.removeChild(chatReceive.childNodes[0]); // Limits the number of messages
@@ -425,8 +424,6 @@ function addChat(name, message) {
 function sendChat() {
 
   if (chatSend.value == '') return;
-
-  //socket.emit('chat', chatSend.value);
 
   for (let id in connections) {
     console.log("Sending message: " + chatSend.value + " to " + connections[id].name)

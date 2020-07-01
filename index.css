@@ -49,4 +49,9 @@ chat {
 
 time {
   color: blue;
+  font-style: italic;
+}
+
+chatName {
+  color: red;
 }
