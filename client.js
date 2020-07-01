@@ -199,6 +199,8 @@ function sendOffer(id) {
   console.log('>>>>>> Creating peer connection to user ' + connections[id].name);
   connections[id].connection = createPeerConnection(id);
 
+  createDataChannel(id)
+
   connections[id].connection.addStream(localStream);
 
   connections[id].connection.createOffer().then(function(description) {
@@ -219,7 +221,7 @@ function sendOffer(id) {
 function sendAnswer(id, offerDescription) {
   if (connections[id].signalingState == "stable") return;
 
-  console.log('>>>>>> Creating peer connection to user ' + connections[id].name);
+  console.log('>>>>>> Creating RTCPeerConnection to user ' + connections[id].name);
   connections[id].connection = createPeerConnection(id);
 
   connections[id].connection.addStream(localStream);
@@ -287,7 +289,6 @@ function createPeerConnection(id) {
     };
     pc.ontrack = function (event) {
       console.log('Remote stream added.');
-      console.log(event)
       connections[id].audio = event.streams[0] // TODO: verify that this will always be zero
       userGotMedia(id, event.streams[0]) // Adds track to 3D environment
     };
@@ -296,23 +297,22 @@ function createPeerConnection(id) {
       console.log("Lost a stream from " + connections[id].name)
     };
     pc.ondatachannel = function (event) {
-      console.log("received data channel event")
-      event.channel.addEventListener("open", (event) => {
+      event.channel.addEventListener("open", () => {
         connections[id].dataChannel = event.channel
         console.log("Datachannel established to " + connections[id].name)
       });
 
-      event.channel.addEventListener("close", (event) => {
+      event.channel.addEventListener("close", () => {
         connections[id].dataChannel = null;
         console.log("Datachannel closed to " + connections[id].name)
       });
 
-      event.channel.addEventListener("message", (event) => {
-        dataChannelReceive(id, event.data) // Called when we receive a DataChannel message
+      event.channel.addEventListener("message", (message) => {
+        dataChannelReceive(id, message.data) // Called when we receive a DataChannel message
       });
     };
 
-    console.log('>>>>> Created RTCPeerConnnection');
+    console.log('>>>>>> Created RTCPeerConnnection');
 
   } catch (e) {
     console.log('Failed to create PeerConnection, exception: ' + e.message);
@@ -324,8 +324,8 @@ function createPeerConnection(id) {
 
 // Creates a new data channel to the user with the given id
 function createDataChannel(id) {
-  var tempConnection = connections[id].connection.createDataChannel("Chat", {negotiated: true, id: 1});
-  console.log("Opening datachannel")
+  //var tempConnection = connections[id].connection.createDataChannel("Chat", {negotiated: true, id: 1});
+  var tempConnection = connections[id].connection.createDataChannel("Chat");
   tempConnection.addEventListener("open", (event) => {
     connections[id].dataChannel = tempConnection
     console.log("Datachannel established to " + connections[id].name)
@@ -334,6 +334,10 @@ function createDataChannel(id) {
   tempConnection.addEventListener("close", (event) => {
     connections[id].dataChannel = null;
     console.log("Datachannel closed to " + connections[id].name)
+  });
+
+  tempConnection.addEventListener("message", (event) => {
+    dataChannelReceive(id, event.data) // Called when we receive a DataChannel message
   });
 }
 
@@ -398,6 +402,7 @@ function removeConnectionHTMLList(id) {
 
 // Handles receiving a message on a DataChannel
 function dataChannelReceive(id, data) {
+  console.log("Got dataCHannel info bud: " + data)
   addChat(connections[id].name, data)
 }
 
@@ -423,13 +428,14 @@ function sendChat() {
 
   //socket.emit('chat', chatSend.value);
 
-
   for (let id in connections) {
+    console.log("Sending message: " + chatSend.value + " to " + connections[id].name)
     connections[id].dataChannel.send(chatSend.value)
   }
 
+  addChat(username.value, chatSend.value)
 
-  chatSend.value = '';
+  chatSend.value = ''; // Clear the text box
 }
 
 // Leaves the conference, resets variable values and closes connections
