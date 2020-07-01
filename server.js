@@ -10,7 +10,7 @@ var app = http.createServer(function(req, res) {
   fileServer.serve(req, res);
 }).listen(8080);
 
-const maxUsers = 5
+const maxUsers = 10; // TODO: determine a good value for this
 var rooms = {}
 var users = {}
 
@@ -19,10 +19,6 @@ io.sockets.on('connection', function(socket) {
 
   socket.on('chat', function(message) {
     io.sockets.in(users[socket.id].room).emit('chat', {id: socket.id, message: message})
-  });
-
-  socket.on('gotMedia', function() {
-    io.sockets.in(users[socket.id].room).emit('gotMedia', socket.id)
   });
 
   socket.on('offer', function(data) {
@@ -34,7 +30,6 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('candidate', function(data) {
-    //io.sockets.in(users[socket.id].room).emit('candidate', {id: socket.id, candidateData: data})
     users[data.id].socket.emit('candidate', {id: socket.id, candidateData: data.info})
   });
 
@@ -51,7 +46,7 @@ io.sockets.on('connection', function(socket) {
     io.sockets.in(users[socket.id].room).emit('left', socket.id);
   })
 
-  socket.on('join/create', function(startInfo) {
+  socket.on('join', function(startInfo) {
 
     let room = startInfo.room;
     let name = startInfo.name;
@@ -61,25 +56,25 @@ io.sockets.on('connection', function(socket) {
 
     if (numClients === 0) { // Room created
 
-      rooms[room] = []
-      rooms[room].push(socket)
-      users[socket.id] = new User(room, socket)
+      rooms[room] = [] // Create a new entry for this room in the dictionary storing the rooms
+      rooms[room].push(socket) // Add the client ID to the list of clients in the room
+      users[socket.id] = new User(room, socket) // Add the User object to the list of users
 
-      socket.join(room);
-
+      socket.join(room); // Add this user to the room
       socket.emit('created', {room: room, id: socket.id});
 
     } else if (numClients > 0 && numClients < maxUsers) { // Room joined
 
-      rooms[room].push(socket)
-      users[socket.id] = new User(room, socket)
+      rooms[room].push(socket) // Add the client ID to the list of clients in the room
+      users[socket.id] = new User(room, socket) // Add the User object to the list of users
 
       socket.emit('joined', {room: room, id: socket.id});
 
+      // Let everyone in the room know that a new user has joined
       io.sockets.in(room).emit('join', {name: name, id: socket.id});
-      socket.join(room);
 
-      io.sockets.in(room).emit('ready');
+      socket.join(room); // Add this user to the room
+
     } else { // Someone tried to join a full room
       io.sockets.in(room).emit('full', room);
     }

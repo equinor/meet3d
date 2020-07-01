@@ -46,3 +46,7 @@ chat {
   list-style-type: none;
   padding-bottom: 5px;
 }
+
+time {
+  color: blue;
+}
