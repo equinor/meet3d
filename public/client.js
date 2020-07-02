@@ -119,6 +119,8 @@ function init() {
     console.log("User " + connections[id].name + " left")
     removeConnectionHTMLList(id)
     userLeft(id) // Removes the user from the 3D environment
+    if (connections[id].connection) connections[id].connection.close();
+    if (connections[id].dataChannel) connections[id].dataChannel.close();
     delete connections[id]
   });
 
@@ -226,13 +228,11 @@ function sendAnswer(id, offerDescription) {
 
   console.log('>>>>>> Creating RTCPeerConnection to user ' + connections[id].name);
   connections[id].connection = createPeerConnection(id);
-
   connections[id].connection.addStream(localStream);
 
   console.log('>>>>>> Sending answer to connection to user ' + connections[id].name);
 
   connections[id].connection.setRemoteDescription(new RTCSessionDescription(offerDescription));
-
   connections[id].connection.createAnswer().then(function(description) {
     connections[id].connection.setLocalDescription(description);
     socket.emit('answer', {
@@ -310,8 +310,7 @@ function createPeerConnection(id) {
       });
 
       event.channel.addEventListener("close", () => {
-        connections[id].dataChannel = null;
-        console.log("Datachannel closed to " + connections[id].name)
+        //console.log("Datachannel closed to " + connections[id].name)
       });
 
       event.channel.addEventListener("message", (message) => {
@@ -338,8 +337,7 @@ function createDataChannel(id) {
   });
 
   tempConnection.addEventListener("close", () => {
-    connections[id].dataChannel = null;
-    console.log("Datachannel closed to " + connections[id].name)
+    //console.log("Datachannel closed to " + connections[id].name)
   });
 
   tempConnection.addEventListener("message", (event) => {
@@ -505,6 +503,7 @@ function leave() {
   document.getElementById("open").hidden = true;
   for (let id in connections) {
     connections[id].connection.close()
+    connections[id].dataChannel.close()
   }
   connections = {}
 
