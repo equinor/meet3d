@@ -9,6 +9,9 @@ var username = document.getElementById("username");
 var chatReceive = document.getElementById("chatReceive");
 var chatBox = document.getElementById("chatBox");
 var chatSend = document.getElementById("chatSend");
+var chatDiv = document.getElementById("chatSection");
+var sceneDiv = document.getElementById("scene");
+var openButton = document.getElementById("open");
 
 username.addEventListener("keyup", function(event) {
     if (event.keyCode === 13) { // This is the 'enter' key-press
@@ -71,7 +74,7 @@ function init() {
   username.readOnly = true;
   roomName.readOnly = true;
   openChat();
-  socket = io('ws://localhost:3000');
+  socket = io('ws://localhost:3000'); // We will change this to a server in the future
 
   // We created and joined a room
   socket.on('created', function(connectionInfo) {
@@ -97,7 +100,6 @@ function init() {
     console.log('User ', startInfo.name, ' joined room ', room)
 
     sendOffer(startInfo.id) // Send the user your local description in order to create a connection
-    newUserJoined(startInfo.id, name) // Add the new user to the 3D environment
   });
 
   // We joined a conference
@@ -207,7 +209,6 @@ function sendOffer(id) {
   createDataChannel(id)
 
   connections[id].connection.addStream(localStream);
-
   connections[id].connection.createOffer().then(function(description) {
     connections[id].connection.setLocalDescription(description);
     socket.emit('offer', {
@@ -248,8 +249,6 @@ function sendAnswer(id, offerDescription) {
 // Function which tells other users our new 3D position
 function changePos(x, y, z) {
   let jsonPos = JSON.stringify({x: x, y: y, z: z})
-  //socket.emit('pos', {x: x, y: y, z: z});
-
   for (let id in connections) {
     connections[id].dataChannel.send(jsonPos)
   }
@@ -310,7 +309,7 @@ function createPeerConnection(id) {
       });
 
       event.channel.addEventListener("close", () => {
-        //console.log("Datachannel closed to " + connections[id].name)
+        console.log("A DataChannel closed")
       });
 
       event.channel.addEventListener("message", (message) => {
@@ -337,7 +336,7 @@ function createDataChannel(id) {
   });
 
   tempConnection.addEventListener("close", () => {
-    //console.log("Datachannel closed to " + connections[id].name)
+    console.log("A DataChannel closed")
   });
 
   tempConnection.addEventListener("message", (event) => {
@@ -406,9 +405,7 @@ function removeConnectionHTMLList(id) {
 
 // Handles receiving a message on a DataChannel
 function dataChannelReceive(id, data) {
-
   if (id === ourID) return;
-
   let message = JSON.parse(data)
 
   if (message.type == "chat") {
@@ -435,15 +432,12 @@ function addChat(name, message) {
 
 // Emits a chat message to all other connected users
 function sendChat() {
-
   if (chatSend.value == '') return;
-
   let message = JSON.stringify({type: "chat", message: chatSend.value})
 
   for (let id in connections) {
     connections[id].dataChannel.send(message)
   }
-
   addChat(username.value, chatSend.value)
 
   chatSend.value = ''; // Clear the text box
@@ -452,23 +446,25 @@ function sendChat() {
 function open3D() {
   document.addEventListener("keydown", onDocumentKeyDown, false);
 	document.addEventListener("keyup", onDocumentKeyUp, false);
-  document.getElementById("chatSection").hidden = true
-  document.getElementById("chatSection").style.display = "none"
 
-  if (document.getElementById("scene")) {
-    document.getElementById("scene").hidden = false;
-    document.getElementById("scene").style.display = "inline-block"
+  chatDiv.hidden = true
+  chatDiv.style.display = "none"
+
+  if (sceneDiv) {
+    sceneDiv.hidden = false;
+    sceneDiv.style.display = "inline-block"
   }
 
-  document.getElementById("open").onclick = function() {openChat()};
-  document.getElementById("open").value = "Open Chat"
+  openButton.onclick = function() {openChat()};
+  openButton.value = "Open Chat"
 }
 
 function openChat() {
   document.removeEventListener("keydown", onDocumentKeyDown);
 	document.removeEventListener("keyup", onDocumentKeyUp);
-  document.getElementById("chatSection").hidden = false
-  document.getElementById("chatSection").style.display = "inline-block"
+
+  chatDiv.hidden = false
+  chatDiv.style.display = "inline-block"
 
   users.hidden = false;
   users.style.display = "inline-block"
@@ -478,13 +474,13 @@ function openChat() {
   chatBox.hidden = false;
   chatBox.style.display = "inline-block";
 
-  if (document.getElementById("scene")) {
-    document.getElementById("scene").hidden = true;
-    document.getElementById("scene").style.display = "none"
+  if (sceneDiv) {
+    sceneDiv.hidden = true;
+    sceneDiv.style.display = "none"
   }
 
-  document.getElementById("open").onclick = function() {open3D()};
-  document.getElementById("open").value = "Open 3D"
+  openButton.onclick = function() {open3D()};
+  openButton.value = "Open 3D"
 }
 
 // Leaves the conference, resets variable values and closes connections
