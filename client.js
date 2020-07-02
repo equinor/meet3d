@@ -71,7 +71,8 @@ function init() {
   username.readOnly = true;
   roomName.readOnly = true;
   openChat();
-  socket = io.connect();
+  //socket = io.connect();
+  socket = io('ws://localhost:3000');
 
   // We created and joined a room
   socket.on('created', function(connectionInfo) {
