@@ -259,6 +259,10 @@ function nameChange(userer, newname) {
 	userer.name = newname;
 }
 
+function userLeft(){
+	
+}
+
 function leave3D() {
 	document.removeEventListener("keydown", onDocumentKeyDown);
 	document.removeEventListener("keyup", onDocumentKeyUp);

@@ -32,6 +32,7 @@ chatSend.addEventListener("keyup", function(event) {
   });
 
 var localStream; // This is our local audio stream
+var videoStream;
 var room; // This is the name of our conference room
 var socket; // This is the SocketIO connection to the signalling server
 var ourID; // This is our unique ID
@@ -52,7 +53,8 @@ var sdpConstraints = {
 
 // Our local media constraints
 var constraints = {
-  audio: true
+  audio: true,
+  video: true
 };
 
 function init() {
@@ -184,7 +186,7 @@ function init() {
   // Gets the audio stream from our microphone
   navigator.mediaDevices.getUserMedia({
     audio: true,
-    video: false
+    video: true
   }).then(gotLocalStream).catch(function(e) {
     console.log(e);
     alert('Unable to access local media: ' + e.name);
@@ -252,8 +254,8 @@ function changePos(x, y, z) {
 // Called when we have got a local media stream
 function gotLocalStream(stream) {
   console.log('Adding local stream.');
-  localStream = stream;
-  //localVideo.srcObject = stream; // We are not using video for now
+  localStream = stream.getAudioTracks();
+  localVideo.srcObject = stream.getVideoTracks(); // We are not using video for now
 
   if (room !== '') { // Check that the room does not already exist
     let startInfo = {
