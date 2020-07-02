@@ -32,7 +32,6 @@ chatSend.addEventListener("keyup", function(event) {
   });
 
 var localStream; // This is our local audio stream
-var videoStream;
 var room; // This is the name of our conference room
 var socket; // This is the SocketIO connection to the signalling server
 var ourID; // This is our unique ID
@@ -205,8 +204,9 @@ function sendOffer(id) {
 
   createDataChannel(id)
 
-  connections[id].connection.addStream(localStream);
-
+  for (const track of localStream.getTracks()) {
+    connections[id].connection.addTrack(track, localStream);
+  }
   connections[id].connection.createOffer().then(function(description) {
     connections[id].connection.setLocalDescription(description);
     socket.emit('offer', {
@@ -228,7 +228,9 @@ function sendAnswer(id, offerDescription) {
   console.log('>>>>>> Creating RTCPeerConnection to user ' + connections[id].name);
   connections[id].connection = createPeerConnection(id);
 
-  connections[id].connection.addStream(localStream);
+  for (const track of localStream.getTracks()) {
+    connections[id].connection.addTrack(track, localStream);
+  }
 
   console.log('>>>>>> Sending answer to connection to user ' + connections[id].name);
 
@@ -254,8 +256,8 @@ function changePos(x, y, z) {
 // Called when we have got a local media stream
 function gotLocalStream(stream) {
   console.log('Adding local stream.');
-  localStream = stream.getAudioTracks();
-  localVideo.srcObject = stream.getVideoTracks(); // We are not using video for now
+  localStream = stream;
+  localVideo.srcObject = stream; // We are not using video for now
 
   if (room !== '') { // Check that the room does not already exist
     let startInfo = {
@@ -293,8 +295,11 @@ function createPeerConnection(id) {
     };
     pc.ontrack = function (event) {
       console.log('Remote stream added.');
-      connections[id].audio = event.streams[0] // TODO: verify that this will always be zero
-      userGotMedia(id, event.streams[0]) // Adds track to 3D environment
+      
+      connections[id].audio = event.streams[0];// TODO: verify that this will always be zero
+      userGotMedia(id, event.streams[0]); // Adds track to 3D environment
+      remoteStream.srcObject = event.streams[0];
+  
     };
     pc.onremovestream = function (event) {
       // Here we might need to update something in 3D.js, but I'm not sure
