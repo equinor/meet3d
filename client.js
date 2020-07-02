@@ -79,12 +79,12 @@ function init() {
   chatBox.style.display = "inline-block";
   socket = io.connect();
 
-  init3D(); // Renders the 3D environment
-
   // We created and joined a room
   socket.on('created', function(connectionInfo) {
     console.log('Created room ' + connectionInfo.room);
     ourID = connectionInfo.id;
+
+    init3D(); // Renders the 3D environment
   });
 
   // The room we tried to join is full
@@ -110,6 +110,8 @@ function init() {
   socket.on('joined', function(connectionInfo) {
     console.log('We joined: ' + connectionInfo.room);
     ourID = connectionInfo.id;
+
+    init3D(); // Renders the 3D environment
   });
 
   // A user moved in the 3D space
