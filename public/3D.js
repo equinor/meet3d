@@ -273,7 +273,9 @@ function nameChange(userer, newname) {
 function leave3D() {
 	document.removeEventListener("keydown", onDocumentKeyDown);
 	document.removeEventListener("keyup", onDocumentKeyUp);
-	document.getElementById("scene").outerHTML = '' // Deletes the scene
+	if (document.getElementById("scene")) {
+		document.getElementById("scene").outerHTML = '' // Deletes the scene
+	}
 	controls = null;
 	renderer = null;
 	camera = null;
@@ -282,7 +284,6 @@ function leave3D() {
 	geometry = null;
 	material = null;
 	object = null;
-	speed = null;
 	myID = null;
 	userCount = 0;
 	window.cancelAnimationFrame(requestID); // Stops rendering the scene

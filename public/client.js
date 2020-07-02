@@ -71,7 +71,6 @@ function init() {
   username.readOnly = true;
   roomName.readOnly = true;
   openChat();
-  //socket = io.connect();
   socket = io('ws://localhost:3000');
 
   // We created and joined a room
@@ -181,9 +180,16 @@ function init() {
     audio: true,
     video: false
   }).then(gotLocalStream).catch(function(e) {
-    console.log(e);
-    alert('Unable to access local media: ' + e.name);
-    leave();
+    if (e.name === "NotAllowedError") {
+      alert('Unfortunately, access to the microphone is necessary in order to use the program. ' +
+      'Permissions for this webpage can be updated in the settings for your browser, ' +
+      'or by refreshing the page and trying again.');
+      leave();
+    } else {
+      console.log(e);
+      alert('Unable to access local media: ' + e.name);
+      leave();
+    }
   });
 
   if (location.hostname !== 'localhost') { // If we are not hosting locally
