@@ -10,7 +10,6 @@ var chatReceive = document.getElementById("chatReceive");
 var chatBox = document.getElementById("chatBox");
 var chatSend = document.getElementById("chatSend");
 var chatDiv = document.getElementById("chatSection");
-var sceneDiv = document.getElementById("scene");
 var openButton = document.getElementById("open");
 
 username.addEventListener("keyup", function(event) {
@@ -100,6 +99,7 @@ function init() {
     console.log('User ', startInfo.name, ' joined room ', room)
 
     sendOffer(startInfo.id) // Send the user your local description in order to create a connection
+    newUserJoined(startInfo.id, startInfo.name) // Add the new user to the 3D environment
   });
 
   // We joined a conference
@@ -450,6 +450,7 @@ function open3D() {
   chatDiv.hidden = true
   chatDiv.style.display = "none"
 
+  let sceneDiv = document.getElementById("scene");
   if (sceneDiv) {
     sceneDiv.hidden = false;
     sceneDiv.style.display = "inline-block"
@@ -474,6 +475,7 @@ function openChat() {
   chatBox.hidden = false;
   chatBox.style.display = "inline-block";
 
+  let sceneDiv = document.getElementById("scene");
   if (sceneDiv) {
     sceneDiv.hidden = true;
     sceneDiv.style.display = "none"
