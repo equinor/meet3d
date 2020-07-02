@@ -114,7 +114,7 @@ function userGotMedia(id, mediaStream) {
 	findUser(id).setMedia(mediaStream);
 	var posAudio = new THREE.PositionalAudio(listener);
 	posAudio.setRefDistance(20);
-	posAudio.setDirectionalCone(180,320,0.1);
+	//posAudio.setDirectionalCone(180,320,0.1);
 	posAudio.setRolloffFactor(2);
 	const audio1 = posAudio.context.createMediaStreamSource(mediaStream);
 
