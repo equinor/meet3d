@@ -21,7 +21,7 @@ var listener;
 
 function init3D() {
 	scene = new THREE.Scene();
-	camera = new THREE.PerspectiveCamera(100, window.innerWidth / window.outerWidth, 0.1, 1000);
+	camera = new THREE.PerspectiveCamera(100, (window.innerWidth / window.outerWidth), 0.1, 1000);
 	renderer = new THREE.WebGLRenderer();
 
 	scene.background = new THREE.Color( 0xf0f0f0 );
@@ -42,10 +42,13 @@ function init3D() {
 	floor.rotation.x += Math.PI / 2; //can rotate the floor/plane
 	scene.add( floor );
 
-	renderer.setSize(window.innerWidth, window.innerHeight);
+	renderer.setSize(window.innerWidth - 5, window.innerHeight - 25);
 	document.body.appendChild( renderer.domElement);
 
 	renderer.domElement.id = "scene"; // Adds an ID to the canvas element
+	renderer.domElement.hidden = true; // Initially hides the scene
+	renderer.domElement.style.display = "none"
+	document.getElementById("open").hidden = false;
 
 	//choose which object to make when the makeobjectfunction is called
 	geometry = new THREE.BoxGeometry(20, 20, 20);

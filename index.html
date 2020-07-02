@@ -11,35 +11,39 @@
 		</style>
 	</head>
 	<body>
-		<h1>Realtime communication with WebRTC</h1>
+		<div id="chatSection">
+			<h1>Realtime communication with WebRTC</h1>
 
-		<div>
-			Username:
-			<input type="text" id="username" placeholder="Enter a username here!"></input>
+			<div>
+				Username:
+				<input type="text" id="username" placeholder="Enter a username here!"></input>
+			</div>
+
+			<div>
+				Room name:
+				<input type="text" id="roomName" placeholder="Enter a room name here!"></input>
+				<input type="button" id="start" onclick="init()" value="Open room"></input>
+				<button id="leaveButton" onclick="leave()" hidden>Leave Room</button>
+			</div>
+
+			</br>
+
+			<chat id="chatBox" hidden>
+				<ul id="chatReceive">
+					<!-- New chat messages go here -->
+				</ul>
+				<input type="text" id="chatSend" style="width:490px;" placeholder="Type a message here!"></input>
+				<input type="button" onclick="sendChat()" value="Send"></input>
+			</chat>
+
+			<div class="users" id="users" hidden>
+				<p> Other users in the room:</p>
+				<ul id="connectionList">
+				</ul>
+			</div>
 		</div>
 
-		<div>
-			Room name:
-			<input type="text" id="roomName" placeholder="Enter a room name here!"></input>
-			<input type="button" id="start" onclick="init()" value="Open room"></input>
-			<button id="leaveButton" onclick="leave()" hidden>Leave Room</button>
-		</div>
-
-		</br>
-
-		<chat id="chatBox" hidden>
-			<ul id="chatReceive">
-				<!-- New chat messages go here -->
-			</ul>
-			<input type="text" id="chatSend" style="width:490px;" placeholder="Type a message here!"></input>
-			<input type="button" onclick="sendChat()" value="Send"></input>
-		</chat>
-
-		<div class="users" id="users" hidden>
-			<p> Other users in the room:</p>
-			<ul id="connectionList">
-			</ul>
-		</div>
+		<input type="button" id="open" onclick="open3D()" value="Open Chat" hidden></input>
 
 	  <script src="/socket.io/socket.io.js"></script>
 	  <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
