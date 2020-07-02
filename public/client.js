@@ -69,15 +69,9 @@ function init() {
 
   room = roomName.value;
   username.readOnly = true;
-  users.hidden = false;
-  users.style.display = "inline-block"
-  roomName.readOnly = "readonly";
-  startButton.hidden = true;
-  leaveButton.hidden = false;
-  connectionList.hidden = false;
-  chatBox.hidden = false;
-  chatBox.style.display = "inline-block";
-  socket = io.connect();
+  roomName.readOnly = true;
+  openChat();
+  socket = io('ws://localhost:3000');
 
   // We created and joined a room
   socket.on('created', function(connectionInfo) {
@@ -186,9 +180,16 @@ function init() {
     audio: true,
     video: false
   }).then(gotLocalStream).catch(function(e) {
-    console.log(e);
-    alert('Unable to access local media: ' + e.name);
-    leave();
+    if (e.name === "NotAllowedError") {
+      alert('Unfortunately, access to the microphone is necessary in order to use the program. ' +
+      'Permissions for this webpage can be updated in the settings for your browser, ' +
+      'or by refreshing the page and trying again.');
+      leave();
+    } else {
+      console.log(e);
+      alert('Unable to access local media: ' + e.name);
+      leave();
+    }
   });
 
   if (location.hostname !== 'localhost') { // If we are not hosting locally
@@ -253,7 +254,6 @@ function changePos(x, y, z) {
 function gotLocalStream(stream) {
   console.log('Adding local stream.');
   localStream = stream;
-  //localVideo.srcObject = stream; // We are not using video for now
 
   if (room !== '') { // Check that the room does not already exist
     let startInfo = {
@@ -437,6 +437,51 @@ function sendChat() {
   chatSend.value = ''; // Clear the text box
 }
 
+function open3D() {
+
+  document.getElementById("chatSection").hidden = true
+  document.getElementById("chatSection").style.display = "none"
+
+  /*
+  startButton.hidden = true;
+  leaveButton.hidden = true;
+  connectionList.hidden = true;
+  chatBox.hidden = true;
+  chatBox.style.display = "none";
+  users.hidden = true;
+  users.style.display = "none"
+  */
+  if (document.getElementById("scene")) {
+    document.getElementById("scene").hidden = false;
+    document.getElementById("scene").style.display = "inline-block"
+  }
+
+  document.getElementById("open").onclick = function() {openChat()};
+  document.getElementById("open").value = "Open Chat"
+}
+
+function openChat() {
+  document.getElementById("chatSection").hidden = false
+  document.getElementById("chatSection").style.display = "inline-block"
+
+  users.hidden = false;
+  users.style.display = "inline-block"
+  startButton.hidden = true;
+  leaveButton.hidden = false;
+  connectionList.hidden = false;
+  chatBox.hidden = false;
+  chatBox.style.display = "inline-block";
+
+  if (document.getElementById("scene")) {
+    document.getElementById("scene").hidden = true;
+    document.getElementById("scene").style.display = "none"
+  }
+
+
+  document.getElementById("open").onclick = function() {open3D()};
+  document.getElementById("open").value = "Open 3D"
+}
+
 // Leaves the conference, resets variable values and closes connections
 function leave() {
 
@@ -450,6 +495,7 @@ function leave() {
   users.hidden = true;
   users.style.display = "none"
   connectionList.innerHTML = '';
+  document.getElementById("open").hidden = true;
   for (let id in connections) {
     connections[id].connection.close()
   }
