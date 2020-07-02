@@ -67,8 +67,8 @@ function init3D() {
 
 	myID = new user(0, "test", 10, 10, 0).getId();
 
-	document.addEventListener("keydown", onDocumentKeyDown, false);
-	document.addEventListener("keyup", onDocumentKeyUp, false);
+	//document.addEventListener("keydown", onDocumentKeyDown, false);
+	//document.addEventListener("keyup", onDocumentKeyUp, false);
 
 	listener = new THREE.AudioListener();
 

@@ -247,7 +247,12 @@ function sendAnswer(id, offerDescription) {
 
 // Function which tells other users our new 3D position
 function changePos(x, y, z) {
-  socket.emit('pos', {x: x, y: y, z: z});
+  let jsonPos = JSON.stringify({x: x, y: y, z: z})
+  //socket.emit('pos', {x: x, y: y, z: z});
+
+  for (let id in connections) {
+    connections[id].dataChannel.send(jsonPos)
+  }
 }
 
 // Called when we have got a local media stream
@@ -403,8 +408,16 @@ function removeConnectionHTMLList(id) {
 
 // Handles receiving a message on a DataChannel
 function dataChannelReceive(id, data) {
-  console.log("Got dataCHannel info bud: " + data)
-  addChat(connections[id].name, data)
+
+  if (id === ourID) return;
+
+  let message = JSON.parse(data)
+
+  if (message.type == "chat") {
+    addChat(connections[id].name, message.message)
+  } else {
+    changeUserPosition(id, message.x, message.y, message.z) // Change position of user
+  }
 }
 
 // Adds the given message to the chat box, including the user that sent it and the received time
@@ -427,9 +440,10 @@ function sendChat() {
 
   if (chatSend.value == '') return;
 
+  let message = JSON.stringify({type: "chat", message: chatSend.value})
+
   for (let id in connections) {
-    console.log("Sending message: " + chatSend.value + " to " + connections[id].name)
-    connections[id].dataChannel.send(chatSend.value)
+    connections[id].dataChannel.send(message)
   }
 
   addChat(username.value, chatSend.value)
@@ -438,19 +452,11 @@ function sendChat() {
 }
 
 function open3D() {
-
+  document.addEventListener("keydown", onDocumentKeyDown, false);
+	document.addEventListener("keyup", onDocumentKeyUp, false);
   document.getElementById("chatSection").hidden = true
   document.getElementById("chatSection").style.display = "none"
 
-  /*
-  startButton.hidden = true;
-  leaveButton.hidden = true;
-  connectionList.hidden = true;
-  chatBox.hidden = true;
-  chatBox.style.display = "none";
-  users.hidden = true;
-  users.style.display = "none"
-  */
   if (document.getElementById("scene")) {
     document.getElementById("scene").hidden = false;
     document.getElementById("scene").style.display = "inline-block"
@@ -461,6 +467,8 @@ function open3D() {
 }
 
 function openChat() {
+  document.removeEventListener("keydown", onDocumentKeyDown);
+	document.removeEventListener("keyup", onDocumentKeyUp);
   document.getElementById("chatSection").hidden = false
   document.getElementById("chatSection").style.display = "inline-block"
 
@@ -476,7 +484,6 @@ function openChat() {
     document.getElementById("scene").hidden = true;
     document.getElementById("scene").style.display = "none"
   }
-
 
   document.getElementById("open").onclick = function() {open3D()};
   document.getElementById("open").value = "Open 3D"
