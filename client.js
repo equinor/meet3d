@@ -295,12 +295,17 @@ function createPeerConnection(id) {
     };
     pc.ontrack = function (event) {
       console.log('Remote stream added.');
-      
-      connections[id].audio = event.streams[0];// TODO: verify that this will always be zero
-      userGotMedia(id, event.streams[0]); // Adds track to 3D environment
+      userGotMedia(id, event.streams[0]);
+      if (document.getElementById(event.streams[0].id)){
+        return
+      }
+      let remoteStream = document.createElement("video");
+      remoteStream.id = event.streams[0].id;
+
       remoteStream.srcObject = event.streams[0];
-  
-    };
+      document.getElementById("video").appendChild(remoteStream);
+      
+    }; 
     pc.onremovestream = function (event) {
       // Here we might need to update something in 3D.js, but I'm not sure
       console.log("Lost a stream from " + connections[id].name)

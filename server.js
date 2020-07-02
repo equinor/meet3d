@@ -8,7 +8,7 @@ var socketIO = require('socket.io');
 var fileServer = new(nodeStatic.Server)();
 var app = http.createServer(function(req, res) {
   fileServer.serve(req, res);
-}).listen(8085);
+}).listen(8080);
 
 const maxUsers = 10; // TODO: determine a good value for this
 var rooms = {}
