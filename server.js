@@ -1,10 +1,11 @@
-'use strict';
 
-var os = require('os');
-var nodeStatic = require('node-static');
-var http = require('http');
+var static = require('node-static');
 
-var fileServer = new(nodeStatic.Server)();
-var app = http.createServer(function(req, res) {
-  fileServer.serve(req, res);
+// Create a node-static server instance to serve the './public' folder
+var file = new static.Server('./public', { cache: false });
+
+require('http').createServer(function (request, response) {
+    request.addListener('end', function () {
+        file.serve(request, response);
+    }).resume();
 }).listen(8080);
