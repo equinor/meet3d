@@ -92,7 +92,8 @@ function newUserJoined(id, name) {
 	console.log("Adding new user to the environment: " + name)
 	let newUser = new user(id, name, 10, 10, distance * userCount); // This does not look great at the moment
 	addToUserMap(newUser);
-	userCount++
+	userCount++;
+	changePos(findUser(myID).getxPosition(), findUser(myID).getyPosition(), findUser(myID).getzPosition());
 }
 
 function changeUserPosition(id, x, y, z) {
