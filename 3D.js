@@ -277,5 +277,3 @@ function leave3D() {
 	window.cancelAnimationFrame(requestID); // Stops rendering the scene
 	requestID = undefined;
 }
-
->>>>>>> master
