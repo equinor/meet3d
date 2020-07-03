@@ -151,7 +151,7 @@ function init() {
     if (id === ourID) return;
 
     connections[id].connection.setRemoteDescription(new RTCSessionDescription(answerDescription));
-    appendConnectionHTMLList(id)
+    appendConnectionHTMLList(id);
   });
 
   // We have received an ICE candidate from a user we are connecting to
@@ -193,6 +193,7 @@ function init() {
 // Sends an offer to a new user with our local PeerConnection description
 function sendOffer(id) {
   console.log('>>>>>> Creating peer connection to user ' + connections[id].name);
+  //socket.emit('pos', {x: findUser(myID).getxPosition(), y: findUser(myID).getyPosition(), z: findUser(myID).getzPosition()});
   connections[id].connection = createPeerConnection(id);
 
   createDataChannel(id)
@@ -293,8 +294,8 @@ function createPeerConnection(id) {
     };
     pc.ondatachannel = function (event) {
       event.channel.addEventListener("open", () => {
-        connections[id].dataChannel = event.channel
-        console.log("Datachannel established to " + connections[id].name)
+        connections[id].dataChannel = event.channel;
+        console.log("Datachannel established to " + connections[id].name);
       });
 
       event.channel.addEventListener("close", () => {
@@ -306,7 +307,7 @@ function createPeerConnection(id) {
       });
     };
 
-    console.log('>>>>>> Created RTCPeerConnnection');
+    console.log('>>>>>> Created RTCPeerConnection');
 
   } catch (e) {
     console.log('Failed to create PeerConnection, exception: ' + e.message);
@@ -322,6 +323,7 @@ function createDataChannel(id) {
   tempConnection.addEventListener("open", () => {
     connections[id].dataChannel = tempConnection
     console.log("Datachannel established to " + connections[id].name)
+    changePos(findUser(myID).getxPosition(), findUser(myID).getyPosition(), findUser(myID).getzPosition());
   });
 
   tempConnection.addEventListener("close", () => {
