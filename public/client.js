@@ -208,9 +208,13 @@ function sendOffer(id) {
 
   createDataChannel(id)
 
-  for (const track of localStream.getTracks()) {
+  /*for (const track of localStream.getTracks()) {
     connections[id].connection.addTrack(track, localStream);
-  }
+  }*/
+
+  connections[id].connection.addStream(localStream);
+
+
   connections[id].connection.createOffer().then(function(description) {
     connections[id].connection.setLocalDescription(description);
     socket.emit('offer', {
@@ -231,8 +235,8 @@ function sendAnswer(id, offerDescription) {
 
   console.log('>>>>>> Creating RTCPeerConnection to user ' + connections[id].name);
   connections[id].connection = createPeerConnection(id);
-
- /* for (const track of localStream.getTracks()) {
+/*
+ for (const track of localStream.getTracks()) {
     connections[id].connection.addTrack(track, localStream);
   }*/
 
