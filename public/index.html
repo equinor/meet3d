@@ -14,17 +14,19 @@
 		<div id="chatSection">
 			<h1>Realtime communication with WebRTC</h1>
 
-			<div>
-				Username:
-				<input type="text" id="username" placeholder="Enter a username here!"></input>
-			</div>
+			<room>
+				<div>
+					Username: &ensp;
+					<input type="text" id="username" placeholder="Enter a username here!"></input>
+				</div>
 
-			<div>
-				Room name:
-				<input type="text" id="roomName" placeholder="Enter a room name here!"></input>
-				<input type="button" id="start" onclick="init()" value="Open room"></input>
-				<button id="leaveButton" onclick="leave()" hidden>Leave Room</button>
-			</div>
+				<div>
+					Room name:
+					<input type="text" id="roomName" placeholder="Enter a room name here!"></input>
+					<input type="button" id="start" onclick="init()" value="Open room"></input>
+					<button id="leaveButton" onclick="leave()" hidden>Leave Room</button>
+				</div>
+			</room>
 
 			</br>
 
@@ -41,6 +43,14 @@
 				<ul id="connectionList">
 				</ul>
 			</div>
+
+			</br>
+
+			<files id="files" hidden>
+	      <input type="file" id="sendFile">
+	      <button onclick="sendFile()" id="uploadButton" type="submit">Upload File</button>
+				<a id="download" target="_blank" hidden>Download file</a>
+	    </files>
 		</div>
 
 		<input type="button" id="open" onclick="open3D()" value="Open Chat" hidden></input>

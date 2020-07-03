@@ -11,6 +11,7 @@ var chatBox = document.getElementById("chatBox");
 var chatSend = document.getElementById("chatSend");
 var chatDiv = document.getElementById("chatSection");
 var openButton = document.getElementById("open");
+var files = document.getElementById("files");
 
 username.addEventListener("keyup", function(event) {
     if (event.keyCode === 13) { // This is the 'enter' key-press
@@ -394,7 +395,15 @@ function removeConnectionHTMLList(id) {
 // Handles receiving a message on a DataChannel
 function dataChannelReceive(id, data) {
   if (id === ourID) return;
-  let message = JSON.parse(data)
+
+  let message
+
+  try {
+    message = JSON.parse(data)
+  } catch (e) {
+    receiveFile(data)
+    return
+  }
 
   if (message.type == "chat") {
     addChat(connections[id].name, message.message, message.whisper)
@@ -459,35 +468,74 @@ function sendChat() {
   for (let id in connections) {
     connections[id].dataChannel.send(messageJSON)
   }
+
   addChat(username.value, chatSend.value)
-
-
   chatSend.value = ''; // Clear the text box
+}
+
+function sendFile() {
+  // Sends the selected file to the server as a binary string
+  let fileReader = new FileReader();
+
+  let fileName = document.getElementById("sendFile").files[0];
+  fileReader.readAsArrayBuffer(fileName);
+
+  fileReader.onload = function (e) {
+    let binary = e.target.result;
+
+    let blob = new File([binary], fileName)
+
+    for (let id in connections) {
+      connections[id].dataChannel.send(blob);
+    }
+  }
+}
+
+function receiveFile(data) {
+
+  var textFile = null
+
+  // If we are replacing a previously generated file we need to
+  // manually revoke the object URL to avoid memory leaks.
+  if (textFile !== null) {
+    window.URL.revokeObjectURL(textFile);
+  }
+
+  textFile = window.URL.createObjectURL(data);
+
+  // The file can be retrieved via a link
+  document.getElementById("download").href = textFile;
+  document.getElementById("download").hidden = false;
 }
 
 function open3D() {
   document.addEventListener("keydown", onDocumentKeyDown, false);
 	document.addEventListener("keyup", onDocumentKeyUp, false);
 
-  chatDiv.hidden = true
-  chatDiv.style.display = "none"
+  chatDiv.hidden = true;
+  chatDiv.style.display = "none";
+  files.hidden = true;
+  files.style.display = "none";
 
   let sceneDiv = document.getElementById("scene");
   if (sceneDiv) {
     sceneDiv.hidden = false;
-    sceneDiv.style.display = "inline-block"
+    sceneDiv.style.display = "inline-block";
   }
 
-  openButton.onclick = function() {openChat()};
-  openButton.value = "Open Chat"
+  openButton.onclick = function() { openChat() };
+  openButton.value = "Open Chat";
 }
 
 function openChat() {
   document.removeEventListener("keydown", onDocumentKeyDown);
 	document.removeEventListener("keyup", onDocumentKeyUp);
 
-  chatDiv.hidden = false
-  chatDiv.style.display = "inline-block"
+  chatDiv.hidden = false;
+  chatDiv.style.display = "inline-block";
+
+  files.hidden = false;
+  files.style.display = "inline-block";
 
   users.hidden = false;
   users.style.display = "inline-block"
@@ -510,6 +558,8 @@ function openChat() {
 // Leaves the conference, resets variable values and closes connections
 function leave() {
 
+  files.hidden = true;
+  files.style.display = "none";
   roomName.readOnly = false;
   username.readOnly = false;
   startButton.hidden = false;

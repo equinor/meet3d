@@ -36,7 +36,7 @@ function init3D() {
 	//make a floor to the scene
 	var floor = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, maxZ * 2, maxX * 2, maxZ * 2),
-		new THREE.MeshBasicMaterial({color: 0x0000ff, wireframe: true})
+		new THREE.MeshBasicMaterial({color: 0x0000ff, side: THREE.DoubleSide})
 	);
 
 	floor.rotation.x += Math.PI / 2; //can rotate the floor/plane
