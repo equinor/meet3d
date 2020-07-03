@@ -126,18 +126,6 @@ function init() {
     delete connections[id]
   });
 
-  // Receiving a chat message
-  socket.on('chat', function(message) {
-    console.log(message)
-    let name;
-    if (message.id == ourID) {
-      name = username.value;
-    } else {
-      name = connections[message.id].name;
-    }
-    addChat(name, message.message);
-  });
-
   // We have received a PeerConnection offer
   socket.on('offer', function(message) {
     let id = message.id
@@ -409,16 +397,21 @@ function dataChannelReceive(id, data) {
   let message = JSON.parse(data)
 
   if (message.type == "chat") {
-    addChat(connections[id].name, message.message)
+    addChat(connections[id].name, message.message, message.whisper)
   } else {
     changeUserPosition(id, message.x, message.y, message.z) // Change position of user
   }
 }
 
 // Adds the given message to the chat box, including the user that sent it and the received time
-function addChat(name, message) {
+function addChat(name, message, whisper) {
   var today = new Date();
   var time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
+
+  if (whisper) {
+    message = '<whisper>' + message + '</whisper>'
+    name = name + '->' + username.value
+  }
 
   let newMessage = document.createElement("li")
   newMessage.innerHTML = '<time>' + time + '</time> | <chatName>' + name + '</chatName>: ' + message;
@@ -432,13 +425,35 @@ function addChat(name, message) {
 
 // Emits a chat message to all other connected users
 function sendChat() {
-  if (chatSend.value == '') return;
-  let message = JSON.stringify({type: "chat", message: chatSend.value})
 
-  for (let id in connections) {
-    connections[id].dataChannel.send(message)
+  if (chatSend.value == '') return;
+
+  let message = chatSend.value.trim()
+
+  if (message.charAt(0) == '@') {
+    let space = message.indexOf(' ')
+    let target = message.slice(1, space)
+
+    message = message.slice(space + 1, message.length)
+
+    let messageJSON = JSON.stringify({type: "chat", message: message, whisper: true})
+
+    for (let id in connections) {
+      if (connections[id].name == target) {
+        connections[id].dataChannel.send(messageJSON)
+        break
+      }
+    }
+    addChat(username.value + '->' + target, '<whisper>' + message + '</whisper>')
+    console.log("user " + target + " not found")
+  } else {
+    let messageJSON = JSON.stringify({type: "chat", message: message, whisper: false})
+
+    for (let id in connections) {
+      connections[id].dataChannel.send(messageJSON)
+    }
+    addChat(username.value, chatSend.value)
   }
-  addChat(username.value, chatSend.value)
 
   chatSend.value = ''; // Clear the text box
 }

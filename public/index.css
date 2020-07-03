@@ -55,3 +55,8 @@ time {
 chatName {
   color: red;
 }
+
+whisper {
+  color: #006600;
+  font-weight: bold;
+}

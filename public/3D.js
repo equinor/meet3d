@@ -124,8 +124,8 @@ function userGotMedia(id, mediaStream) {
 }
 
 function userLeft(id) {
+	scene.remove(findUser(id).object);
 	if (removeUser(id)) {
-		// Here we also need to remove them from the scene
 		userCount--;
 	}
 }
