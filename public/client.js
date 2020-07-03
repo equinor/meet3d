@@ -406,7 +406,13 @@ function dataChannelReceive(id, data) {
 // Adds the given message to the chat box, including the user that sent it and the received time
 function addChat(name, message, whisper) {
   var today = new Date();
-  var time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
+  let hour = today.getHours()
+  let minute = today.getMinutes()
+  let second = today.getSeconds()
+  if (hour < 10) hour = '0' + hour;
+  if (minute < 10) minute = '0' + minute;
+  if (second < 10) second = '0' + second;
+  var time = hour + ":" + minute + ":" + second;
 
   if (whisper) {
     message = '<whisper>' + message + '</whisper>'
@@ -434,26 +440,27 @@ function sendChat() {
     let space = message.indexOf(' ')
     let target = message.slice(1, space)
 
-    message = message.slice(space + 1, message.length)
+    let messageWhisper = message.slice(space + 1, message.length)
 
-    let messageJSON = JSON.stringify({type: "chat", message: message, whisper: true})
+    let messageJSON = JSON.stringify({type: "chat", message: messageWhisper, whisper: true})
 
     for (let id in connections) {
       if (connections[id].name == target) {
         connections[id].dataChannel.send(messageJSON)
-        break
+        addChat(username.value + '->' + target, '<whisper>' + messageWhisper + '</whisper>')
+        chatSend.value = ''; // Clear the text box
+        return
       }
     }
-    addChat(username.value + '->' + target, '<whisper>' + message + '</whisper>')
-    console.log("user " + target + " not found")
-  } else {
-    let messageJSON = JSON.stringify({type: "chat", message: message, whisper: false})
-
-    for (let id in connections) {
-      connections[id].dataChannel.send(messageJSON)
-    }
-    addChat(username.value, chatSend.value)
   }
+
+  let messageJSON = JSON.stringify({type: "chat", message: message, whisper: false})
+
+  for (let id in connections) {
+    connections[id].dataChannel.send(messageJSON)
+  }
+  addChat(username.value, chatSend.value)
+
 
   chatSend.value = ''; // Clear the text box
 }
