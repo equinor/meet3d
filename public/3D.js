@@ -287,8 +287,6 @@ function onDocumentKeyDown(event) {
 				if (ourUser.setxPosition(ourUser.getxPosition() - speed)) camera.position.x -= speed;
 			}
 			break;
-		case 'c':
-			openChat();
 		default:
 			break;
 	}

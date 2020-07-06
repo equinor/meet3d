@@ -32,7 +32,7 @@ chatSend.addEventListener("keyup", function(event) {
       event.preventDefault();
       sendChat()
     }
-  });
+});
 
 var localStream; // This is our local audio stream
 var room; // This is the name of our conference room
@@ -74,6 +74,7 @@ function init() {
   username.readOnly = true;
   roomName.readOnly = true;
   openChat();
+
   socket = io('ws://localhost:3000'); // We will change this to a server in the future
 
   // We created and joined a room
@@ -82,6 +83,7 @@ function init() {
     ourID = connectionInfo.id;
 
     init3D(); // Renders the 3D environment
+    initSwapView();
   });
 
   // The room we tried to join is full
@@ -109,6 +111,7 @@ function init() {
     ourID = connectionInfo.id;
 
     init3D(); // Renders the 3D environment
+    initSwapView();
   });
 
   // A user moved in the 3D space
@@ -188,6 +191,15 @@ function init() {
   if (location.hostname !== 'localhost') { // If we are not hosting locally
     requestTurn('https://computeengineondemand.appspot.com/turn?username=41784574&key=4080218913');
   }
+}
+
+// Make 'c'-keypress swap between chat and 3D-space
+function initSwapView() {
+  console.log("initiating swap view");
+  document.addEventListener("keyup", swapViewOnC);
+
+  chatSend.onfocus = function() { document.removeEventListener("keyup", swapViewOnC) };
+  chatSend.onblur = function() { document.addEventListener("keyup", swapViewOnC) };
 }
 
 // Sends an offer to a new user with our local PeerConnection description
@@ -444,7 +456,6 @@ function addChat(name, message, whisper) {
 function sendChat() {
 
   if (chatSend.value == '') return;
-
   let message = chatSend.value.trim()
 
   if (message.charAt(0) == '@') {
@@ -555,6 +566,20 @@ function openChat() {
 
   openButton.onclick = function() {open3D()};
   openButton.value = "Open 3D"
+}
+
+function swapViewOnC(event) {
+  if(event.key == 'c') {
+    if(openButton.value == "Open 3D") {
+      open3D();
+    }
+    else if (openButton.value == "Open Chat") {
+      openChat();
+    }
+    else {
+      console.log("Could not swap view: openButton.value = " + openButton.value);
+    }
+  }
 }
 
 // Leaves the conference, resets variable values and closes connections
