@@ -47,10 +47,18 @@
 			</br>
 
 			<files id="files" hidden>
-	      <input type="file" id="sendFile">
-	      <button onclick="sendFile()" id="uploadButton" type="submit">Upload File</button>
-				<a id="download" target="_blank" hidden>Download file</a>
+				<uploadFile>
+	      	<input type="file" id="sendFile">
+	      	<button onclick="advertiseFile()" id="uploadButton">Upload File</button>
+				</uploadFile>
+				<p> Conference Files: </p>
 	    </files>
+
+			<received id="received">
+				Received File:
+				</br>
+				<a id="download" target="_blank" hidden>Download file</a>
+			</received>
 		</div>
 
 		<input type="button" id="open" onclick="open3D()" value="Open Chat" hidden></input>

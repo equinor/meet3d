@@ -32,6 +32,22 @@ chat {
   background-color: #cccccc;
 }
 
+uploadFile {
+  border-style: groove;
+  border-width: 2px;
+  padding-bottom: 5px;
+  padding-top: 5px;
+}
+
+received {
+  background-color: #ffff66;
+  border-style: groove;
+  border-width: 2px;
+  display: none;
+  width: 180px;
+  padding: 5px;
+}
+
 .users {
   vertical-align: top;
   height: 470px;

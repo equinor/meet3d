@@ -12,6 +12,7 @@ var chatSend = document.getElementById("chatSend");
 var chatDiv = document.getElementById("chatSection");
 var openButton = document.getElementById("open");
 var files = document.getElementById("files");
+var received = document.getElementById("received");
 
 username.addEventListener("keyup", function(event) {
     if (event.keyCode === 13) { // This is the 'enter' key-press
@@ -40,6 +41,7 @@ var socket; // This is the SocketIO connection to the signalling server
 var ourID; // This is our unique ID
 var connections = {} // The key is the socket id, and the value is {name: username, stream: mediastream, connection: PeerConnection}
 const maxChatLength = 20; // The chat will only hold this many messages at a time
+var textFile = null // This stores any downloaded file
 
 var pcConfig = {
   'iceServers': [{
@@ -396,21 +398,27 @@ function removeConnectionHTMLList(id) {
 
 // Handles receiving a message on a DataChannel
 function dataChannelReceive(id, data) {
+
+  console.log(data)
   if (id === ourID) return;
 
-  let message
+  let message;
 
   try {
-    message = JSON.parse(data)
+    message = JSON.parse(data);
   } catch (e) {
-    receiveFile(data)
-    return
+    receiveFile(id, data);
+    return;
   }
 
-  if (message.type == "chat") {
-    addChat(connections[id].name, message.message, message.whisper)
-  } else {
-    changeUserPosition(id, message.x, message.y, message.z) // Change position of user
+  if (message.type == "pos") {
+    changeUserPosition(id, message.x, message.y, message.z); // Change position of user
+  } else if (message.type == "file") {
+    updateFileList(id, message);
+  } else if (message.type == "request") {
+    sendFile(id, message.option)
+  } else if (message.type == "chat") {
+    addChat(connections[id].name, message.message, message.whisper);
   }
 }
 
@@ -475,8 +483,76 @@ function sendChat() {
   chatSend.value = ''; // Clear the text box
 }
 
+function advertiseFile() {
+  let files = document.getElementById("sendFile").files;
+
+  for (let id in connections) {
+    for (let i in files) {
+      if (files[i].name && files[i].size) {
+        connections[id].dataChannel.send(JSON.stringify({
+          type: "file",
+          fileName: files[i].name,
+          size: files[i].size
+        }));
+      }
+    }
+  }
+}
+
+// https://stackoverflow.com/questions/15900485/correct-way-to-convert-size-in-bytes-to-kb-mb-gb-in-javascript
+function formatBytes(bytes, decimals = 2) {
+    if (bytes === 0) return '0 Bytes';
+
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+}
+
+function updateFileList(id, message) {
+  let file = document.getElementById(message.fileName + '-' + connections[id].name);
+  if (!file) {
+    file = document.createElement("option")
+    file.id = message.fileName
+  }
+
+  file.value = message.fileName
+  file.innerHTML = message.fileName + ' (' + formatBytes(message.size) + ')';
+
+  let files = document.getElementById("files")
+  let userFiles = document.getElementById(connections[id].name + 'Files')
+
+  if (!userFiles) {
+    userFiles = document.createElement("userFiles")
+    userFiles.id = connections[id].name + 'Files';
+
+    let label = document.createElement("label");
+    label.for = connections[id].name;
+    label.innerHTML = connections[id].name;
+    userFiles.appendChild(label);
+
+    let select = document.createElement("select");
+    userFiles.appendChild(select)
+
+    let request = document.createElement("button")
+    request.innerHTML = "Request File";
+    request.onclick = function () {
+      requestFile(id, select.value);
+    }
+
+    userFiles.appendChild(request)
+
+    files.appendChild(userFiles)
+  }
+
+  userFiles.childNodes[1].appendChild(file)
+}
+
 function sendFile() {
-  // Sends the selected file to the server as a binary string
+  // Sends the selected file to the other users as a blob
   let fileReader = new FileReader();
 
   let fileName = document.getElementById("sendFile").files[0];
@@ -493,9 +569,35 @@ function sendFile() {
   }
 }
 
-function receiveFile(data) {
+function requestFile(id, option) {
+  connections[id].dataChannel.send(JSON.stringify({
+    type: "request",
+    option: option
+  }));
 
-  var textFile = null
+  document.getElementById("download").name = option;
+}
+
+function sendFile(id, option) {
+  let fileReader = new FileReader();
+  let files = document.getElementById("sendFile").files;
+  for (let i in files) {
+    if (files[i].name == option) {
+
+      fileReader.readAsArrayBuffer(files[i]);
+
+      fileReader.onload = function (e) {
+        let binary = e.target.result;
+        let blob = new File([binary], files[i])
+        connections[id].dataChannel.send(blob);
+      }
+      return;
+    }
+  }
+  fileReader.close()
+}
+
+function receiveFile(id, data) {
 
   // If we are replacing a previously generated file we need to
   // manually revoke the object URL to avoid memory leaks.
@@ -508,6 +610,9 @@ function receiveFile(data) {
   // The file can be retrieved via a link
   document.getElementById("download").href = textFile;
   document.getElementById("download").hidden = false;
+  document.getElementById("download").innerHTML = connections[id].name + ': ' + document.getElementById("download").name
+
+  received.style.display = "inline-block";
 }
 
 function open3D() {
@@ -518,6 +623,7 @@ function open3D() {
   chatDiv.style.display = "none";
   files.hidden = true;
   files.style.display = "none";
+  received.style.display = "none";
 
   let sceneDiv = document.getElementById("scene");
   if (sceneDiv) {
@@ -546,6 +652,7 @@ function openChat() {
   connectionList.hidden = false;
   chatBox.hidden = false;
   chatBox.style.display = "inline-block";
+  received.style.display = "inline-block";
 
   let sceneDiv = document.getElementById("scene");
   if (sceneDiv) {
@@ -559,6 +666,10 @@ function openChat() {
 
 // Leaves the conference, resets variable values and closes connections
 function leave() {
+
+  if (textFile !== null) {
+    window.URL.revokeObjectURL(textFile);
+  }
 
   files.hidden = true;
   files.style.display = "none";
