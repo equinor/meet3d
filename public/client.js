@@ -17,21 +17,21 @@ var received = document.getElementById("received");
 username.addEventListener("keyup", function(event) {
     if (event.keyCode === 13) { // This is the 'enter' key-press
       event.preventDefault();
-      init()
+      init();
     }
   });
 
 roomName.addEventListener("keyup", function(event) {
     if (event.keyCode === 13) { // This is the 'enter' key-press
       event.preventDefault();
-      init()
+      init();
     }
   });
 
 chatSend.addEventListener("keyup", function(event) {
     if (event.keyCode === 13) { // This is the 'enter' key-press
       event.preventDefault();
-      sendChat()
+      sendChat();
     }
   });
 
@@ -39,7 +39,7 @@ var localStream; // This is our local audio stream
 var room; // This is the name of our conference room
 var socket; // This is the SocketIO connection to the signalling server
 var ourID; // This is our unique ID
-var connections = {} // The key is the socket id, and the value is {name: username, stream: mediastream, connection: PeerConnection}
+var connections = {}; // The key is the socket id, and the value is {name: username, stream: mediastream, connection: PeerConnection}
 const maxChatLength = 20; // The chat will only hold this many messages at a time
 var textFile = null // This stores any downloaded file
 
@@ -71,13 +71,13 @@ const screenShareConstraints = {
 function init() {
 
   if (username.value === '') {
-    alert('Please enter a username')
-    return
+    alert('Please enter a username');
+    return;
   }
 
   if (roomName.value === '') {
-    alert('Please enter a room name')
-    return
+    alert('Please enter a room name');
+    return;
   }
 
   room = roomName.value;
@@ -97,20 +97,20 @@ function init() {
   // The room we tried to join is full
   socket.on('full', function(room) {
     console.log('Room ' + room + ' is full');
-    alert('Room ' + room + ' is full')
+    alert('Room ' + room + ' is full');
   });
 
   // A new user joined the room
   socket.on('join', function (startInfo) {
     if (startInfo.id === ourID) return;
 
-    connections[startInfo.id] = {}
-    connections[startInfo.id].name = startInfo.name
+    connections[startInfo.id] = {};
+    connections[startInfo.id].name = startInfo.name;
 
-    console.log('User ', startInfo.name, ' joined room ', room)
+    console.log('User ', startInfo.name, ' joined room ', room);
 
-    sendOffer(startInfo.id) // Send the user your local description in order to create a connection
-    newUserJoined(startInfo.id, startInfo.name) // Add the new user to the 3D environment
+    sendOffer(startInfo.id); // Send the user your local description in order to create a connection
+    newUserJoined(startInfo.id, startInfo.name); // Add the new user to the 3D environment
   });
 
   // We joined a conference
@@ -124,39 +124,39 @@ function init() {
   // A user moved in the 3D space
   socket.on('pos', function(data) {
     if (data.id === ourID) return; // If we moved: do nothing
-    changeUserPosition(data.id, data.x, data.y, data.z) // Change position of user
+    changeUserPosition(data.id, data.x, data.y, data.z); // Change position of user
   });
 
   // A user left the conference
   socket.on('left', function(id) {
-    console.log("User " + connections[id].name + " left")
-    removeConnectionHTMLList(id)
+    console.log("User " + connections[id].name + " left");
+    removeConnectionHTMLList(id);
     userLeft(id) // Removes the user from the 3D environment
     if (connections[id].connection) connections[id].connection.close();
     if (connections[id].dataChannel) connections[id].dataChannel.close();
-    delete connections[id]
+    delete connections[id];
   });
 
   // We have received a PeerConnection offer
   socket.on('offer', function(message) {
-    let id = message.id
-    let name = message.name
-    let offerDescription = message.offer
+    let id = message.id;
+    let name = message.name;
+    let offerDescription = message.offer;
 
     if (id === ourID) return;
 
-    connections[id] = {}
+    connections[id] = {};
     connections[id].name = name;
 
-    sendAnswer(id, offerDescription)
-    appendConnectionHTMLList(id) // Add their username to the list of connections on the webpage
-    newUserJoined(id, name) // Add new user to 3D environment
+    sendAnswer(id, offerDescription);
+    appendConnectionHTMLList(id); // Add their username to the list of connections on the webpage
+    newUserJoined(id, name); // Add new user to 3D environment
   });
 
   // We have received an answer to our PeerConnection offer
   socket.on('answer', function(message) {
-    let id = message.id
-    let answerDescription = message.answer
+    let id = message.id;
+    let answerDescription = message.answer;
 
     if (id === ourID) return;
 
@@ -167,8 +167,8 @@ function init() {
   // We have received an ICE candidate from a user we are connecting to
   socket.on('candidate', function(message) {
 
-    let id = message.id
-    let answerDescription = message.candidateData
+    let id = message.id;
+    let answerDescription = message.candidateData;
     if (id === ourID) return;
 
     var candidate = new RTCIceCandidate({
@@ -205,7 +205,7 @@ function sendOffer(id) {
   console.log('>>>>>> Creating peer connection to user ' + connections[id].name);
   connections[id].connection = createPeerConnection(id);
 
-  createDataChannel(id)
+  createDataChannel(id);
 
   connections[id].connection.addStream(localStream);
   connections[id].connection.createOffer().then(function(description) {
@@ -217,8 +217,8 @@ function sendOffer(id) {
     });
 
   }, function (e) {
-    console.log("Failed to create offer: " + e)
-    return
+    console.log("Failed to create offer: " + e);
+    return;
   });
 }
 
@@ -240,16 +240,16 @@ function sendAnswer(id, offerDescription) {
       answer: description
     });
   }, function (e) {
-    console.log("Failed to create answer: " + e)
-    return
+    console.log("Failed to create answer: " + e);
+    return;
   });
 }
 
 // Function which tells other users our new 3D position
 function changePos(x, y, z) {
-  let jsonPos = JSON.stringify({x: x, y: y, z: z})
+  let jsonPos = JSON.stringify({x: x, y: y, z: z});
   for (let id in connections) {
-    connections[id].dataChannel.send(jsonPos)
+    connections[id].dataChannel.send(jsonPos);
   }
 }
 
@@ -262,7 +262,7 @@ function gotLocalStream(stream) {
     let startInfo = {
       room: room, // The room we want to join
       name: username.value // Our username
-    }
+    };
     socket.emit('join', startInfo);
     console.log('Attempting to join ', room);
   }
@@ -273,7 +273,7 @@ function createPeerConnection(id) {
 
   try {
     if (connections[id] == undefined) {
-      connections[id] = {}
+      connections[id] = {};
     }
 
     pc = new RTCPeerConnection(null);
@@ -294,12 +294,12 @@ function createPeerConnection(id) {
     };
     pc.ontrack = function (event) {
       console.log('Remote stream added.');
-      connections[id].audio = event.streams[0] // TODO: verify that this will always be zero
-      userGotMedia(id, event.streams[0]) // Adds track to 3D environment
+      connections[id].audio = event.streams[0]; // TODO: verify that this will always be zero
+      userGotMedia(id, event.streams[0]); // Adds track to 3D environment
     };
     pc.onremovestream = function (event) {
       // Here we might need to update something in 3D.js, but I'm not sure
-      console.log("Lost a stream from " + connections[id].name)
+      console.log("Lost a stream from " + connections[id].name);
     };
     pc.ondatachannel = function (event) {
       event.channel.addEventListener("open", () => {
@@ -308,11 +308,11 @@ function createPeerConnection(id) {
       });
 
       event.channel.addEventListener("close", () => {
-        console.log("A DataChannel closed")
+        console.log("A DataChannel closed");
       });
 
       event.channel.addEventListener("message", (message) => {
-        dataChannelReceive(id, message.data) // Called when we receive a DataChannel message
+        dataChannelReceive(id, message.data); // Called when we receive a DataChannel message
       });
     };
 
@@ -331,16 +331,16 @@ function createDataChannel(id) {
   var tempConnection = connections[id].connection.createDataChannel("Chat");
   tempConnection.addEventListener("open", () => {
     connections[id].dataChannel = tempConnection
-    console.log("Datachannel established to " + connections[id].name)
+    console.log("Datachannel established to " + connections[id].name);
     changePos(findUser(myID).getxPosition(), findUser(myID).getyPosition(), findUser(myID).getzPosition());
   });
 
   tempConnection.addEventListener("close", () => {
-    console.log("A DataChannel closed")
+    console.log("A DataChannel closed");
   });
 
   tempConnection.addEventListener("message", (event) => {
-    dataChannelReceive(id, event.data) // Called when we receive a DataChannel message
+    dataChannelReceive(id, event.data); // Called when we receive a DataChannel message
   });
 }
 
@@ -386,19 +386,19 @@ function requestTurn(turnURL) {
 
 // Adds a username to the list of connections on the HTML page
 function appendConnectionHTMLList(id) {
-  let item = document.createElement("li")
+  let item = document.createElement("li");
   item.id = id;
   item.innerHTML = connections[id].name;
-  connectionList.appendChild(item)
+  connectionList.appendChild(item);
 }
 
 // Removes a user from the list of connections on the HTML page
 function removeConnectionHTMLList(id) {
-  let children = connectionList.children
+  let children = connectionList.children;
   for (let i = 0; i < children.length; i++) {
     if (children[i].id == id) {
-      connectionList.removeChild(children[i])
-      return
+      connectionList.removeChild(children[i]);
+      return;
     }
   }
 }
@@ -406,11 +406,10 @@ function removeConnectionHTMLList(id) {
 // Handles receiving a message on a DataChannel
 function dataChannelReceive(id, data) {
 
-  console.log(data)
+  console.log(data);
   if (id === ourID) return;
 
   let message;
-
   try {
     message = JSON.parse(data);
   } catch (e) {
@@ -421,12 +420,12 @@ function dataChannelReceive(id, data) {
   if (message.type == "pos") {
     changeUserPosition(id, message.x, message.y, message.z); // Change position of user
   } else if (message.type == "file") {
-    clearFileList(id)
+    clearFileList(id); // Remove previous file options
     for (let i in message.files) {
       updateFileList(id, message.files[i]);
     }
   } else if (message.type == "request") {
-    sendFile(id, message.option)
+    sendFile(id, message.option);
   } else if (message.type == "chat") {
     addChat(connections[id].name, message.message, message.whisper);
   }
@@ -435,22 +434,22 @@ function dataChannelReceive(id, data) {
 // Adds the given message to the chat box, including the user that sent it and the received time
 function addChat(name, message, whisper) {
   var today = new Date();
-  let hour = today.getHours()
-  let minute = today.getMinutes()
-  let second = today.getSeconds()
+  let hour = today.getHours();
+  let minute = today.getMinutes();
+  let second = today.getSeconds();
   if (hour < 10) hour = '0' + hour;
   if (minute < 10) minute = '0' + minute;
   if (second < 10) second = '0' + second;
   var time = hour + ":" + minute + ":" + second;
 
   if (whisper) {
-    message = '<whisper>' + message + '</whisper>'
-    name = name + '->' + username.value
+    message = '<whisper>' + message + '</whisper>';
+    name = name + '->' + username.value;
   }
 
-  let newMessage = document.createElement("li")
+  let newMessage = document.createElement("li");
   newMessage.innerHTML = '<time>' + time + '</time> | <chatName>' + name + '</chatName>: ' + message;
-  chatReceive.appendChild(newMessage)
+  chatReceive.appendChild(newMessage);
   if (chatReceive.children.length > maxChatLength) {
     chatReceive.removeChild(chatReceive.childNodes[0]); // Limits the number of messages
   }
@@ -463,40 +462,40 @@ function sendChat() {
 
   if (chatSend.value == '') return;
 
-  let message = chatSend.value.trim()
+  let message = chatSend.value.trim();
 
   if (message.charAt(0) == '@') {
-    let space = message.indexOf(' ')
-    let target = message.slice(1, space)
+    let space = message.indexOf(' ');
+    let target = message.slice(1, space);
 
-    let messageWhisper = message.slice(space + 1, message.length)
+    let messageWhisper = message.slice(space + 1, message.length);
 
-    let messageJSON = JSON.stringify({type: "chat", message: messageWhisper, whisper: true})
+    let messageJSON = JSON.stringify({type: "chat", message: messageWhisper, whisper: true});
 
     for (let id in connections) {
       if (connections[id].name == target) {
-        connections[id].dataChannel.send(messageJSON)
-        addChat(username.value + '->' + target, '<whisper>' + messageWhisper + '</whisper>')
+        connections[id].dataChannel.send(messageJSON);
+        addChat(username.value + '->' + target, '<whisper>' + messageWhisper + '</whisper>');
         chatSend.value = ''; // Clear the text box
         return
       }
     }
   }
 
-  let messageJSON = JSON.stringify({type: "chat", message: message, whisper: false})
+  let messageJSON = JSON.stringify({type: "chat", message: message, whisper: false});
 
   for (let id in connections) {
-    connections[id].dataChannel.send(messageJSON)
+    connections[id].dataChannel.send(messageJSON);
   }
 
-  addChat(username.value, chatSend.value)
+  addChat(username.value, chatSend.value);
   chatSend.value = ''; // Clear the text box
 }
 
 function advertiseFile() {
   let files = document.getElementById("sendFile").files;
 
-  let fileDetailsList = []
+  let fileDetailsList = [];
 
   for (let i in files) {
     if (files[i].name && files[i].size) {
@@ -510,7 +509,7 @@ function advertiseFile() {
   let filesJSON = {
     type: "file",
     files: fileDetailsList
-  }
+  };
 
   for (let id in connections) {
     connections[id].dataChannel.send(JSON.stringify(filesJSON));
@@ -537,20 +536,21 @@ function clearFileList(id) {
 }
 
 function updateFileList(id, message) {
+  document.getElementById("remoteFiles").hidden = false;
   let file = document.getElementById(message.fileName + '-' + connections[id].name);
   if (!file) {
-    file = document.createElement("option")
-    file.id = message.fileName
+    file = document.createElement("option");
+    file.id = message.fileName;
   }
 
-  file.value = message.fileName
+  file.value = message.fileName;
   file.innerHTML = message.fileName + ' (' + formatBytes(message.size) + ')';
 
-  let files = document.getElementById("files")
-  let userFiles = document.getElementById(connections[id].name + 'Files')
+  let files = document.getElementById("files");
+  let userFiles = document.getElementById(connections[id].name + 'Files');
 
   if (!userFiles) {
-    userFiles = document.createElement("userFiles")
+    userFiles = document.createElement("userFiles");
     userFiles.id = connections[id].name + 'Files';
 
     let label = document.createElement("label");
@@ -559,20 +559,19 @@ function updateFileList(id, message) {
     userFiles.appendChild(label);
 
     let select = document.createElement("select");
-    userFiles.appendChild(select)
+    userFiles.appendChild(select);
 
-    let request = document.createElement("button")
+    let request = document.createElement("button");
     request.innerHTML = "Request File";
     request.onclick = function () {
       requestFile(id, select.value);
     }
 
-    userFiles.appendChild(request)
-
-    files.appendChild(userFiles)
+    userFiles.appendChild(request);
+    files.appendChild(userFiles);
   }
 
-  userFiles.childNodes[1].appendChild(file)
+  userFiles.childNodes[1].appendChild(file);
 }
 
 async function shareScreen(e) {
@@ -624,7 +623,7 @@ function sendFile(id, option) {
 
       fileReader.onload = function (e) {
         let binary = e.target.result;
-        let blob = new File([binary], files[i])
+        let blob = new File([binary], files[i]);
         connections[id].dataChannel.send(blob);
       }
       return;
@@ -681,7 +680,7 @@ function openChat() {
   files.style.display = "inline-block";
 
   users.hidden = false;
-  users.style.display = "inline-block"
+  users.style.display = "inline-block";
   startButton.hidden = true;
   leaveButton.hidden = false;
   connectionList.hidden = false;
@@ -692,11 +691,11 @@ function openChat() {
   let sceneDiv = document.getElementById("scene");
   if (sceneDiv) {
     sceneDiv.hidden = true;
-    sceneDiv.style.display = "none"
+    sceneDiv.style.display = "none";
   }
 
   openButton.onclick = function() {open3D()};
-  openButton.value = "Open 3D"
+  openButton.value = "Open 3D";
 }
 
 // Leaves the conference, resets variable values and closes connections
@@ -716,14 +715,14 @@ function leave() {
   chatBox.style.display = "none";
   localStream = null;
   users.hidden = true;
-  users.style.display = "none"
+  users.style.display = "none";
   connectionList.innerHTML = '';
   document.getElementById("open").hidden = true;
   for (let id in connections) {
-    connections[id].connection.close()
-    connections[id].dataChannel.close()
+    connections[id].connection.close();
+    connections[id].dataChannel.close();
   }
-  connections = {}
+  connections = {};
 
   leave3D(); // Closes the 3D environment
 

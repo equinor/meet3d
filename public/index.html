@@ -12,7 +12,7 @@
 	</head>
 	<body>
 		<div id="chatSection">
-			<h1>Realtime communication with WebRTC</h1>
+			<h1>3D Conferencing with WebRTC and ThreeJS</h1>
 
 			<room>
 				<div>
@@ -28,7 +28,7 @@
 				</div>
 			</room>
 
-			</br>
+			<br/>
 
 			<chat id="chatBox" hidden>
 				<ul id="chatReceive">
@@ -39,24 +39,24 @@
 			</chat>
 
 			<div class="users" id="users" hidden>
-				<p> Other users in the room:</p>
+				<p> &ensp; Other users in the room:</p>
 				<ul id="connectionList">
 				</ul>
 			</div>
 
-			</br>
+			<br/>
 
 			<files id="files" hidden>
 				<uploadFile>
 	      	<input type="file" id="sendFile" multiple>
 	      	<button onclick="advertiseFile()" id="uploadButton">Upload File</button>
 				</uploadFile>
-				<p> Conference Files: </p>
+				<p id="remoteFiles" hidden> Remote Files: </p>
 	    </files>
 
 			<received id="received">
 				Received File:
-				</br>
+				<br/>
 				<a id="download" target="_blank" hidden>Download file</a>
 			</received>
 		</div>
