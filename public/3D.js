@@ -18,6 +18,7 @@ const maxZ = 100;
 const speed = 3;
 
 var listener;
+var loader
 
 function init3D() {
 	scene = new THREE.Scene();
@@ -50,10 +51,8 @@ function init3D() {
 	renderer.domElement.style.display = "none"
 	document.getElementById("open").hidden = false;
 
-	//choose which object to make when the makeobjectfunction is called
-	geometry = new THREE.BoxGeometry(20, 20, 20);
-	material = new THREE.MeshBasicMaterial( {color: 0x669966, wireframe: false});
-	object = new THREE.Mesh(geometry, material);
+	//load models
+	loader = new THREE.GLTFLoader();
 
 	//lets you move the camera with the mouse
 	controls = new THREE.OrbitControls( camera, renderer.domElement );
@@ -135,11 +134,14 @@ function userLeft(id) {
 
 //function that makes an object and position it at input coordinates
 var makeNewObject = function(xPosition, yPosition, zPosition){
-	var object = new THREE.Mesh(geometry,material);
-	object.position.x = xPosition;
-	object.position.y = yPosition;
-	object.position.z = zPosition;
-	scene.add(object);
+	var object;
+	loader.load('objects/Clownfish/Clownfish.glb', function(gltf) {
+		object = obj.scene;
+		object.position.x = xPosition;
+		object.position.y = yPosition;
+		object.position.z = zPosition;
+		scene.add(object);
+	});
 	return object;
 };
 
