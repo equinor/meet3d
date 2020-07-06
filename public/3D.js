@@ -36,11 +36,13 @@ function init3D() {
 	//make a floor to the scene
 	var floor = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, maxZ * 2, maxX * 2, maxZ * 2),
-		new THREE.MeshBasicMaterial({color: 0x0000ff, wireframe: true})
+		new THREE.MeshBasicMaterial({color: 0x0000ff, side: THREE.DoubleSide})
 	);
 
 	floor.rotation.x += Math.PI / 2; //can rotate the floor/plane
 	scene.add( floor );
+	
+	addWalls()
 
 	renderer.setSize(window.innerWidth - 5, window.innerHeight - 25);
 	document.body.appendChild( renderer.domElement);
@@ -67,9 +69,6 @@ function init3D() {
 
 	myID = new user(0, "test", 10, 10, 0).getId();
 
-	//document.addEventListener("keydown", onDocumentKeyDown, false);
-	//document.addEventListener("keyup", onDocumentKeyUp, false);
-
 	listener = new THREE.AudioListener();
 
 	ourUser = findUser(myID)
@@ -79,6 +78,41 @@ function init3D() {
 	controls.target.set(ourUser.object.position.x, ourUser.object.position.y, ourUser.object.position.z)
 
 	update();
+}
+
+function addWalls() {
+
+	let wallHeight = 60;
+
+	var wallLeft = new THREE.Mesh(
+		new THREE.PlaneGeometry(maxY * 2, wallHeight, 1, 1),
+		new THREE.MeshBasicMaterial({color: 0xff0000, side: THREE.DoubleSide})
+	);
+
+	wallLeft.rotation.y += Math.PI / 2; //can rotate the floor/plane
+	wallLeft.position.x = -maxX;
+	wallLeft.position.y += wallHeight / 2;
+
+	var wallRight = new THREE.Mesh(
+		new THREE.PlaneGeometry(maxY * 2, wallHeight, 1, 1),
+		new THREE.MeshBasicMaterial({color: 0xff0000, side: THREE.DoubleSide})
+	);
+
+	wallRight.rotation.y += Math.PI / 2; //can rotate the floor/plane
+	wallRight.position.x = maxX;
+	wallRight.position.y += wallHeight / 2;
+
+	var wallFront = new THREE.Mesh(
+		new THREE.PlaneGeometry(maxX * 2, wallHeight, 1, 1),
+		new THREE.MeshBasicMaterial({color: 0xff0000, side: THREE.DoubleSide})
+	);
+	
+	wallFront.position.z = -maxZ;
+	wallFront.position.y += wallHeight / 2;
+
+	scene.add( wallLeft );
+	scene.add( wallRight );
+	scene.add( wallFront );
 }
 
 //function to add a user to the UsersMap
@@ -127,8 +161,8 @@ function userGotMedia(id, mediaStream) {
 }
 
 function userLeft(id) {
+	scene.remove(findUser(id).object);
 	if (removeUser(id)) {
-		// Here we also need to remove them from the scene
 		userCount--;
 	}
 }

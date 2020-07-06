@@ -9,6 +9,9 @@ var username = document.getElementById("username");
 var chatReceive = document.getElementById("chatReceive");
 var chatBox = document.getElementById("chatBox");
 var chatSend = document.getElementById("chatSend");
+var chatDiv = document.getElementById("chatSection");
+var openButton = document.getElementById("open");
+var files = document.getElementById("files");
 
 username.addEventListener("keyup", function(event) {
     if (event.keyCode === 13) { // This is the 'enter' key-press
@@ -71,7 +74,7 @@ function init() {
   username.readOnly = true;
   roomName.readOnly = true;
   openChat();
-  socket = io('ws://localhost:3000');
+  socket = io('ws://localhost:3000'); // We will change this to a server in the future
 
   // We created and joined a room
   socket.on('created', function(connectionInfo) {
@@ -97,7 +100,7 @@ function init() {
     console.log('User ', startInfo.name, ' joined room ', room)
 
     sendOffer(startInfo.id) // Send the user your local description in order to create a connection
-    newUserJoined(startInfo.id, name) // Add the new user to the 3D environment
+    newUserJoined(startInfo.id, startInfo.name) // Add the new user to the 3D environment
   });
 
   // We joined a conference
@@ -122,18 +125,6 @@ function init() {
     if (connections[id].connection) connections[id].connection.close();
     if (connections[id].dataChannel) connections[id].dataChannel.close();
     delete connections[id]
-  });
-
-  // Receiving a chat message
-  socket.on('chat', function(message) {
-    console.log(message)
-    let name;
-    if (message.id == ourID) {
-      name = username.value;
-    } else {
-      name = connections[message.id].name;
-    }
-    addChat(name, message.message);
   });
 
   // We have received a PeerConnection offer
@@ -208,7 +199,6 @@ function sendOffer(id) {
   createDataChannel(id)
 
   connections[id].connection.addStream(localStream);
-
   connections[id].connection.createOffer().then(function(description) {
     connections[id].connection.setLocalDescription(description);
     socket.emit('offer', {
@@ -249,8 +239,6 @@ function sendAnswer(id, offerDescription) {
 // Function which tells other users our new 3D position
 function changePos(x, y, z) {
   let jsonPos = JSON.stringify({x: x, y: y, z: z})
-  //socket.emit('pos', {x: x, y: y, z: z});
-
   for (let id in connections) {
     connections[id].dataChannel.send(jsonPos)
   }
@@ -311,7 +299,7 @@ function createPeerConnection(id) {
       });
 
       event.channel.addEventListener("close", () => {
-        //console.log("Datachannel closed to " + connections[id].name)
+        console.log("A DataChannel closed")
       });
 
       event.channel.addEventListener("message", (message) => {
@@ -339,7 +327,7 @@ function createDataChannel(id) {
   });
 
   tempConnection.addEventListener("close", () => {
-    //console.log("Datachannel closed to " + connections[id].name)
+    console.log("A DataChannel closed")
   });
 
   tempConnection.addEventListener("message", (event) => {
@@ -408,22 +396,39 @@ function removeConnectionHTMLList(id) {
 
 // Handles receiving a message on a DataChannel
 function dataChannelReceive(id, data) {
-
   if (id === ourID) return;
 
-  let message = JSON.parse(data)
-  console.log(message);
+  let message
+
+  try {
+    message = JSON.parse(data)
+  } catch (e) {
+    receiveFile(data)
+    return
+  }
+
   if (message.type == "chat") {
-    addChat(connections[id].name, message.message)
+    addChat(connections[id].name, message.message, message.whisper)
   } else {
     changeUserPosition(id, message.x, message.y, message.z) // Change position of user
   }
 }
 
 // Adds the given message to the chat box, including the user that sent it and the received time
-function addChat(name, message) {
+function addChat(name, message, whisper) {
   var today = new Date();
-  var time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
+  let hour = today.getHours()
+  let minute = today.getMinutes()
+  let second = today.getSeconds()
+  if (hour < 10) hour = '0' + hour;
+  if (minute < 10) minute = '0' + minute;
+  if (second < 10) second = '0' + second;
+  var time = hour + ":" + minute + ":" + second;
+
+  if (whisper) {
+    message = '<whisper>' + message + '</whisper>'
+    name = name + '->' + username.value
+  }
 
   let newMessage = document.createElement("li")
   newMessage.innerHTML = '<time>' + time + '</time> | <chatName>' + name + '</chatName>: ' + message;
@@ -440,37 +445,99 @@ function sendChat() {
 
   if (chatSend.value == '') return;
 
-  let message = JSON.stringify({type: "chat", message: chatSend.value})
+  let message = chatSend.value.trim()
+
+  if (message.charAt(0) == '@') {
+    let space = message.indexOf(' ')
+    let target = message.slice(1, space)
+
+    let messageWhisper = message.slice(space + 1, message.length)
+
+    let messageJSON = JSON.stringify({type: "chat", message: messageWhisper, whisper: true})
+
+    for (let id in connections) {
+      if (connections[id].name == target) {
+        connections[id].dataChannel.send(messageJSON)
+        addChat(username.value + '->' + target, '<whisper>' + messageWhisper + '</whisper>')
+        chatSend.value = ''; // Clear the text box
+        return
+      }
+    }
+  }
+
+  let messageJSON = JSON.stringify({type: "chat", message: message, whisper: false})
 
   for (let id in connections) {
-    connections[id].dataChannel.send(message)
+    connections[id].dataChannel.send(messageJSON)
   }
 
   addChat(username.value, chatSend.value)
-
   chatSend.value = ''; // Clear the text box
+}
+
+function sendFile() {
+  // Sends the selected file to the server as a binary string
+  let fileReader = new FileReader();
+
+  let fileName = document.getElementById("sendFile").files[0];
+  fileReader.readAsArrayBuffer(fileName);
+
+  fileReader.onload = function (e) {
+    let binary = e.target.result;
+
+    let blob = new File([binary], fileName)
+
+    for (let id in connections) {
+      connections[id].dataChannel.send(blob);
+    }
+  }
+}
+
+function receiveFile(data) {
+
+  var textFile = null
+
+  // If we are replacing a previously generated file we need to
+  // manually revoke the object URL to avoid memory leaks.
+  if (textFile !== null) {
+    window.URL.revokeObjectURL(textFile);
+  }
+
+  textFile = window.URL.createObjectURL(data);
+
+  // The file can be retrieved via a link
+  document.getElementById("download").href = textFile;
+  document.getElementById("download").hidden = false;
 }
 
 function open3D() {
   document.addEventListener("keydown", onDocumentKeyDown, false);
 	document.addEventListener("keyup", onDocumentKeyUp, false);
-  document.getElementById("chatSection").hidden = true
-  document.getElementById("chatSection").style.display = "none"
 
-  if (document.getElementById("scene")) {
-    document.getElementById("scene").hidden = false;
-    document.getElementById("scene").style.display = "inline-block"
+  chatDiv.hidden = true;
+  chatDiv.style.display = "none";
+  files.hidden = true;
+  files.style.display = "none";
+
+  let sceneDiv = document.getElementById("scene");
+  if (sceneDiv) {
+    sceneDiv.hidden = false;
+    sceneDiv.style.display = "inline-block";
   }
 
-  document.getElementById("open").onclick = function() {openChat()};
-  document.getElementById("open").value = "Open Chat"
+  openButton.onclick = function() { openChat() };
+  openButton.value = "Open Chat";
 }
 
 function openChat() {
   document.removeEventListener("keydown", onDocumentKeyDown);
 	document.removeEventListener("keyup", onDocumentKeyUp);
-  document.getElementById("chatSection").hidden = false
-  document.getElementById("chatSection").style.display = "inline-block"
+
+  chatDiv.hidden = false;
+  chatDiv.style.display = "inline-block";
+
+  files.hidden = false;
+  files.style.display = "inline-block";
 
   users.hidden = false;
   users.style.display = "inline-block"
@@ -480,18 +547,21 @@ function openChat() {
   chatBox.hidden = false;
   chatBox.style.display = "inline-block";
 
-  if (document.getElementById("scene")) {
-    document.getElementById("scene").hidden = true;
-    document.getElementById("scene").style.display = "none"
+  let sceneDiv = document.getElementById("scene");
+  if (sceneDiv) {
+    sceneDiv.hidden = true;
+    sceneDiv.style.display = "none"
   }
 
-  document.getElementById("open").onclick = function() {open3D()};
-  document.getElementById("open").value = "Open 3D"
+  openButton.onclick = function() {open3D()};
+  openButton.value = "Open 3D"
 }
 
 // Leaves the conference, resets variable values and closes connections
 function leave() {
 
+  files.hidden = true;
+  files.style.display = "none";
   roomName.readOnly = false;
   username.readOnly = false;
   startButton.hidden = false;
