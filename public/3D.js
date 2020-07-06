@@ -20,6 +20,7 @@ const speed = 3;
 
 var listener;
 
+
 function init3D() {
 	scene = new THREE.Scene();
 	camera = new THREE.PerspectiveCamera(100, (window.innerWidth / window.outerWidth), 0.1, 1000);
@@ -30,8 +31,9 @@ function init3D() {
 	camera.position.x = 0;
 	camera.position.y = 0;
 	camera.position.z = 70;
-	var light = new THREE.PointLight( 0xff0000, 1, 100 );
-	light.position.set( 50, 50, 50 );
+	var light = new THREE.AmbientLight(0x404040);
+	//var light = new THREE.PointLight( 0xff0000, 1, 100 );
+	//light.position.set( 50, 50, 50 );
 	scene.add( light );
 
 	//make a floor to the scene
@@ -81,9 +83,22 @@ function init3D() {
 	update();
 }
 
+//Create the texture to display video on wall
+
+var video = document.getElementById("video");
+video.autoplay = true;
+		
+var Videotexture = new THREE.VideoTexture(video);
+
+Videotexture.minFilter = THREE.LinearFilter;
+Videotexture.magFilter = THREE.LinearFilter;
+Videotexture.format = THREE.RGBFormat;
+
+
+
 function addWalls() {
 
-	let wallHeight = 60;
+	let wallHeight = 100;
 
 	var wallLeft = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxY * 2, wallHeight, 1, 1),
@@ -104,17 +119,18 @@ function addWalls() {
 	wallRight.position.y += wallHeight / 2;
 
 	var wallFront = new THREE.Mesh(
-		new THREE.PlaneGeometry(maxX * 2, wallHeight, 1, 1),
-		new THREE.MeshBasicMaterial({color: 0xff0000, side: THREE.DoubleSide})
-	);
-	
+		new THREE.PlaneBufferGeometry(maxX * 2, wallHeight, 1, 1),
+		new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: Videotexture})
+		)
 	wallFront.position.z = -maxZ;
 	wallFront.position.y += wallHeight / 2;
-
+		
 	scene.add( wallLeft );
 	scene.add( wallRight );
 	scene.add( wallFront );
+	
 }
+
 
 //function to add a user to the UsersMap
 function addToUserMap(User) {
@@ -294,6 +310,7 @@ function onDocumentKeyDown(event) {
 function onDocumentKeyUp(event) {
 	delete keysPressed[event.key];
 }
+
 
 //function to update frame
 function update() {

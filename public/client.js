@@ -259,6 +259,7 @@ function gotLocalStream(stream) {
   console.log('Adding local stream.');
   localStream = stream;
   localVideo.srcObject = stream; 
+  
 
   if (room !== '') { // Check that the room does not already exist
     let startInfo = {
