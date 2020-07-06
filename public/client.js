@@ -421,7 +421,10 @@ function dataChannelReceive(id, data) {
   if (message.type == "pos") {
     changeUserPosition(id, message.x, message.y, message.z); // Change position of user
   } else if (message.type == "file") {
-    updateFileList(id, message);
+    clearFileList(id)
+    for (let i in message.files) {
+      updateFileList(id, message.files[i]);
+    }
   } else if (message.type == "request") {
     sendFile(id, message.option)
   } else if (message.type == "chat") {
@@ -493,16 +496,24 @@ function sendChat() {
 function advertiseFile() {
   let files = document.getElementById("sendFile").files;
 
-  for (let id in connections) {
-    for (let i in files) {
-      if (files[i].name && files[i].size) {
-        connections[id].dataChannel.send(JSON.stringify({
-          type: "file",
-          fileName: files[i].name,
-          size: files[i].size
-        }));
-      }
+  let fileDetailsList = []
+
+  for (let i in files) {
+    if (files[i].name && files[i].size) {
+      fileDetailsList.push({
+        fileName: files[i].name,
+        size: files[i].size
+      });
     }
+  }
+
+  let filesJSON = {
+    type: "file",
+    files: fileDetailsList
+  }
+
+  for (let id in connections) {
+    connections[id].dataChannel.send(JSON.stringify(filesJSON));
   }
 }
 
@@ -517,6 +528,12 @@ function formatBytes(bytes, decimals = 2) {
     const i = Math.floor(Math.log(bytes) / Math.log(k));
 
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+}
+
+function clearFileList(id) {
+  if (document.getElementById(connections[id].name + 'Files')) {
+    document.getElementById(connections[id].name + 'Files').outerHTML = ''; // Clears their list of files
+  }
 }
 
 function updateFileList(id, message) {
@@ -559,6 +576,8 @@ function updateFileList(id, message) {
 }
 
 async function shareScreen(e) {
+
+  // TODO: We should only allow this if someone else is not sharing their screen!
 
   let vid = document.getElementById("screenTest");
 
@@ -611,7 +630,6 @@ function sendFile(id, option) {
       return;
     }
   }
-  fileReader.close()
 }
 
 function receiveFile(id, data) {
