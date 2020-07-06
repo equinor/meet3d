@@ -2,9 +2,14 @@
   font-family: arial;
 }
 
+room div {
+  padding-bottom: 5px;
+  margin-left: 50px;
+}
+
 chat ul {
-  height:400px;
-  width:500px;
+  height: 400px;
+  width: 500px;
   overflow-x: hidden;
   list-style-type: none;
   font-family: arial;
@@ -29,8 +34,8 @@ chat {
 
 .users {
   vertical-align: top;
-  height:470px;
-  width:300px;
+  height: 470px;
+  width: 300px;
   border-style: groove;
   background-color: #80b3ff;
 }
@@ -54,4 +59,16 @@ time {
 
 chatName {
   color: red;
+}
+
+whisper {
+  color: #006600;
+  font-weight: bold;
+}
+
+files {
+  padding: 8px;
+  border-style: groove;
+  margin-left: 50px;
+  background-color: #ff6666;
 }
