@@ -43,22 +43,30 @@ var connections = {} // The key is the socket id, and the value is {name: userna
 const maxChatLength = 20; // The chat will only hold this many messages at a time
 var textFile = null // This stores any downloaded file
 
-var pcConfig = {
+const pcConfig = {
   'iceServers': [{
     'urls': 'stun:stun.l.google.com:19302'
   }]
 };
 
 // Set up audio and video regardless of what devices are present.
-var sdpConstraints = {
+const sdpConstraints = {
   offerToReceiveAudio: true,
   offerToReceiveVideo: true
 };
 
 // Our local media constraints
-var constraints = {
+const constraints = {
   audio: true
 };
+
+// Our share screen constraints
+const screenShareConstraints = {
+  video: {
+    cursor: "always"
+  },
+  audio: false
+}
 
 function init() {
 
@@ -195,7 +203,6 @@ function init() {
 // Sends an offer to a new user with our local PeerConnection description
 function sendOffer(id) {
   console.log('>>>>>> Creating peer connection to user ' + connections[id].name);
-  //socket.emit('pos', {x: findUser(myID).getxPosition(), y: findUser(myID).getyPosition(), z: findUser(myID).getzPosition()});
   connections[id].connection = createPeerConnection(id);
 
   createDataChannel(id)
@@ -551,21 +558,18 @@ function updateFileList(id, message) {
   userFiles.childNodes[1].appendChild(file)
 }
 
-function sendFile() {
-  // Sends the selected file to the other users as a blob
-  let fileReader = new FileReader();
+async function shareScreen(e) {
 
-  let fileName = document.getElementById("sendFile").files[0];
-  fileReader.readAsArrayBuffer(fileName);
+  let vid = document.getElementById("screenTest");
 
-  fileReader.onload = function (e) {
-    let binary = e.target.result;
-
-    let blob = new File([binary], fileName)
-
-    for (let id in connections) {
-      connections[id].dataChannel.send(blob);
-    }
+  try {
+    vid.srcObject = await navigator.mediaDevices.getDisplayMedia(screenShareConstraints);
+    e.onclick = function () {
+      stopShareScreen(e);
+    };
+    e.value = "Stop Sharing Screen";
+  } catch(err) {
+    console.error("Error: " + err);
   }
 }
 
@@ -576,6 +580,19 @@ function requestFile(id, option) {
   }));
 
   document.getElementById("download").name = option;
+}
+
+function stopShareScreen(e) {
+
+  e.onclick = function () {
+    shareScreen(e);
+  };
+  e.value = "Share Screen";
+
+  let tracks = document.getElementById("screenTest").srcObject.getTracks();
+
+  tracks.forEach(track => track.stop());
+  document.getElementById("screenTest").srcObject = null;
 }
 
 function sendFile(id, option) {
