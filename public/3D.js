@@ -26,12 +26,25 @@ function init3D() {
 	camera = new THREE.PerspectiveCamera(100, (window.innerWidth / window.outerWidth), 0.1, 1000);
 	renderer = new THREE.WebGLRenderer();
 
+
+	renderer.setClearColor( 0xC5C5C3 );
+	renderer.setPixelRatio( window.devicePixelRatio );
+	renderer.setSize(window.innerWidth, window.innerHeight);
+
 	scene.background = new THREE.Color( 0xf0f0f0 );
 
 	camera.position.x = 0;
 	camera.position.y = 0;
-	camera.position.z = 70;
+	camera.position.z = 20;
 	var light = new THREE.PointLight( 0xff0000, 1, 100 );
+
+	var ambientLight = new THREE.AmbientLight( 0xcccccc );
+	scene.add( ambientLight );
+ 
+	var directionalLight = new THREE.DirectionalLight( 0xffffff );
+	directionalLight.position.set( 50, 50, 59 ).normalize();
+	scene.add( directionalLight );
+
 	light.position.set( 50, 50, 50 );
 	scene.add( light );
 
@@ -72,7 +85,8 @@ function init3D() {
 
 	listener = new THREE.AudioListener();
 
-	ourUser = findUser(myID)
+	
+	var ourUser = findUser(myID);
 	ourUser.object.add(listener);
 	
 
@@ -122,7 +136,7 @@ function userGotMedia(id, mediaStream) {
 	try {
 		posAudio.setNodeSource(audio1);
 		findUser(id).object.add(posAudio)
-		findUser(id).add(posAudio)
+		//findUser(id).add(posAudio)
 	} catch(err){
 		console.log(err);
 	};
@@ -135,35 +149,25 @@ function userLeft(id) {
 	}
 }
 
+
 //function that makes an object and position it at input coordinates
 var makeNewObject = function(xPosition, yPosition, zPosition){
+	const obj = new THREE.Object3D();
 	console.log("makeNewObject...");
-	//var object;
 	loader.load('objects/Clownfish/Clownfish.glb', function(gltf) {
-		/*object = gltf.scene.children[0];
-		object = gltf.scene;
-		object.position.x = xPosition;
-		object.position.y = yPosition;
-		object.position.z = zPosition;
-		console.log(object.position);
-		console.log(object);
-		scene.add(object);
-		console.log(object.position);
-		console.log(object);*/
-		model = gltf.scene.children[0];
-		model.position.x = xPosition;
-		model.position.y = yPosition;
-		model.position.z = zPosition;
-		console.log(model.position);
-		console.log(model);
-		scene.add(model);
-		console.log(model.position);
-		console.log(model);
+		var object = gltf.scene;				
+		//scene.add( gltf.scene );
+		obj.add(object);
+		try{
+			scene.add(obj);
+			console.log("Fisken legges til");}
+		catch{
+			console.log("Fisken legges IKKE til");
+		}
 	});
-	console.log(model.position);
-	console.log(model);
+	
 	console.log("MakeNewObject finished");
-	return model;
+	return obj;
 };
 
 //A user class. The constructor calls the makenewobject function.
