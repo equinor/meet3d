@@ -18,7 +18,8 @@ const maxZ = 100;
 const speed = 3;
 
 var listener;
-var loader
+var loader;
+var model;
 
 function init3D() {
 	scene = new THREE.Scene();
@@ -73,6 +74,7 @@ function init3D() {
 
 	ourUser = findUser(myID)
 	ourUser.object.add(listener);
+	
 
 	camera.position = ourUser.object.position
 	controls.target.set(ourUser.object.position.x, ourUser.object.position.y, ourUser.object.position.z)
@@ -120,6 +122,7 @@ function userGotMedia(id, mediaStream) {
 	try {
 		posAudio.setNodeSource(audio1);
 		findUser(id).object.add(posAudio)
+		findUser(id).add(posAudio)
 	} catch(err){
 		console.log(err);
 	};
@@ -134,25 +137,46 @@ function userLeft(id) {
 
 //function that makes an object and position it at input coordinates
 var makeNewObject = function(xPosition, yPosition, zPosition){
-	var object;
+	console.log("makeNewObject...");
+	//var object;
 	loader.load('objects/Clownfish/Clownfish.glb', function(gltf) {
-		object = obj.scene;
+		/*object = gltf.scene.children[0];
+		object = gltf.scene;
 		object.position.x = xPosition;
 		object.position.y = yPosition;
 		object.position.z = zPosition;
+		console.log(object.position);
+		console.log(object);
 		scene.add(object);
+		console.log(object.position);
+		console.log(object);*/
+		model = gltf.scene.children[0];
+		model.position.x = xPosition;
+		model.position.y = yPosition;
+		model.position.z = zPosition;
+		console.log(model.position);
+		console.log(model);
+		scene.add(model);
+		console.log(model.position);
+		console.log(model);
 	});
-	return object;
+	console.log(model.position);
+	console.log(model);
+	console.log("MakeNewObject finished");
+	return model;
 };
 
 //A user class. The constructor calls the makenewobject function.
 //constructor adds a user to UserMap
 class user {
 	constructor(id, name, xPosition, yPosition, zPosition) {
+		console.log("constructing user...");
 		this.name = name,
 		this.id = id,
 		this.object = makeNewObject(xPosition, yPosition, zPosition),
-		addToUserMap(this)};
+		addToUserMap(this),
+		console.log(UserMap),
+		console.log("constructing user finished")};
 		getName(){ return this.name };
 		getId(){ return this.id };
 		getxPosition(){ return this.object.position.x; }
