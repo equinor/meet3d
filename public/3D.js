@@ -158,12 +158,7 @@ var makeNewObject = function(xPosition, yPosition, zPosition){
 		var object = gltf.scene;				
 		//scene.add( gltf.scene );
 		obj.add(object);
-		try{
-			scene.add(obj);
-			console.log("Fisken legges til");}
-		catch{
-			console.log("Fisken legges IKKE til");
-		}
+		scene.add(obj);
 	});
 	
 	console.log("MakeNewObject finished");
