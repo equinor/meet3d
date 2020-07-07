@@ -5,7 +5,7 @@ var controls
 
 var geometry
 var material
-var object
+//var object
 var myID
 var requestID = undefined
 
@@ -52,7 +52,7 @@ function init3D() {
 	floor.rotation.x += Math.PI / 2; //can rotate the floor/plane
 	scene.add( floor );
 	
-	addWalls()
+	addWalls();
 
 	document.getElementById("open").hidden = false;
 
@@ -74,16 +74,17 @@ function init3D() {
 	controls.minAzimuthAngle = 0; // Prevents left-right rotation of camera
 	controls.maxAzimuthAngle = 0; // Prevents left-right rotation of camera
 
-	myID = new user(0, "test", 10, 10, 0).getId();
+	myID = new user(0, username.value, 10, 10, 0).getId();
 
 	listener = new THREE.AudioListener();
 
 	ourUser = findUser(myID)
 	ourUser.object.add(listener);
+	
+	addText(ourUser);
 
 	camera.position = ourUser.object.position
 	controls.target.set(ourUser.object.position.x, ourUser.object.position.y, ourUser.object.position.z)
-
 
 	update();
 }
@@ -123,7 +124,46 @@ function addWalls() {
 	scene.add( wallFront );
 }
 
-//function to add a user to the UsersMap
+function addText(user) {
+
+	var loader = new THREE.FontLoader();
+	loader.load('helvetiker_regular.typeface.json', function(font) {
+
+		let color, nameShowed;
+		
+		if(user == ourUser) {
+			color = 0x00ff00;
+			nameShowed = 'Me (' + ourUser.getName() + ')';
+		}
+		else {
+			color = 0x006699;
+			nameShowed = user.getName();
+
+		}
+
+		let textMaterial = new THREE.MeshBasicMaterial( {
+			color: color,
+			transparent: true,
+			opacity: 1.0,
+			side: THREE.DoubleSide
+		} );
+
+		const shapeSize = 2;
+		
+		// Creates an array of Shapes representing nameShowed
+		let shapes = font.generateShapes(nameShowed, shapeSize);
+
+		let textGeometry = new THREE.ShapeBufferGeometry(shapes);
+		
+		//Determine position of text object
+		textGeometry.translate(user.getxPosition() - 0.6 * shapeSize * shapes.length, user.getyPosition() + 3, user.getzPosition());
+		
+		var text = new THREE.Mesh(textGeometry, textMaterial);
+		user.object.add(text);
+	});
+} // end of addText() function
+
+//function to add a user to the UserMap
 function addToUserMap(User) {
 	UserMap.set(User.getId(), User);
 	return UserMap;
@@ -144,6 +184,7 @@ var UserMap = new Map();
 function newUserJoined(id, name) {
 	console.log("Adding new user to the environment: " + name)
 	let newUser = new user(id, name, 10, 10, distance * userCount); // This does not look great at the moment
+	addText(newUser);
 	addToUserMap(newUser);
 	userCount++
 }
@@ -177,7 +218,7 @@ function userLeft(id) {
 
 //function that makes an object and position it at input coordinates
 var makeNewObject = function(xPosition, yPosition, zPosition){
-	var object = new THREE.Mesh(geometry,material);
+	let object = new THREE.Mesh(geometry,material);
 	object.position.x = xPosition;
 	object.position.y = yPosition;
 	object.position.z = zPosition;
@@ -191,46 +232,47 @@ class user {
 	constructor(id, name, xPosition, yPosition, zPosition) {
 		this.name = name,
 		this.id = id,
-		this.object = makeNewObject(xPosition, yPosition, zPosition),
-		addToUserMap(this)};
-		getName(){ return this.name };
-		getId(){ return this.id };
-		getxPosition(){ return this.object.position.x; }
-		getyPosition(){ return this.object.position.y; }
-		getzPosition(){ return this.object.position.z; }
-		setxPosition(xPosition) {
-			if (xPosition < maxX && xPosition > -maxX) {
-				this.object.position.x = xPosition;
-				return true
-			} else {
-				return false
-			}
+		this.object = makeNewObject(xPosition, yPosition, zPosition);
+		addToUserMap(this)
+	};
+	getName(){ return this.name };
+	getId(){ return this.id };
+	getxPosition(){ return this.object.position.x; }
+	getyPosition(){ return this.object.position.y; }
+	getzPosition(){ return this.object.position.z; }
+	setxPosition(xPosition) {
+		if (xPosition < maxX && xPosition > -maxX) {
+			this.object.position.x = xPosition;
+			return true
+		} else {
+			return false
 		}
-		setyPosition(yPosition) {
-			if (yPosition < maxY && yPosition > -maxY) {
-				this.object.position.y = yPosition;
-				return true
-			} else {
-				return false
-			}
+	}
+	setyPosition(yPosition) {
+		if (yPosition < maxY && yPosition > -maxY) {
+			this.object.position.y = yPosition;
+			return true
+		} else {
+			return false
 		}
-		setzPosition(zPosition) {
-			if (zPosition < maxZ && zPosition > -maxZ) {
-				this.object.position.z = zPosition;
-				return true
-			} else {
-				return false
-			}
+	}
+	setzPosition(zPosition) {
+		if (zPosition < maxZ && zPosition > -maxZ) {
+			this.object.position.z = zPosition;
+			return true
+		} else {
+			return false
 		}
-		setPosition(xPosition, yPosition, zPosition) {
-			if (xPosition < maxX && xPosition > -maxX) this.object.position.x = xPosition;
-			if (yPosition < maxY && yPosition > -maxY) this.object.position.y = yPosition;
-			if (zPosition < maxZ && zPosition > -maxZ) this.object.position.z = zPosition;
-		}
-		getMedia(){return this.media};
-		setMedia(media) {
-			this.media = media;
-		}
+	}
+	setPosition(xPosition, yPosition, zPosition) {
+		if (xPosition < maxX && xPosition > -maxX) this.object.position.x = xPosition;
+		if (yPosition < maxY && yPosition > -maxY) this.object.position.y = yPosition;
+		if (zPosition < maxZ && zPosition > -maxZ) this.object.position.z = zPosition;
+	}
+	getMedia(){return this.media};
+	setMedia(media) {
+		this.media = media;
+	}
 };
 
 var keysPressed = {};
@@ -304,6 +346,7 @@ function onDocumentKeyUp(event) {
 //function to update frame
 function update() {
 	renderer.render(scene, camera);
+	//text.rotation.x = controls.getPolarAngle();
 	requestID = requestAnimationFrame(update);
 }
 

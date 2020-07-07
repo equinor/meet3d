@@ -195,7 +195,6 @@ function init() {
 
 // Make 'c'-keypress swap between chat and 3D-space
 function initSwapView() {
-  console.log("initiating swap view");
   document.addEventListener("keyup", swapViewOnC);
 
   chatSend.onfocus = function() { document.removeEventListener("keyup", swapViewOnC) };
