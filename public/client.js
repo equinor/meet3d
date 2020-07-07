@@ -283,6 +283,64 @@ function requestFile(id, option) {
   document.getElementById("download").name = option;
 }
 
+function sendFile(id, option) {
+  let fileReader = new FileReader();
+  let files = document.getElementById("sendFile").files;
+  for (let i in files) {
+    if (files[i].name == option) {
+
+      fileReader.readAsArrayBuffer(files[i]);
+
+      fileReader.onload = function (e) {
+        let binary = e.target.result;
+        let blob = new File([binary], files[i]);
+        connections[id].dataChannel.send(blob);
+      }
+      return;
+    }
+  }
+}
+
+function receiveFile(id, data) {
+
+  // If we are replacing a previously generated file we need to
+  // manually revoke the object URL to avoid memory leaks.
+  if (textFile !== null) {
+    window.URL.revokeObjectURL(textFile);
+  }
+
+  textFile = window.URL.createObjectURL(data);
+
+  // The file can be retrieved via a link
+  document.getElementById("download").href = textFile;
+  document.getElementById("download").hidden = false;
+  document.getElementById("download").innerHTML = connections[id].name + ': ' + document.getElementById("download").name
+
+  received.style.display = "inline-block";
+}
+
+function open3D() {
+  document.addEventListener("keydown", onDocumentKeyDown, false);
+	document.addEventListener("keyup", onDocumentKeyUp, false);
+
+  chatDiv.hidden = true;
+  chatDiv.style.display = "none";
+  files.hidden = true;
+  files.style.display = "none";
+  received.style.display = "none";
+
+  screenShare.hidden = true;
+
+  let sceneDiv = document.getElementById("scene");
+  if (sceneDiv) {
+    sceneDiv.hidden = false;
+    sceneDiv.style.display = "inline-block";
+  }
+
+  openButton.onclick = function() { openChat() };
+  openButton.value = "Open Chat";
+}
+
 async function shareScreen() {
 
   if (shareUser) {
@@ -351,64 +409,6 @@ function stopShareScreen() {
   for (let id in connections) {
     connections[id].dataChannel.send(shareJSON);
   }
-}
-
-function sendFile(id, option) {
-  let fileReader = new FileReader();
-  let files = document.getElementById("sendFile").files;
-  for (let i in files) {
-    if (files[i].name == option) {
-
-      fileReader.readAsArrayBuffer(files[i]);
-
-      fileReader.onload = function (e) {
-        let binary = e.target.result;
-        let blob = new File([binary], files[i]);
-        connections[id].dataChannel.send(blob);
-      }
-      return;
-    }
-  }
-}
-
-function receiveFile(id, data) {
-
-  // If we are replacing a previously generated file we need to
-  // manually revoke the object URL to avoid memory leaks.
-  if (textFile !== null) {
-    window.URL.revokeObjectURL(textFile);
-  }
-
-  textFile = window.URL.createObjectURL(data);
-
-  // The file can be retrieved via a link
-  document.getElementById("download").href = textFile;
-  document.getElementById("download").hidden = false;
-  document.getElementById("download").innerHTML = connections[id].name + ': ' + document.getElementById("download").name
-
-  received.style.display = "inline-block";
-}
-
-function open3D() {
-  document.addEventListener("keydown", onDocumentKeyDown, false);
-	document.addEventListener("keyup", onDocumentKeyUp, false);
-
-  chatDiv.hidden = true;
-  chatDiv.style.display = "none";
-  files.hidden = true;
-  files.style.display = "none";
-  received.style.display = "none";
-
-  screenShare.hidden = true;
-
-  let sceneDiv = document.getElementById("scene");
-  if (sceneDiv) {
-    sceneDiv.hidden = false;
-    sceneDiv.style.display = "inline-block";
-  }
-
-  openButton.onclick = function() { openChat() };
-  openButton.value = "Open Chat";
 }
 
 function openChat() {
