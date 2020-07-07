@@ -13,7 +13,7 @@ function init() {
   room = roomName.value;
   username.readOnly = true;
   roomName.readOnly = true;
-  openChat();
+  initChat();
   socket = io('ws://localhost:3000'); // We will change this to a server in the future
 
   // We created and joined a room
@@ -22,6 +22,7 @@ function init() {
     ourID = connectionInfo.id;
 
     init3D(); // Renders the 3D environment
+    initSwapView();
   });
 
   // The room we tried to join is full
@@ -49,6 +50,7 @@ function init() {
     ourID = connectionInfo.id;
 
     init3D(); // Renders the 3D environment
+    initSwapView();
   });
 
   // A user moved in the 3D space

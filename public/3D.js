@@ -37,9 +37,7 @@ function init3D() {
 	renderer = new THREE.WebGLRenderer();
 	renderer.setSize(window.innerWidth - 5, window.innerHeight - 25);
 	renderer.domElement.id = "scene"; // Adds an ID to the canvas element
-	renderer.domElement.hidden = true; // Initially hides the scene
-	renderer.domElement.style.display = "none";
-	document.body.appendChild( renderer.domElement);
+	document.getElementById("3D").appendChild( renderer.domElement);
 
 	scene.add( light );
 

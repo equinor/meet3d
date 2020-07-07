@@ -17,6 +17,8 @@ var files = document.getElementById("files");
 var received = document.getElementById("received");
 var shareButton = document.getElementById("shareButton");
 var screenShare = document.getElementById("screenTest");
+var notification = document.getElementById("notification");
+var sceneDiv = document.getElementById("3D");
 
 username.addEventListener("keyup", function(event) {
     if (event.keyCode === 13) { // This is the 'enter' key-press
@@ -49,6 +51,7 @@ var textFile = null; // This stores any downloaded file
 var sharing = false;
 var shareUser = null;
 var screenCapture = null; // The stream containing the video capture of our screen
+var unreadMessages = 0;
 
 const pcConfig = {
   'iceServers': [{
@@ -159,6 +162,11 @@ function addChat(name, message, whisper) {
   }
 
   chatReceive.scrollTop = chatReceive.scrollHeight; // Maintains the scroll at the bottom
+
+  if (sceneDiv.style.display != "none") {
+    unreadMessages++;
+    notification.innerHTML = "You have " + unreadMessages + " unread message(s)."
+  }
 }
 
 // Emits a chat message to all other connected users
@@ -415,12 +423,8 @@ function changePos(x, y, z) {
   }
 }
 
-function openChat() {
-  document.removeEventListener("keydown", onDocumentKeyDown);
-	document.removeEventListener("keyup", onDocumentKeyUp);
-
-  chatDiv.hidden = false;
-  chatDiv.style.display = "inline-block";
+function initChat() {
+  openChat();
 
   files.hidden = false;
   files.style.display = "inline-block";
@@ -442,13 +446,21 @@ function openChat() {
     screenShare.hidden = false;
   }
 
-  let sceneDiv = document.getElementById("scene");
-  if (sceneDiv) {
-    sceneDiv.hidden = true;
-    sceneDiv.style.display = "none";
-  }
+  sceneDiv.style.display = "none";
+}
 
-  openButton.onclick = function() {open3D()};
+function openChat() {
+  document.removeEventListener("keydown", onDocumentKeyDown);
+	document.removeEventListener("keyup", onDocumentKeyUp);
+
+  chatDiv.style.display = "inline-block";
+
+  sceneDiv.style.display = "none";
+
+  unreadMessages = 0;
+  notification.innerHTML = "";
+
+  openButton.onclick = function() { open3D() };
   openButton.value = "Open 3D";
 }
 
@@ -456,22 +468,21 @@ function open3D() {
   document.addEventListener("keydown", onDocumentKeyDown, false);
 	document.addEventListener("keyup", onDocumentKeyUp, false);
 
-  chatDiv.hidden = true;
   chatDiv.style.display = "none";
-  files.hidden = true;
-  files.style.display = "none";
-  received.style.display = "none";
 
-  screenShare.hidden = true;
-
-  let sceneDiv = document.getElementById("scene");
-  if (sceneDiv) {
-    sceneDiv.hidden = false;
-    sceneDiv.style.display = "inline-block";
-  }
+  sceneDiv.style.display = "inline-block";
 
   openButton.onclick = function() { openChat() };
   openButton.value = "Open Chat";
+}
+
+// Make 'c'-keypress swap between chat and 3D-space
+function initSwapView() {
+  console.log("initiating swap view");
+  document.addEventListener("keyup", swapViewOnC);
+
+  chatSend.onfocus = function() { document.removeEventListener("keyup", swapViewOnC) };
+  chatSend.onblur = function() { document.addEventListener("keyup", swapViewOnC) };
 }
 
 function swapViewOnC(event) {
