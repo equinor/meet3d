@@ -25,29 +25,14 @@ var model;
 
 function init3D() {
 	scene = new THREE.Scene();
-<<<<<<< HEAD
-	camera = new THREE.PerspectiveCamera(100, (window.innerWidth / window.outerWidth), 0.1, 1000);
-	renderer = new THREE.WebGLRenderer();
-
-
-	renderer.setClearColor( 0xC5C5C3 );
-	renderer.setPixelRatio( window.devicePixelRatio );
-	renderer.setSize(window.innerWidth, window.innerHeight);
-
-=======
->>>>>>> master
 	scene.background = new THREE.Color( 0xf0f0f0 );
 
 	// CAMERA
 	camera = new THREE.PerspectiveCamera(100, (window.innerWidth / window.outerWidth), 0.1, 1000);
 	camera.position.x = 0;
 	camera.position.y = 0;
-<<<<<<< HEAD
-	camera.position.z = 20;
-=======
 	camera.position.z = 70;
 
->>>>>>> master
 	var light = new THREE.PointLight( 0xff0000, 1, 100 );
 
 	var ambientLight = new THREE.AmbientLight( 0xcccccc );
@@ -73,9 +58,11 @@ function init3D() {
 	scene.add( light );
 
 	// FLOOR
+	var floortext = new THREE.TextureLoader().load( "objects/Clownfish/woodenfloor.jpg" );
+
 	var floor = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, maxZ * 2, maxX * 2, maxZ * 2),
-		new THREE.MeshBasicMaterial({color: 0x0000ff, side: THREE.DoubleSide})
+		new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: floortext})
 	);
 	floor.rotation.x += Math.PI / 2; //can rotate the floor/plane
 	scene.add( floor );
@@ -84,16 +71,14 @@ function init3D() {
 
 	document.getElementById("open").hidden = false;
 
-<<<<<<< HEAD
 	//load models
 	loader = new THREE.GLTFLoader();
-=======
+	/*
 	//choose which object to make when the makeobjectfunction is called
 	geometry = new THREE.BoxGeometry(10, 20, 10);
 	material = new THREE.MeshBasicMaterial( {color: 0x669966, wireframe: false});
 	object = new THREE.Mesh(geometry, material);
->>>>>>> master
-
+*/
 
 	// ADD GLTFLOADER HERE
 
