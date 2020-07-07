@@ -1,3 +1,4 @@
+
 var renderer
 var camera
 var scene
@@ -19,37 +20,43 @@ const speed = 3;
 
 var listener;
 
+
 function init3D() {
 	scene = new THREE.Scene();
-	camera = new THREE.PerspectiveCamera(100, (window.innerWidth / window.outerWidth), 0.1, 1000);
-	renderer = new THREE.WebGLRenderer();
-
 	scene.background = new THREE.Color( 0xf0f0f0 );
 
+	// CAMERA
+	camera = new THREE.PerspectiveCamera(100, (window.innerWidth / window.outerWidth), 0.1, 1000);
 	camera.position.x = 0;
 	camera.position.y = 0;
 	camera.position.z = 70;
+
 	var light = new THREE.PointLight( 0xff0000, 1, 100 );
 	light.position.set( 50, 50, 50 );
+
+
+
+	// RENDERER
+	renderer = new THREE.WebGLRenderer();
+	renderer.setSize(window.innerWidth - 5, window.innerHeight - 25);
+	renderer.domElement.id = "scene"; // Adds an ID to the canvas element
+	renderer.domElement.hidden = true; // Initially hides the scene
+	renderer.domElement.style.display = "none"
+	document.body.appendChild( renderer.domElement);
+
+
 	scene.add( light );
 
-	//make a floor to the scene
+	// FLOOR
 	var floor = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, maxZ * 2, maxX * 2, maxZ * 2),
 		new THREE.MeshBasicMaterial({color: 0x0000ff, side: THREE.DoubleSide})
 	);
-
 	floor.rotation.x += Math.PI / 2; //can rotate the floor/plane
 	scene.add( floor );
-	
+
 	addWalls()
 
-	renderer.setSize(window.innerWidth - 5, window.innerHeight - 25);
-	document.body.appendChild( renderer.domElement);
-
-	renderer.domElement.id = "scene"; // Adds an ID to the canvas element
-	renderer.domElement.hidden = true; // Initially hides the scene
-	renderer.domElement.style.display = "none"
 	document.getElementById("open").hidden = false;
 
 	//choose which object to make when the makeobjectfunction is called
@@ -57,7 +64,10 @@ function init3D() {
 	material = new THREE.MeshBasicMaterial( {color: 0x669966, wireframe: false});
 	object = new THREE.Mesh(geometry, material);
 
-	//lets you move the camera with the mouse
+
+	// ADD GLTFLOADER HERE
+
+	// ORBITCONTROLS
 	controls = new THREE.OrbitControls( camera, renderer.domElement );
 	controls.enableKeys = false;
 	controls.enablePan = false;
@@ -77,12 +87,34 @@ function init3D() {
 	camera.position = ourUser.object.position
 	controls.target.set(ourUser.object.position.x, ourUser.object.position.y, ourUser.object.position.z)
 
+
 	update();
 }
 
-function addWalls() {
+//Create the texture to display video on wall
 
-	let wallHeight = 60;
+for (var x in remoteStreamList){
+	var video = remoteStreamList[x];
+	var texture = new THREE.VideoTexture(video);
+	texture.minFilter = THREE.LinearFilter;
+	texture.magFilter = THREE.LinearFilter;
+	texture.format = THREE.RGBFormat;
+}
+
+function addWalls() {
+	if (remoteStreamList.length > 0){
+		for (var x in remoteStreamList){
+			var video = document.getElementById(remoteStreamList[x]);
+			var texture = new THREE.VideoTexture(video);
+			texture.minFilter = THREE.LinearFilter;
+			texture.magFilter = THREE.LinearFilter;
+			texture.format = THREE.RGBFormat;
+		}
+	}
+	else{
+		var texture = 0;}
+
+	let wallHeight = 100;
 
 	var wallLeft = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxY * 2, wallHeight, 1, 1),
@@ -103,17 +135,20 @@ function addWalls() {
 	wallRight.position.y += wallHeight / 2;
 
 	var wallFront = new THREE.Mesh(
-		new THREE.PlaneGeometry(maxX * 2, wallHeight, 1, 1),
-		new THREE.MeshBasicMaterial({color: 0xff0000, side: THREE.DoubleSide})
-	);
-	
+		new THREE.PlaneBufferGeometry(maxX * 2, wallHeight, 1, 1),
+		new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: texture})
+		)
 	wallFront.position.z = -maxZ;
 	wallFront.position.y += wallHeight / 2;
 
 	scene.add( wallLeft );
 	scene.add( wallRight );
 	scene.add( wallFront );
+
+	renderer.render(scene, camera);
+
 }
+
 
 //function to add a user to the UsersMap
 function addToUserMap(User) {
@@ -292,6 +327,7 @@ function onDocumentKeyDown(event) {
 function onDocumentKeyUp(event) {
 	delete keysPressed[event.key];
 }
+
 
 //function to update frame
 function update() {

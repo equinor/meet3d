@@ -1,5 +1,7 @@
 'use strict';
 
+var remoteStreamList = [];
+
 var roomName = document.getElementById("roomName");
 var leaveRoom = document.getElementById("leaveButton");
 var startButton = document.getElementById("start");
@@ -35,7 +37,7 @@ chatSend.addEventListener("keyup", function(event) {
       event.preventDefault();
       sendChat();
     }
-  });
+});
 
 var localStream; // This is our local audio stream
 var room; // This is the name of our conference room
@@ -120,7 +122,9 @@ function dataChannelReceive(id, data) {
   } else if (message.type == "share") {
     if (message.sharing) {
       shareButton.hidden = true;
-      screenShare.hidden = false;
+      if (!chatDiv.hidden) {
+        screenShare.hidden = false;
+      }
       shareUser = id;
     } else {
       shareUser = null;
@@ -255,7 +259,7 @@ function updateFileList(id, message) {
 
     let label = document.createElement("label");
     label.for = connections[id].name;
-    label.innerHTML = connections[id].name;
+    label.innerHTML = connections[id].name + ': ';
     userFiles.appendChild(label);
 
     let select = document.createElement("select");
@@ -269,6 +273,7 @@ function updateFileList(id, message) {
 
     userFiles.appendChild(request);
     files.appendChild(userFiles);
+    files.appendChild(document.createElement("br"));
   }
 
   userFiles.childNodes[1].appendChild(file);
@@ -319,28 +324,6 @@ function receiveFile(id, data) {
   received.style.display = "inline-block";
 }
 
-function open3D() {
-  document.addEventListener("keydown", onDocumentKeyDown, false);
-	document.addEventListener("keyup", onDocumentKeyUp, false);
-
-  chatDiv.hidden = true;
-  chatDiv.style.display = "none";
-  files.hidden = true;
-  files.style.display = "none";
-  received.style.display = "none";
-
-  screenShare.hidden = true;
-
-  let sceneDiv = document.getElementById("scene");
-  if (sceneDiv) {
-    sceneDiv.hidden = false;
-    sceneDiv.style.display = "inline-block";
-  }
-
-  openButton.onclick = function() { openChat() };
-  openButton.value = "Open Chat";
-}
-
 async function shareScreen() {
 
   if (shareUser) {
@@ -365,7 +348,10 @@ async function shareScreen() {
     return;
   }
 
-  screenShare.hidden = false;
+  if (!chatDiv.hidden) {
+    screenShare.hidden = false;
+  }
+
   shareUser = ourID;
 
   screenShare.srcObject = screenCapture;
@@ -376,6 +362,16 @@ async function shareScreen() {
   })
 
   sharing = true;
+
+  if (!document.getElementById(screenCapture.id)){
+    let remoteStream = document.createElement("video");
+    remoteStream.id = screenCapture.id;
+    remoteStreamList.push(remoteStream.id);
+    remoteStream.autoplay = true;
+    remoteStream.srcObject = screenCapture;
+    document.getElementById("video").appendChild(remoteStream);
+    addWalls();
+  }
 
   for (let id in connections) {
     connections[id].dataChannel.send(shareJSON);
@@ -408,6 +404,14 @@ function stopShareScreen() {
 
   for (let id in connections) {
     connections[id].dataChannel.send(shareJSON);
+  }
+}
+
+// Function which tells other users our new 3D position
+function changePos(x, y, z) {
+  let jsonPos = JSON.stringify({type: "pos", x: x, y: y, z: z});
+  for (let id in connections) {
+    connections[id].dataChannel.send(jsonPos);
   }
 }
 
@@ -446,6 +450,40 @@ function openChat() {
 
   openButton.onclick = function() {open3D()};
   openButton.value = "Open 3D";
+}
+
+function open3D() {
+  document.addEventListener("keydown", onDocumentKeyDown, false);
+	document.addEventListener("keyup", onDocumentKeyUp, false);
+
+  chatDiv.hidden = true;
+  chatDiv.style.display = "none";
+  files.hidden = true;
+  files.style.display = "none";
+  received.style.display = "none";
+
+  screenShare.hidden = true;
+
+  let sceneDiv = document.getElementById("scene");
+  if (sceneDiv) {
+    sceneDiv.hidden = false;
+    sceneDiv.style.display = "inline-block";
+  }
+
+  openButton.onclick = function() { openChat() };
+  openButton.value = "Open Chat";
+}
+
+function swapViewOnC(event) {
+  if (event.key == 'c') {
+    if (openButton.value == "Open 3D") {
+      open3D();
+    } else if (openButton.value == "Open Chat") {
+      openChat();
+    } else {
+      console.log("Could not swap view: openButton.value = " + openButton.value);
+    }
+  }
 }
 
 // Leaves the conference, resets variable values and closes connections

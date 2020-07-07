@@ -219,14 +219,6 @@ function sendAnswer(id, offerDescription) {
   });
 }
 
-// Function which tells other users our new 3D position
-function changePos(x, y, z) {
-  let jsonPos = JSON.stringify({x: x, y: y, z: z});
-  for (let id in connections) {
-    connections[id].dataChannel.send(jsonPos);
-  }
-}
-
 // Called when we have got a local media stream
 function gotLocalStream(stream) {
   console.log('Adding local stream.');
@@ -278,6 +270,18 @@ function createPeerConnection(id) {
       if (event.track.kind == "video") {
         if (sharing && id == shareUser) {
           screenShare.srcObject = newStream; // Screen capture video
+
+          if (document.getElementById(newStream.id)){
+            return
+          }
+
+          let remoteStream = document.createElement("video");
+          remoteStream.id = newStream.id;
+          remoteStreamList.push(remoteStream.id);
+          remoteStream.autoplay = true;
+          remoteStream.srcObject = newStream;
+          document.getElementById("video").appendChild(remoteStream);
+          addWalls();
         } else {
           // Web camera video
         }

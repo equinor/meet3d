@@ -37,7 +37,8 @@
 				<input type="text" id="chatSend" style="width:490px;" placeholder="Type a message here! Use @username to message a specific user"></input>
 				<input type="button" onclick="sendChat()" value="Send"></input>
 			</chat>
-
+			<video controls muted id="localVideo" autoplay playsinline hidden></video>
+			<div id= "video" hidden>  </div>
 			<div class="users" id="users" hidden>
 				<p> &ensp; Other users in the room:</p>
 				<ul id="connectionList">
@@ -76,6 +77,7 @@
 	  <script src="client.js"></script>
 		<script src="three.js"></script>
 		<script src="OrbitControls.js"></script>
+		<script src="https://threejs.org/examples/js/loaders/GLTFLoader.js"></script>
 		<script src="3D.js"></script>
 	</body>
 </html>
