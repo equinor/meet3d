@@ -35,13 +35,21 @@ io.sockets.on('connection', function(socket) {
     io.sockets.in(users[socket.id].room).emit('left', socket.id);
   })
 
+  socket.on('newOffer', function(data) {
+    users[data.id].socket.emit('newOffer', {id: socket.id, offer: data.offer})
+  })
+
+  socket.on('newAnswer', function(data) {
+    users[data.id].socket.emit('newAnswer', {id: socket.id, answer: data.answer})
+  });
+
   socket.on('join', function(startInfo) {
 
     let room = startInfo.room;
     let name = startInfo.name;
 
-    var clientsInRoom = io.sockets.adapter.rooms[room];
-    var numClients = clientsInRoom ? Object.keys(clientsInRoom.sockets).length : 0;
+    let clientsInRoom = io.sockets.adapter.rooms[room];
+    let numClients = clientsInRoom ? Object.keys(clientsInRoom.sockets).length : 0;
 
     if (numClients === 0) { // Room created
 
@@ -70,8 +78,8 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('ipaddr', function() {
-    var ifaces = os.networkInterfaces();
-    for (var dev in ifaces) {
+    let ifaces = os.networkInterfaces();
+    for (let dev in ifaces) {
       ifaces[dev].forEach(function(details) {
         if (details.family === 'IPv4' && details.address !== '127.0.0.1') {
           socket.emit('ipaddr', details.address);
