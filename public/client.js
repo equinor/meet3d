@@ -1,5 +1,7 @@
 'use strict';
 
+var remoteStreamList = [];
+
 var roomName = document.getElementById("roomName");
 var leaveRoom = document.getElementById("leaveButton");
 var startButton = document.getElementById("start");
@@ -303,6 +305,7 @@ function createPeerConnection(id) {
       }
       let remoteStream = document.createElement("video");
       remoteStream.id = event.streams[0].id;
+      remoteStreamList.push(remoteStream.id);
       remoteStream.autoplay=true;
       remoteStream.srcObject = event.streams[0];
       document.getElementById("video").appendChild(remoteStream);

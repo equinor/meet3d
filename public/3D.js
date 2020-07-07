@@ -85,14 +85,22 @@ function init3D() {
 
 //Create the texture to display video on wall
 
+for (var x in remoteStreamList){
+	var video = remoteStreamList[x];
+	var texture = new THREE.VideoTexture(video);
+	texture.minFilter = THREE.LinearFilter;
+	texture.magFilter = THREE.LinearFilter;
+	texture.format = THREE.RGBFormat;
+}
+/*
 var video = document.getElementById("localVideo");
-		
+
 var Videotexture = new THREE.VideoTexture(video);
 
 Videotexture.minFilter = THREE.LinearFilter;
 Videotexture.magFilter = THREE.LinearFilter;
 Videotexture.format = THREE.RGBFormat;
-
+*/
 
 
 function addWalls() {
@@ -119,7 +127,7 @@ function addWalls() {
 
 	var wallFront = new THREE.Mesh(
 		new THREE.PlaneBufferGeometry(maxX * 2, wallHeight, 1, 1),
-		new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: Videotexture})
+		new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: texture})
 		)
 	wallFront.position.z = -maxZ;
 	wallFront.position.y += wallHeight / 2;
