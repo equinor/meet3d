@@ -397,6 +397,10 @@ function stopShareScreen() {
   shareButton.onclick = function () { shareScreen() };
   shareButton.value = "Share Screen";
 
+  if (!screenShare.srcObject) {
+    return;
+  }
+
   let tracks = screenShare.srcObject.getTracks();
 
   tracks.forEach(track => track.stop());

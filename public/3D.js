@@ -20,6 +20,8 @@ const speed = 3;
 
 var listener;
 
+var allObjects = [];
+
 function init3D() {
 	scene = new THREE.Scene();
 	scene.background = new THREE.Color( 0xf0f0f0 );
@@ -48,6 +50,7 @@ function init3D() {
 	);
 	floor.rotation.x += Math.PI / 2; //can rotate the floor/plane
 	scene.add( floor );
+	allObjects.push(floor);
 
 	addWalls();
 
@@ -57,6 +60,7 @@ function init3D() {
 	geometry = new THREE.BoxGeometry(10, 20, 10);
 	material = new THREE.MeshBasicMaterial( {color: 0x669966, wireframe: false});
 	object = new THREE.Mesh(geometry, material);
+	allObjects.push(object);
 
 	// ADD GLTFLOADER HERE
 
@@ -135,9 +139,11 @@ function addWalls() {
 	scene.add( wallLeft );
 	scene.add( wallRight );
 	scene.add( wallFront );
+	allObjects.push( wallLeft );
+	allObjects.push( wallRight );
+	allObjects.push( wallFront );
 
 	renderer.render(scene, camera);
-
 }
 
 //function to add a user to the UsersMap
@@ -198,6 +204,7 @@ var makeNewObject = function(xPosition, yPosition, zPosition) {
 	object.position.y = yPosition;
 	object.position.z = zPosition;
 	scene.add(object);
+	allObjects.push(object);
 	return object;
 };
 
@@ -337,6 +344,11 @@ function nameChange(userer, newname) {
 }
 
 function leave3D() {
+
+	for (let i in allObjects) {
+		scene.remove(allObjects[i]);
+	}
+
 	document.removeEventListener("keydown", onDocumentKeyDown);
 	document.removeEventListener("keyup", onDocumentKeyUp);
 	if (document.getElementById("scene")) {
