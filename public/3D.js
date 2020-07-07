@@ -23,36 +23,40 @@ var listener;
 
 function init3D() {
 	scene = new THREE.Scene();
-	camera = new THREE.PerspectiveCamera(100, (window.innerWidth / window.outerWidth), 0.1, 1000);
-	renderer = new THREE.WebGLRenderer();
-
 	scene.background = new THREE.Color( 0xf0f0f0 );
 
+	// CAMERA
+	camera = new THREE.PerspectiveCamera(100, (window.innerWidth / window.outerWidth), 0.1, 1000);
 	camera.position.x = 0;
 	camera.position.y = 0;
 	camera.position.z = 70;
-	var light = new THREE.AmbientLight(0x404040);
-	//var light = new THREE.PointLight( 0xff0000, 1, 100 );
-	//light.position.set( 50, 50, 50 );
+
+	var light = new THREE.PointLight( 0xff0000, 1, 100 );
+	light.position.set( 50, 50, 50 );
+
+
+
+	// RENDERER
+	renderer = new THREE.WebGLRenderer();
+	renderer.setSize(window.innerWidth - 5, window.innerHeight - 25);
+	renderer.domElement.id = "scene"; // Adds an ID to the canvas element
+	renderer.domElement.hidden = true; // Initially hides the scene
+	renderer.domElement.style.display = "none"
+	document.body.appendChild( renderer.domElement);
+
+	
 	scene.add( light );
 
-	//make a floor to the scene
+	// FLOOR
 	var floor = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, maxZ * 2, maxX * 2, maxZ * 2),
 		new THREE.MeshBasicMaterial({color: 0x0000ff, side: THREE.DoubleSide})
 	);
-
 	floor.rotation.x += Math.PI / 2; //can rotate the floor/plane
 	scene.add( floor );
 	
 	addWalls()
 
-	renderer.setSize(window.innerWidth - 5, window.innerHeight - 25);
-	document.body.appendChild( renderer.domElement);
-
-	renderer.domElement.id = "scene"; // Adds an ID to the canvas element
-	renderer.domElement.hidden = true; // Initially hides the scene
-	renderer.domElement.style.display = "none"
 	document.getElementById("open").hidden = false;
 
 	//choose which object to make when the makeobjectfunction is called
@@ -60,7 +64,10 @@ function init3D() {
 	material = new THREE.MeshBasicMaterial( {color: 0x669966, wireframe: false});
 	object = new THREE.Mesh(geometry, material);
 
-	//lets you move the camera with the mouse
+
+	// ADD GLTFLOADER HERE
+
+	// ORBITCONTROLS
 	controls = new THREE.OrbitControls( camera, renderer.domElement );
 	controls.enableKeys = false;
 	controls.enablePan = false;
@@ -80,6 +87,7 @@ function init3D() {
 	camera.position = ourUser.object.position
 	controls.target.set(ourUser.object.position.x, ourUser.object.position.y, ourUser.object.position.z)
 
+
 	update();
 }
 
@@ -92,15 +100,7 @@ for (var x in remoteStreamList){
 	texture.magFilter = THREE.LinearFilter;
 	texture.format = THREE.RGBFormat;
 }
-/*
-var video = document.getElementById("localVideo");
 
-var Videotexture = new THREE.VideoTexture(video);
-
-Videotexture.minFilter = THREE.LinearFilter;
-Videotexture.magFilter = THREE.LinearFilter;
-Videotexture.format = THREE.RGBFormat;
-*/
 
 
 function addWalls() {
