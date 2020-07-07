@@ -253,10 +253,6 @@ function sendOffer(id) {
   createDataChannel(id);
 
   connections[id].connection.addStream(localStream);
-  
-  if (sharing && shareUser == ourID) {
-    connections[id].connection.addTrack(screenCapture.getVideoTracks()[0]);
-  }
 
   connections[id].connection.createOffer().then(function(description) {
     connections[id].connection.setLocalDescription(description);
@@ -411,6 +407,20 @@ function createDataChannel(id) {
     connections[id].dataChannel = tempConnection
     console.log("Datachannel established to " + connections[id].name);
     changePos(findUser(myID).getxPosition(), findUser(myID).getyPosition(), findUser(myID).getzPosition());
+
+    if (sharing && shareUser == ourID) {
+
+      console.log("sending stuff")
+      let shareJSON = JSON.stringify({
+        type: "share",
+        sharing: true
+      });
+      connections[id].dataChannel.send(shareJSON);
+
+      setTimeout(function() { // Wait 1 second
+        connections[id].connection.addTrack(screenCapture.getVideoTracks()[0]);
+      }, 1000);
+    }
   });
 
   tempConnection.addEventListener("close", () => {
@@ -679,6 +689,8 @@ async function shareScreen() {
   }
 
   screenShare.hidden = false;
+
+  shareUser = ourID;
 
   try {
     screenCapture = await navigator.mediaDevices.getDisplayMedia(screenShareConstraints);
