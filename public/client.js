@@ -37,7 +37,7 @@ chatSend.addEventListener("keyup", function(event) {
       event.preventDefault();
       sendChat();
     }
-});
+  });
 
 var localStream; // This is our local audio stream
 var room; // This is the name of our conference room
@@ -137,14 +137,14 @@ function dataChannelReceive(id, data) {
 
 // Adds the given message to the chat box, including the user that sent it and the received time
 function addChat(name, message, whisper) {
-  var today = new Date();
+  let today = new Date();
   let hour = today.getHours();
   let minute = today.getMinutes();
   let second = today.getSeconds();
   if (hour < 10) hour = '0' + hour;
   if (minute < 10) minute = '0' + minute;
   if (second < 10) second = '0' + second;
-  var time = hour + ":" + minute + ":" + second;
+  let time = hour + ":" + minute + ":" + second;
 
   if (whisper) {
     message = '<whisper>' + message + '</whisper>';

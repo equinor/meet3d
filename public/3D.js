@@ -1,14 +1,14 @@
 
-var renderer
-var camera
-var scene
-var controls
+var renderer;
+var camera;
+var scene;
+var controls;
 
-var geometry
-var material
-var object
-var myID
-var requestID = undefined
+var geometry;
+var material;
+var object;
+var myID;
+var requestID = undefined;
 
 var userCount = 0;
 const distance = 15;
@@ -19,7 +19,6 @@ const maxZ = 100;
 const speed = 3;
 
 var listener;
-
 
 function init3D() {
 	scene = new THREE.Scene();
@@ -34,16 +33,13 @@ function init3D() {
 	var light = new THREE.PointLight( 0xff0000, 1, 100 );
 	light.position.set( 50, 50, 50 );
 
-
-
 	// RENDERER
 	renderer = new THREE.WebGLRenderer();
 	renderer.setSize(window.innerWidth - 5, window.innerHeight - 25);
 	renderer.domElement.id = "scene"; // Adds an ID to the canvas element
 	renderer.domElement.hidden = true; // Initially hides the scene
-	renderer.domElement.style.display = "none"
+	renderer.domElement.style.display = "none";
 	document.body.appendChild( renderer.domElement);
-
 
 	scene.add( light );
 
@@ -55,7 +51,7 @@ function init3D() {
 	floor.rotation.x += Math.PI / 2; //can rotate the floor/plane
 	scene.add( floor );
 
-	addWalls()
+	addWalls();
 
 	document.getElementById("open").hidden = false;
 
@@ -63,7 +59,6 @@ function init3D() {
 	geometry = new THREE.BoxGeometry(10, 20, 10);
 	material = new THREE.MeshBasicMaterial( {color: 0x669966, wireframe: false});
 	object = new THREE.Mesh(geometry, material);
-
 
 	// ADD GLTFLOADER HERE
 
@@ -81,19 +76,17 @@ function init3D() {
 
 	listener = new THREE.AudioListener();
 
-	ourUser = findUser(myID)
+	ourUser = findUser(myID);
 	ourUser.object.add(listener);
 
-	camera.position = ourUser.object.position
-	controls.target.set(ourUser.object.position.x, ourUser.object.position.y, ourUser.object.position.z)
-
+	camera.position = ourUser.object.position;
+	controls.target.set(ourUser.object.position.x, ourUser.object.position.y, ourUser.object.position.z);
 
 	update();
 }
 
 //Create the texture to display video on wall
-
-for (var x in remoteStreamList){
+for (var x in remoteStreamList) {
 	var video = remoteStreamList[x];
 	var texture = new THREE.VideoTexture(video);
 	texture.minFilter = THREE.LinearFilter;
@@ -102,17 +95,17 @@ for (var x in remoteStreamList){
 }
 
 function addWalls() {
-	if (remoteStreamList.length > 0){
-		for (var x in remoteStreamList){
+	if (remoteStreamList.length > 0) {
+		for (var x in remoteStreamList) {
 			var video = document.getElementById(remoteStreamList[x]);
 			var texture = new THREE.VideoTexture(video);
 			texture.minFilter = THREE.LinearFilter;
 			texture.magFilter = THREE.LinearFilter;
 			texture.format = THREE.RGBFormat;
 		}
+	}	else {
+		var texture = 0;
 	}
-	else{
-		var texture = 0;}
 
 	let wallHeight = 100;
 
@@ -136,8 +129,8 @@ function addWalls() {
 
 	var wallFront = new THREE.Mesh(
 		new THREE.PlaneBufferGeometry(maxX * 2, wallHeight, 1, 1),
-		new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: texture})
-		)
+		new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: texture}));
+
 	wallFront.position.z = -maxZ;
 	wallFront.position.y += wallHeight / 2;
 
@@ -148,7 +141,6 @@ function addWalls() {
 	renderer.render(scene, camera);
 
 }
-
 
 //function to add a user to the UsersMap
 function addToUserMap(User) {
@@ -169,10 +161,10 @@ function findUser(id) {
 var UserMap = new Map();
 
 function newUserJoined(id, name) {
-	console.log("Adding new user to the environment: " + name)
+	console.log("Adding new user to the environment: " + name);
 	let newUser = new user(id, name, 10, 10, distance * userCount); // This does not look great at the moment
 	addToUserMap(newUser);
-	userCount++
+	userCount++;
 }
 
 function changeUserPosition(id, x, y, z) {
@@ -183,14 +175,13 @@ function userGotMedia(id, mediaStream) {
 	findUser(id).setMedia(mediaStream);
 	var posAudio = new THREE.PositionalAudio(listener);
 	posAudio.setRefDistance(20);
-	//posAudio.setDirectionalCone(180,320,0.1);
 	posAudio.setRolloffFactor(2);
 	const audio1 = posAudio.context.createMediaStreamSource(mediaStream);
 
 	try {
 		posAudio.setNodeSource(audio1);
-		findUser(id).object.add(posAudio)
-	} catch(err){
+		findUser(id).object.add(posAudio);
+	} catch(err) {
 		console.log(err);
 	};
 }
@@ -203,7 +194,7 @@ function userLeft(id) {
 }
 
 //function that makes an object and position it at input coordinates
-var makeNewObject = function(xPosition, yPosition, zPosition){
+var makeNewObject = function(xPosition, yPosition, zPosition) {
 	var object = new THREE.Mesh(geometry,material);
 	object.position.x = xPosition;
 	object.position.y = yPosition;
@@ -219,51 +210,58 @@ class user {
 		this.name = name,
 		this.id = id,
 		this.object = makeNewObject(xPosition, yPosition, zPosition),
-		addToUserMap(this)};
-		getName(){ return this.name };
-		getId(){ return this.id };
-		getxPosition(){ return this.object.position.x; }
-		getyPosition(){ return this.object.position.y; }
-		getzPosition(){ return this.object.position.z; }
-		setxPosition(xPosition) {
-			if (xPosition < maxX && xPosition > -maxX) {
-				this.object.position.x = xPosition;
-				return true
-			} else {
-				return false
-			}
+		addToUserMap(this)
+	};
+
+	getName(){ return this.name };
+	getId(){ return this.id };
+	getxPosition(){ return this.object.position.x; }
+	getyPosition(){ return this.object.position.y; }
+	getzPosition(){ return this.object.position.z; }
+
+	setxPosition(xPosition) {
+		if (xPosition < maxX && xPosition > -maxX) {
+			this.object.position.x = xPosition;
+			return true
+		} else {
+			return false
 		}
-		setyPosition(yPosition) {
-			if (yPosition < maxY && yPosition > -maxY) {
-				this.object.position.y = yPosition;
-				return true
-			} else {
-				return false
-			}
+	}
+
+	setyPosition(yPosition) {
+		if (yPosition < maxY && yPosition > -maxY) {
+			this.object.position.y = yPosition;
+			return true
+		} else {
+			return false
 		}
-		setzPosition(zPosition) {
-			if (zPosition < maxZ && zPosition > -maxZ) {
-				this.object.position.z = zPosition;
-				return true
-			} else {
-				return false
-			}
+	}
+
+	setzPosition(zPosition) {
+		if (zPosition < maxZ && zPosition > -maxZ) {
+			this.object.position.z = zPosition;
+			return true
+		} else {
+			return false
 		}
-		setPosition(xPosition, yPosition, zPosition) {
-			if (xPosition < maxX && xPosition > -maxX) this.object.position.x = xPosition;
-			if (yPosition < maxY && yPosition > -maxY) this.object.position.y = yPosition;
-			if (zPosition < maxZ && zPosition > -maxZ) this.object.position.z = zPosition;
-		}
-		getMedia(){return this.media};
-		setMedia(media) {
-			this.media = media;
-		}
+	}
+
+	setPosition(xPosition, yPosition, zPosition) {
+		if (xPosition < maxX && xPosition > -maxX) this.object.position.x = xPosition;
+		if (yPosition < maxY && yPosition > -maxY) this.object.position.y = yPosition;
+		if (zPosition < maxZ && zPosition > -maxZ) this.object.position.z = zPosition;
+	}
+
+	getMedia(){ return this.media };
+	setMedia(media) {
+		this.media = media;
+	}
 };
 
 var keysPressed = {};
 function onDocumentKeyDown(event) {
 	var key = event.key;
-	let ourUser = findUser(myID)
+	let ourUser = findUser(myID);
 	keysPressed[event.key] = true;
 	switch (key) {
 		case 'w':
@@ -318,10 +316,10 @@ function onDocumentKeyDown(event) {
 			break;
 	}
 
-	camera.position = ourUser.object.position
-	controls.target.set(ourUser.object.position.x, ourUser.object.position.y, ourUser.object.position.z)
+	camera.position = ourUser.object.position;
+	controls.target.set(ourUser.object.position.x, ourUser.object.position.y, ourUser.object.position.z);
 
-	changePos(ourUser.getxPosition(), ourUser.getyPosition(), ourUser.getzPosition())
+	changePos(ourUser.getxPosition(), ourUser.getyPosition(), ourUser.getzPosition());
 }
 
 function onDocumentKeyUp(event) {
@@ -344,7 +342,7 @@ function leave3D() {
 	document.removeEventListener("keydown", onDocumentKeyDown);
 	document.removeEventListener("keyup", onDocumentKeyUp);
 	if (document.getElementById("scene")) {
-		document.getElementById("scene").outerHTML = '' // Deletes the scene
+		document.getElementById("scene").outerHTML = ''; // Deletes the scene canvas
 	}
 	controls = null;
 	renderer = null;

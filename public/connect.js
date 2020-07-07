@@ -144,7 +144,7 @@ function init() {
     let answerDescription = message.candidateData;
     if (id === ourID) return;
 
-    var candidate = new RTCIceCandidate({
+    let candidate = new RTCIceCandidate({
       sdpMLineIndex: answerDescription.label,
       candidate: answerDescription.candidate
     });
@@ -331,7 +331,7 @@ function createPeerConnection(id) {
 
 // Creates a new data channel to the user with the given id
 function createDataChannel(id) {
-  var tempConnection = connections[id].connection.createDataChannel("Chat");
+  let tempConnection = connections[id].connection.createDataChannel("Chat");
   tempConnection.addEventListener("open", () => {
     connections[id].dataChannel = tempConnection
     console.log("Datachannel established to " + connections[id].name);
@@ -344,9 +344,9 @@ function createDataChannel(id) {
       });
       connections[id].dataChannel.send(shareJSON);
 
-      setTimeout(function() { // Wait 1 second
+      setTimeout(function() { // Wait 2 second
         connections[id].connection.addTrack(screenCapture.getVideoTracks()[0]);
-      }, 1000);
+      }, 2000);
     }
   });
 
@@ -376,7 +376,7 @@ function handleIceCandidate(event) {
 
 // Tries to find a TURN server
 function requestTurn(turnURL) {
-  for (var i in pcConfig.iceServers) {
+  for (let i in pcConfig.iceServers) {
     if (pcConfig.iceServers[i].urls.substr(0, 5) === 'turn:') {
       return;
     }
@@ -384,10 +384,10 @@ function requestTurn(turnURL) {
 
   console.log('Getting TURN server from ', turnURL);
   // No TURN server. Get one from computeengineondemand.appspot.com:
-  var xhr = new XMLHttpRequest();
+  let xhr = new XMLHttpRequest();
   xhr.onreadystatechange = function() {
     if (xhr.readyState === 4 && xhr.status === 200) { // If there are no errors returned fromt the HTTP request
-      var turnServer = JSON.parse(xhr.responseText); // Make the received String into JSON
+      let turnServer = JSON.parse(xhr.responseText); // Make the received String into JSON
       console.log('Got TURN server: ', turnServer);
       pcConfig.iceServers.push({ // Add new TURN server to our config
         'urls': 'turn:' + turnServer.username + '@' + turnServer.turn,
