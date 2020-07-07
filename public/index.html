@@ -63,9 +63,9 @@
 
 		<input type="button" id="open" onclick="open3D()" value="Open Chat" hidden></input>
 
-		<input type="button" onclick="shareScreen(this)" value="Share Screen"></input>
+		<input type="button" id="shareButton" onclick="shareScreen()" value="Share Screen" hidden></input>
 
-		<video id="screenTest" style="border: 1px solid #999;width: 98%;max-width: 860px;" autoplay></video>
+		<video id="screenTest" style="border: 1px solid #999;width: 98%;max-width: 860px;" hidden autoplay></video>
 
 	  <script src="socket.io.js"></script>
 	  <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>

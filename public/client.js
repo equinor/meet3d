@@ -13,6 +13,8 @@ var chatDiv = document.getElementById("chatSection");
 var openButton = document.getElementById("open");
 var files = document.getElementById("files");
 var received = document.getElementById("received");
+var shareButton = document.getElementById("shareButton");
+var screenShare = document.getElementById("screenTest");
 
 username.addEventListener("keyup", function(event) {
     if (event.keyCode === 13) { // This is the 'enter' key-press
@@ -42,8 +44,9 @@ var ourID; // This is our unique ID
 var connections = {}; // The key is the socket id, and the value is {name: username, stream: mediastream, connection: PeerConnection}
 const maxChatLength = 20; // The chat will only hold this many messages at a time
 var textFile = null; // This stores any downloaded file
-var shareID = 0;
+var sharing = false;
 var shareUser = null;
+var screenCapture = null; // The stream containing the video capture of our screen
 
 const pcConfig = {
   'iceServers': [{
@@ -250,6 +253,11 @@ function sendOffer(id) {
   createDataChannel(id);
 
   connections[id].connection.addStream(localStream);
+  
+  if (sharing && shareUser == ourID) {
+    connections[id].connection.addTrack(screenCapture.getVideoTracks()[0]);
+  }
+
   connections[id].connection.createOffer().then(function(description) {
     connections[id].connection.setLocalDescription(description);
     socket.emit('offer', {
@@ -338,17 +346,18 @@ function createPeerConnection(id) {
       console.log('Remote stream added.');
       console.log(event)
 
-      let newStream = new MediaStream([event.track])
+      let newStream = new MediaStream([event.track]) // Create a new stream containing the received track
 
       if (event.track.kind == "audio") {
-        connections[id].audio = newStream; // TODO: verify that this will always be zero
         userGotMedia(id, newStream); // Adds track to 3D environment
       }
 
       if (event.track.kind == "video") {
-        console.log("YAY!")
-        console.log("DOUBLE YAY! " + event.track.id + " " + shareID)
-        document.getElementById("screenTest").srcObject = newStream
+        if (sharing && id == shareUser) {
+          screenShare.srcObject = newStream; // Screen capture video
+        } else {
+          // Web camera video
+        }
       }
     };
     pc.onremovestream = function (event) {
@@ -498,13 +507,16 @@ function dataChannelReceive(id, data) {
   } else if (message.type == "chat") {
     addChat(connections[id].name, message.message, message.whisper);
   } else if (message.type == "share") {
-    if (message.id == 0) {
-      shareUser = null;
-      document.getElementById("screenTest").hidden = false;
-    } else {
+    if (message.sharing) {
+      shareButton.hidden = true;
+      screenShare.hidden = false;
       shareUser = id;
+    } else {
+      shareUser = null;
+      screenShare.hidden = true;
+      shareButton.hidden = false;
     }
-    shareID = message.id;
+    sharing = message.sharing;
   }
 }
 
@@ -660,66 +672,64 @@ function requestFile(id, option) {
   document.getElementById("download").name = option;
 }
 
-async function shareScreen(e) {
+async function shareScreen() {
 
   if (shareUser) {
     return; // Someone else is sharing their screen
   }
 
-  let vid = document.getElementById("screenTest");
-  let screenCapture;
+  screenShare.hidden = false;
 
   try {
     screenCapture = await navigator.mediaDevices.getDisplayMedia(screenShareConstraints);
-    e.onclick = function () {
-      stopShareScreen(e);
+    shareButton.onclick = function () {
+      stopShareScreen();
     };
-    e.value = "Stop Sharing Screen";
+    shareButton.value = "Stop Sharing Screen";
   } catch(err) {
     console.error("Error: " + err);
   }
 
-  vid.srcObject = screenCapture;
+  screenShare.srcObject = screenCapture;
 
   let shareJSON = JSON.stringify({
     type: "share",
-    id: screenCapture.id
+    sharing: true
   })
 
+  sharing = true;
+
   for (let id in connections) {
-    console.log(connections[id].name)
     connections[id].dataChannel.send(shareJSON);
   }
 
-  setTimeout(function() {
+  setTimeout(function() { // Wait 1 second
     for (let id in connections) {
-      console.log(connections[id].name)
-      connections[id].connection.addTrack(screenCapture.getVideoTracks()[0], screenCapture);
-      //connections[id].connection.addStream(screenCapture);
+      connections[id].connection.addTrack(screenCapture.getVideoTracks()[0]);
     }
-  }, 3000);
+  }, 1000);
 }
 
-function stopShareScreen(e) {
+function stopShareScreen() {
 
-  e.onclick = function () {
-    shareScreen(e);
-  };
-  e.value = "Share Screen";
+  shareButton.onclick = function () { shareScreen() };
+  shareButton.value = "Share Screen";
 
-  let tracks = document.getElementById("screenTest").srcObject.getTracks();
+  let tracks = screenShare.srcObject.getTracks();
 
   tracks.forEach(track => track.stop());
-  document.getElementById("screenTest").srcObject = null;
+  screenShare.srcObject = null;
+  screenShare.hidden = true;
+
+  sharing = false;
 
   let shareJSON = JSON.stringify({
     type: "share",
-    id: 0 // Indicates that we are no longer sharing
+    sharing: false // Indicates that we are no longer sharing
   })
 
   for (let id in connections) {
     connections[id].dataChannel.send(shareJSON);
-    connections[id].connection.removeTrack(screenCapture);
   }
 }
 
@@ -769,6 +779,8 @@ function open3D() {
   files.style.display = "none";
   received.style.display = "none";
 
+  screenShare.hidden = true;
+
   let sceneDiv = document.getElementById("scene");
   if (sceneDiv) {
     sceneDiv.hidden = false;
@@ -798,6 +810,14 @@ function openChat() {
   chatBox.style.display = "inline-block";
   received.style.display = "inline-block";
 
+  if ((sharing && shareUser == ourID) || !sharing) {
+    shareButton.hidden = false;
+  }
+
+  if (sharing) {
+    screenShare.hidden = false;
+  }
+
   let sceneDiv = document.getElementById("scene");
   if (sceneDiv) {
     sceneDiv.hidden = true;
@@ -821,18 +841,22 @@ function leave() {
   username.readOnly = false;
   startButton.hidden = false;
   leaveButton.hidden = true;
+  shareButton.hidden = true;
+  received.style.display = "none";
   chatBox.hidden = true;
   chatBox.style.display = "none";
   localStream = null;
   users.hidden = true;
   users.style.display = "none";
   connectionList.innerHTML = '';
-  document.getElementById("open").hidden = true;
+  openButton.hidden = true;
   for (let id in connections) {
     connections[id].connection.close();
     connections[id].dataChannel.close();
   }
   connections = {};
+
+  stopShareScreen();
 
   leave3D(); // Closes the 3D environment
 
