@@ -104,6 +104,17 @@ Videotexture.format = THREE.RGBFormat;
 
 
 function addWalls() {
+	if (remoteStreamList.length > 0){
+		for (var x in remoteStreamList){
+			var video = document.getElementById(remoteStreamList[x]);
+			var texture = new THREE.VideoTexture(video);
+			texture.minFilter = THREE.LinearFilter;
+			texture.magFilter = THREE.LinearFilter;
+			texture.format = THREE.RGBFormat;
+		}
+	}
+	else{
+		var texture = 0;}
 
 	let wallHeight = 100;
 
@@ -135,6 +146,8 @@ function addWalls() {
 	scene.add( wallLeft );
 	scene.add( wallRight );
 	scene.add( wallFront );
+
+	renderer.render(scene, camera);
 	
 }
 

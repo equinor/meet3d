@@ -309,7 +309,7 @@ function createPeerConnection(id) {
       remoteStream.autoplay=true;
       remoteStream.srcObject = event.streams[0];
       document.getElementById("video").appendChild(remoteStream);
-      
+      addWalls();
     }; 
     pc.onremovestream = function (event) {
       // Here we might need to update something in 3D.js, but I'm not sure
