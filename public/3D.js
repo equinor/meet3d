@@ -1,3 +1,4 @@
+
 var renderer
 var camera
 var scene
@@ -19,6 +20,7 @@ const speed = 3;
 
 var listener;
 
+
 function init3D() {
 	scene = new THREE.Scene();
 	scene.background = new THREE.Color( 0xf0f0f0 );
@@ -29,6 +31,10 @@ function init3D() {
 	camera.position.y = 0;
 	camera.position.z = 70;
 
+	var light = new THREE.PointLight( 0xff0000, 1, 100 );
+	light.position.set( 50, 50, 50 );
+
+
 
 	// RENDERER
 	renderer = new THREE.WebGLRenderer();
@@ -38,10 +44,7 @@ function init3D() {
 	renderer.domElement.style.display = "none"
 	document.body.appendChild( renderer.domElement);
 
-
-	// LIGHT
-	var light = new THREE.PointLight( 0xff0000, 1, 100 );
-	light.position.set( 50, 50, 50 );
+	
 	scene.add( light );
 
 	// FLOOR
@@ -88,9 +91,32 @@ function init3D() {
 	update();
 }
 
-function addWalls() {
+//Create the texture to display video on wall
 
-	let wallHeight = 60;
+for (var x in remoteStreamList){
+	var video = remoteStreamList[x];
+	var texture = new THREE.VideoTexture(video);
+	texture.minFilter = THREE.LinearFilter;
+	texture.magFilter = THREE.LinearFilter;
+	texture.format = THREE.RGBFormat;
+}
+
+
+
+function addWalls() {
+	if (remoteStreamList.length > 0){
+		for (var x in remoteStreamList){
+			var video = document.getElementById(remoteStreamList[x]);
+			var texture = new THREE.VideoTexture(video);
+			texture.minFilter = THREE.LinearFilter;
+			texture.magFilter = THREE.LinearFilter;
+			texture.format = THREE.RGBFormat;
+		}
+	}
+	else{
+		var texture = 0;}
+
+	let wallHeight = 100;
 
 	var wallLeft = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxY * 2, wallHeight, 1, 1),
@@ -111,17 +137,20 @@ function addWalls() {
 	wallRight.position.y += wallHeight / 2;
 
 	var wallFront = new THREE.Mesh(
-		new THREE.PlaneGeometry(maxX * 2, wallHeight, 1, 1),
-		new THREE.MeshBasicMaterial({color: 0xff0000, side: THREE.DoubleSide})
-	);
-	
+		new THREE.PlaneBufferGeometry(maxX * 2, wallHeight, 1, 1),
+		new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: texture})
+		)
 	wallFront.position.z = -maxZ;
 	wallFront.position.y += wallHeight / 2;
-
+		
 	scene.add( wallLeft );
 	scene.add( wallRight );
 	scene.add( wallFront );
+
+	renderer.render(scene, camera);
+	
 }
+
 
 //function to add a user to the UsersMap
 function addToUserMap(User) {
@@ -171,6 +200,7 @@ function userGotMedia(id, mediaStream) {
 function userLeft(id) {
 	scene.remove(findUser(id).object);
 	if (removeUser(id)) {
+		scene.remove(findUser(id).object);
 		userCount--;
 	}
 }
@@ -300,6 +330,7 @@ function onDocumentKeyDown(event) {
 function onDocumentKeyUp(event) {
 	delete keysPressed[event.key];
 }
+
 
 //function to update frame
 function update() {

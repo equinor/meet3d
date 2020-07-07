@@ -1,5 +1,7 @@
 'use strict';
 
+var remoteStreamList = [];
+
 var roomName = document.getElementById("roomName");
 var leaveRoom = document.getElementById("leaveButton");
 var startButton = document.getElementById("start");
@@ -55,7 +57,8 @@ var sdpConstraints = {
 
 // Our local media constraints
 var constraints = {
-  audio: true
+  audio: true,
+  video: true
 };
 
 function init() {
@@ -174,7 +177,7 @@ function init() {
   // Gets the audio stream from our microphone
   navigator.mediaDevices.getUserMedia({
     audio: true,
-    video: false
+    video: true
   }).then(gotLocalStream).catch(function(e) {
     if (e.name === "NotAllowedError") {
       alert('Unfortunately, access to the microphone is necessary in order to use the program. ' +
@@ -210,6 +213,10 @@ function sendOffer(id) {
 
   createDataChannel(id)
 
+  /*for (const track of localStream.getTracks()) {
+    connections[id].connection.addTrack(track, localStream);
+  }*/
+
   connections[id].connection.addStream(localStream);
   connections[id].connection.createOffer().then(function(description) {
     connections[id].connection.setLocalDescription(description);
@@ -231,6 +238,11 @@ function sendAnswer(id, offerDescription) {
 
   console.log('>>>>>> Creating RTCPeerConnection to user ' + connections[id].name);
   connections[id].connection = createPeerConnection(id);
+/*
+ for (const track of localStream.getTracks()) {
+    connections[id].connection.addTrack(track, localStream);
+  }*/
+
   connections[id].connection.addStream(localStream);
 
   console.log('>>>>>> Sending answer to connection to user ' + connections[id].name);
@@ -260,6 +272,8 @@ function changePos(x, y, z) {
 function gotLocalStream(stream) {
   console.log('Adding local stream.');
   localStream = stream;
+  localVideo.srcObject = stream; 
+  
 
   if (room !== '') { // Check that the room does not already exist
     let startInfo = {
@@ -297,9 +311,18 @@ function createPeerConnection(id) {
     };
     pc.ontrack = function (event) {
       console.log('Remote stream added.');
-      connections[id].audio = event.streams[0] // TODO: verify that this will always be zero
-      userGotMedia(id, event.streams[0]) // Adds track to 3D environment
-    };
+      userGotMedia(id, event.streams[0]);
+      if (document.getElementById(event.streams[0].id)){
+        return
+      }
+      let remoteStream = document.createElement("video");
+      remoteStream.id = event.streams[0].id;
+      remoteStreamList.push(remoteStream.id);
+      remoteStream.autoplay=true;
+      remoteStream.srcObject = event.streams[0];
+      document.getElementById("video").appendChild(remoteStream);
+      addWalls();
+    }; 
     pc.onremovestream = function (event) {
       // Here we might need to update something in 3D.js, but I'm not sure
       console.log("Lost a stream from " + connections[id].name)
