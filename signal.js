@@ -26,10 +26,6 @@ io.sockets.on('connection', function(socket) {
     users[data.id].socket.emit('candidate', {id: socket.id, candidateData: data.info})
   });
 
-  socket.on('pos', function(pos) {
-    io.sockets.in(users[socket.id].room).emit('pos', {id: socket.id, x: pos.x, y: pos.y, z: pos.z});
-  });
-
   socket.on('disconnect', function() {
     if (users[socket.id] !== undefined)
       io.sockets.in(users[socket.id].room).emit('left', socket.id);

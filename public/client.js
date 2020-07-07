@@ -1,5 +1,7 @@
 'use strict';
 
+var remoteStreamList = [];
+
 var roomName = document.getElementById("roomName");
 var leaveRoom = document.getElementById("leaveButton");
 var startButton = document.getElementById("start");
@@ -9,6 +11,9 @@ var username = document.getElementById("username");
 var chatReceive = document.getElementById("chatReceive");
 var chatBox = document.getElementById("chatBox");
 var chatSend = document.getElementById("chatSend");
+var chatDiv = document.getElementById("chatSection");
+var openButton = document.getElementById("open");
+var files = document.getElementById("files");
 
 username.addEventListener("keyup", function(event) {
     if (event.keyCode === 13) { // This is the 'enter' key-press
@@ -29,7 +34,7 @@ chatSend.addEventListener("keyup", function(event) {
       event.preventDefault();
       sendChat()
     }
-  });
+});
 
 var localStream; // This is our local audio stream
 var room; // This is the name of our conference room
@@ -52,7 +57,8 @@ var sdpConstraints = {
 
 // Our local media constraints
 var constraints = {
-  audio: true
+  audio: true,
+  video: true
 };
 
 function init() {
@@ -71,7 +77,8 @@ function init() {
   username.readOnly = true;
   roomName.readOnly = true;
   openChat();
-  socket = io('ws://localhost:3000');
+
+  socket = io('ws://localhost:3000'); // We will change this to a server in the future
 
   // We created and joined a room
   socket.on('created', function(connectionInfo) {
@@ -79,6 +86,7 @@ function init() {
     ourID = connectionInfo.id;
 
     init3D(); // Renders the 3D environment
+    initSwapView();
   });
 
   // The room we tried to join is full
@@ -97,7 +105,7 @@ function init() {
     console.log('User ', startInfo.name, ' joined room ', room)
 
     sendOffer(startInfo.id) // Send the user your local description in order to create a connection
-    newUserJoined(startInfo.id, name) // Add the new user to the 3D environment
+    newUserJoined(startInfo.id, startInfo.name) // Add the new user to the 3D environment
   });
 
   // We joined a conference
@@ -106,6 +114,7 @@ function init() {
     ourID = connectionInfo.id;
 
     init3D(); // Renders the 3D environment
+    initSwapView();
   });
 
   // A user moved in the 3D space
@@ -122,18 +131,6 @@ function init() {
     if (connections[id].connection) connections[id].connection.close();
     if (connections[id].dataChannel) connections[id].dataChannel.close();
     delete connections[id]
-  });
-
-  // Receiving a chat message
-  socket.on('chat', function(message) {
-    console.log(message)
-    let name;
-    if (message.id == ourID) {
-      name = username.value;
-    } else {
-      name = connections[message.id].name;
-    }
-    addChat(name, message.message);
   });
 
   // We have received a PeerConnection offer
@@ -160,7 +157,7 @@ function init() {
     if (id === ourID) return;
 
     connections[id].connection.setRemoteDescription(new RTCSessionDescription(answerDescription));
-    appendConnectionHTMLList(id)
+    appendConnectionHTMLList(id);
   });
 
   // We have received an ICE candidate from a user we are connecting to
@@ -180,7 +177,7 @@ function init() {
   // Gets the audio stream from our microphone
   navigator.mediaDevices.getUserMedia({
     audio: true,
-    video: false
+    video: true
   }).then(gotLocalStream).catch(function(e) {
     if (e.name === "NotAllowedError") {
       alert('Unfortunately, access to the microphone is necessary in order to use the program. ' +
@@ -199,15 +196,28 @@ function init() {
   }
 }
 
+// Make 'c'-keypress swap between chat and 3D-space
+function initSwapView() {
+  console.log("initiating swap view");
+  document.addEventListener("keyup", swapViewOnC);
+
+  chatSend.onfocus = function() { document.removeEventListener("keyup", swapViewOnC) };
+  chatSend.onblur = function() { document.addEventListener("keyup", swapViewOnC) };
+}
+
 // Sends an offer to a new user with our local PeerConnection description
 function sendOffer(id) {
   console.log('>>>>>> Creating peer connection to user ' + connections[id].name);
+  //socket.emit('pos', {x: findUser(myID).getxPosition(), y: findUser(myID).getyPosition(), z: findUser(myID).getzPosition()});
   connections[id].connection = createPeerConnection(id);
 
   createDataChannel(id)
 
-  connections[id].connection.addStream(localStream);
+  /*for (const track of localStream.getTracks()) {
+    connections[id].connection.addTrack(track, localStream);
+  }*/
 
+  connections[id].connection.addStream(localStream);
   connections[id].connection.createOffer().then(function(description) {
     connections[id].connection.setLocalDescription(description);
     socket.emit('offer', {
@@ -228,6 +238,11 @@ function sendAnswer(id, offerDescription) {
 
   console.log('>>>>>> Creating RTCPeerConnection to user ' + connections[id].name);
   connections[id].connection = createPeerConnection(id);
+/*
+ for (const track of localStream.getTracks()) {
+    connections[id].connection.addTrack(track, localStream);
+  }*/
+
   connections[id].connection.addStream(localStream);
 
   console.log('>>>>>> Sending answer to connection to user ' + connections[id].name);
@@ -248,8 +263,6 @@ function sendAnswer(id, offerDescription) {
 // Function which tells other users our new 3D position
 function changePos(x, y, z) {
   let jsonPos = JSON.stringify({x: x, y: y, z: z})
-  //socket.emit('pos', {x: x, y: y, z: z});
-
   for (let id in connections) {
     connections[id].dataChannel.send(jsonPos)
   }
@@ -259,6 +272,8 @@ function changePos(x, y, z) {
 function gotLocalStream(stream) {
   console.log('Adding local stream.');
   localStream = stream;
+  localVideo.srcObject = stream; 
+  
 
   if (room !== '') { // Check that the room does not already exist
     let startInfo = {
@@ -296,21 +311,30 @@ function createPeerConnection(id) {
     };
     pc.ontrack = function (event) {
       console.log('Remote stream added.');
-      connections[id].audio = event.streams[0] // TODO: verify that this will always be zero
-      userGotMedia(id, event.streams[0]) // Adds track to 3D environment
-    };
+      userGotMedia(id, event.streams[0]);
+      if (document.getElementById(event.streams[0].id)){
+        return
+      }
+      let remoteStream = document.createElement("video");
+      remoteStream.id = event.streams[0].id;
+      remoteStreamList.push(remoteStream.id);
+      remoteStream.autoplay=true;
+      remoteStream.srcObject = event.streams[0];
+      document.getElementById("video").appendChild(remoteStream);
+      addWalls();
+    }; 
     pc.onremovestream = function (event) {
       // Here we might need to update something in 3D.js, but I'm not sure
       console.log("Lost a stream from " + connections[id].name)
     };
     pc.ondatachannel = function (event) {
       event.channel.addEventListener("open", () => {
-        connections[id].dataChannel = event.channel
-        console.log("Datachannel established to " + connections[id].name)
+        connections[id].dataChannel = event.channel;
+        console.log("Datachannel established to " + connections[id].name);
       });
 
       event.channel.addEventListener("close", () => {
-        //console.log("Datachannel closed to " + connections[id].name)
+        console.log("A DataChannel closed")
       });
 
       event.channel.addEventListener("message", (message) => {
@@ -318,7 +342,7 @@ function createPeerConnection(id) {
       });
     };
 
-    console.log('>>>>>> Created RTCPeerConnnection');
+    console.log('>>>>>> Created RTCPeerConnection');
 
   } catch (e) {
     console.log('Failed to create PeerConnection, exception: ' + e.message);
@@ -334,10 +358,11 @@ function createDataChannel(id) {
   tempConnection.addEventListener("open", () => {
     connections[id].dataChannel = tempConnection
     console.log("Datachannel established to " + connections[id].name)
+    changePos(findUser(myID).getxPosition(), findUser(myID).getyPosition(), findUser(myID).getzPosition());
   });
 
   tempConnection.addEventListener("close", () => {
-    //console.log("Datachannel closed to " + connections[id].name)
+    console.log("A DataChannel closed")
   });
 
   tempConnection.addEventListener("message", (event) => {
@@ -406,22 +431,39 @@ function removeConnectionHTMLList(id) {
 
 // Handles receiving a message on a DataChannel
 function dataChannelReceive(id, data) {
-
   if (id === ourID) return;
 
-  let message = JSON.parse(data)
+  let message
+
+  try {
+    message = JSON.parse(data)
+  } catch (e) {
+    receiveFile(data)
+    return
+  }
 
   if (message.type == "chat") {
-    addChat(connections[id].name, message.message)
+    addChat(connections[id].name, message.message, message.whisper)
   } else {
     changeUserPosition(id, message.x, message.y, message.z) // Change position of user
   }
 }
 
 // Adds the given message to the chat box, including the user that sent it and the received time
-function addChat(name, message) {
+function addChat(name, message, whisper) {
   var today = new Date();
-  var time = today.getHours() + ":" + today.getMinutes() + ":" + today.getSeconds();
+  let hour = today.getHours()
+  let minute = today.getMinutes()
+  let second = today.getSeconds()
+  if (hour < 10) hour = '0' + hour;
+  if (minute < 10) minute = '0' + minute;
+  if (second < 10) second = '0' + second;
+  var time = hour + ":" + minute + ":" + second;
+
+  if (whisper) {
+    message = '<whisper>' + message + '</whisper>'
+    name = name + '->' + username.value
+  }
 
   let newMessage = document.createElement("li")
   newMessage.innerHTML = '<time>' + time + '</time> | <chatName>' + name + '</chatName>: ' + message;
@@ -437,38 +479,99 @@ function addChat(name, message) {
 function sendChat() {
 
   if (chatSend.value == '') return;
+  let message = chatSend.value.trim()
 
-  let message = JSON.stringify({type: "chat", message: chatSend.value})
+  if (message.charAt(0) == '@') {
+    let space = message.indexOf(' ')
+    let target = message.slice(1, space)
+
+    let messageWhisper = message.slice(space + 1, message.length)
+
+    let messageJSON = JSON.stringify({type: "chat", message: messageWhisper, whisper: true})
+
+    for (let id in connections) {
+      if (connections[id].name == target) {
+        connections[id].dataChannel.send(messageJSON)
+        addChat(username.value + '->' + target, '<whisper>' + messageWhisper + '</whisper>')
+        chatSend.value = ''; // Clear the text box
+        return
+      }
+    }
+  }
+
+  let messageJSON = JSON.stringify({type: "chat", message: message, whisper: false})
 
   for (let id in connections) {
-    connections[id].dataChannel.send(message)
+    connections[id].dataChannel.send(messageJSON)
   }
 
   addChat(username.value, chatSend.value)
-
   chatSend.value = ''; // Clear the text box
+}
+
+function sendFile() {
+  // Sends the selected file to the server as a binary string
+  let fileReader = new FileReader();
+
+  let fileName = document.getElementById("sendFile").files[0];
+  fileReader.readAsArrayBuffer(fileName);
+
+  fileReader.onload = function (e) {
+    let binary = e.target.result;
+
+    let blob = new File([binary], fileName)
+
+    for (let id in connections) {
+      connections[id].dataChannel.send(blob);
+    }
+  }
+}
+
+function receiveFile(data) {
+
+  var textFile = null
+
+  // If we are replacing a previously generated file we need to
+  // manually revoke the object URL to avoid memory leaks.
+  if (textFile !== null) {
+    window.URL.revokeObjectURL(textFile);
+  }
+
+  textFile = window.URL.createObjectURL(data);
+
+  // The file can be retrieved via a link
+  document.getElementById("download").href = textFile;
+  document.getElementById("download").hidden = false;
 }
 
 function open3D() {
   document.addEventListener("keydown", onDocumentKeyDown, false);
 	document.addEventListener("keyup", onDocumentKeyUp, false);
-  document.getElementById("chatSection").hidden = true
-  document.getElementById("chatSection").style.display = "none"
 
-  if (document.getElementById("scene")) {
-    document.getElementById("scene").hidden = false;
-    document.getElementById("scene").style.display = "inline-block"
+  chatDiv.hidden = true;
+  chatDiv.style.display = "none";
+  files.hidden = true;
+  files.style.display = "none";
+
+  let sceneDiv = document.getElementById("scene");
+  if (sceneDiv) {
+    sceneDiv.hidden = false;
+    sceneDiv.style.display = "inline-block";
   }
 
-  document.getElementById("open").onclick = function() {openChat()};
-  document.getElementById("open").value = "Open Chat"
+  openButton.onclick = function() { openChat() };
+  openButton.value = "Open Chat";
 }
 
 function openChat() {
   document.removeEventListener("keydown", onDocumentKeyDown);
 	document.removeEventListener("keyup", onDocumentKeyUp);
-  document.getElementById("chatSection").hidden = false
-  document.getElementById("chatSection").style.display = "inline-block"
+
+  chatDiv.hidden = false;
+  chatDiv.style.display = "inline-block";
+
+  files.hidden = false;
+  files.style.display = "inline-block";
 
   users.hidden = false;
   users.style.display = "inline-block"
@@ -478,18 +581,35 @@ function openChat() {
   chatBox.hidden = false;
   chatBox.style.display = "inline-block";
 
-  if (document.getElementById("scene")) {
-    document.getElementById("scene").hidden = true;
-    document.getElementById("scene").style.display = "none"
+  let sceneDiv = document.getElementById("scene");
+  if (sceneDiv) {
+    sceneDiv.hidden = true;
+    sceneDiv.style.display = "none"
   }
 
-  document.getElementById("open").onclick = function() {open3D()};
-  document.getElementById("open").value = "Open 3D"
+  openButton.onclick = function() {open3D()};
+  openButton.value = "Open 3D"
+}
+
+function swapViewOnC(event) {
+  if(event.key == 'c') {
+    if(openButton.value == "Open 3D") {
+      open3D();
+    }
+    else if (openButton.value == "Open Chat") {
+      openChat();
+    }
+    else {
+      console.log("Could not swap view: openButton.value = " + openButton.value);
+    }
+  }
 }
 
 // Leaves the conference, resets variable values and closes connections
 function leave() {
 
+  files.hidden = true;
+  files.style.display = "none";
   roomName.readOnly = false;
   username.readOnly = false;
   startButton.hidden = false;
