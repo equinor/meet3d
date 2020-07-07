@@ -303,7 +303,7 @@ function createPeerConnection(id) {
       }
       let remoteStream = document.createElement("video");
       remoteStream.id = event.streams[0].id;
-
+      remoteStream.autoplay=true;
       remoteStream.srcObject = event.streams[0];
       document.getElementById("video").appendChild(remoteStream);
       

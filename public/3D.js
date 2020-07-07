@@ -85,8 +85,7 @@ function init3D() {
 
 //Create the texture to display video on wall
 
-var video = document.getElementById("video");
-video.autoplay = true;
+var video = document.getElementById("localVideo");
 		
 var Videotexture = new THREE.VideoTexture(video);
 
