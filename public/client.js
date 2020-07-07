@@ -141,6 +141,12 @@ function init() {
     if (connections[id].connection) connections[id].connection.close();
     if (connections[id].dataChannel) connections[id].dataChannel.close();
     delete connections[id];
+
+    if (id == shareUser) {
+      shareUser = null;
+      screenShare.hidden = true;
+      shareButton.hidden = false;
+    }
   });
 
   // We have received a PeerConnection offer
@@ -161,7 +167,6 @@ function init() {
 
   // We have received a PeerConnection offer
   socket.on('newOffer', function(message) {
-    console.log("hei")
     let id = message.id;
     let offerDescription = message.offer;
 
@@ -197,7 +202,6 @@ function init() {
 
   // We have received a PeerConnection offer
   socket.on('newAnswer', function(message) {
-    console.log("new answer")
 
     let id = message.id;
     let answerDescription = message.answer;
@@ -340,7 +344,6 @@ function createPeerConnection(id) {
     };
     pc.ontrack = function (event) {
       console.log('Remote stream added.');
-      console.log(event)
 
       let newStream = new MediaStream([event.track]) // Create a new stream containing the received track
 
@@ -375,8 +378,7 @@ function createPeerConnection(id) {
       });
     };
     pc.onnegotiationneeded = function (event) {
-      console.log("Negotiations needed")
-      console.log(event)
+      console.log("Renegotiations needed, sending new offer")
 
       connections[id].connection.createOffer().then(function(description) {
         connections[id].connection.setLocalDescription(description);
@@ -409,8 +411,6 @@ function createDataChannel(id) {
     changePos(findUser(myID).getxPosition(), findUser(myID).getyPosition(), findUser(myID).getzPosition());
 
     if (sharing && shareUser == ourID) {
-
-      console.log("sending stuff")
       let shareJSON = JSON.stringify({
         type: "share",
         sharing: true
@@ -688,19 +688,26 @@ async function shareScreen() {
     return; // Someone else is sharing their screen
   }
 
-  screenShare.hidden = false;
-
-  shareUser = ourID;
-
   try {
     screenCapture = await navigator.mediaDevices.getDisplayMedia(screenShareConstraints);
     shareButton.onclick = function () {
       stopShareScreen();
     };
     shareButton.value = "Stop Sharing Screen";
-  } catch(err) {
-    console.error("Error: " + err);
+  } catch(e) {
+    if (e.name === "NotAllowedError") {
+      alert('Unfortunately, access to the microphone is necessary in order to use the program. ' +
+      'Permissions for this webpage can be updated in the settings for your browser, ' +
+      'or by refreshing the page and trying again.');
+    } else {
+      console.log(e);
+      alert('Unable to access local media: ' + e.name);
+    }
+    return;
   }
+
+  screenShare.hidden = false;
+  shareUser = ourID;
 
   screenShare.srcObject = screenCapture;
 
