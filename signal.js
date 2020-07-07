@@ -35,6 +35,14 @@ io.sockets.on('connection', function(socket) {
     io.sockets.in(users[socket.id].room).emit('left', socket.id);
   })
 
+  socket.on('newOffer', function(data) {
+    users[data.id].socket.emit('newOffer', {id: socket.id, offer: data.offer})
+  })
+
+  socket.on('newAnswer', function(data) {
+    users[data.id].socket.emit('newAnswer', {id: socket.id, answer: data.answer})
+  });
+
   socket.on('join', function(startInfo) {
 
     let room = startInfo.room;

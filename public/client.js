@@ -41,7 +41,9 @@ var socket; // This is the SocketIO connection to the signalling server
 var ourID; // This is our unique ID
 var connections = {}; // The key is the socket id, and the value is {name: username, stream: mediastream, connection: PeerConnection}
 const maxChatLength = 20; // The chat will only hold this many messages at a time
-var textFile = null // This stores any downloaded file
+var textFile = null; // This stores any downloaded file
+var shareID = 0;
+var shareUser = null;
 
 const pcConfig = {
   'iceServers': [{
@@ -57,7 +59,8 @@ const sdpConstraints = {
 
 // Our local media constraints
 const constraints = {
-  audio: true
+  audio: true,
+  video: true
 };
 
 // Our share screen constraints
@@ -153,6 +156,31 @@ function init() {
     newUserJoined(id, name); // Add new user to 3D environment
   });
 
+  // We have received a PeerConnection offer
+  socket.on('newOffer', function(message) {
+    console.log("hei")
+    let id = message.id;
+    let offerDescription = message.offer;
+
+    if (id === ourID) return;
+
+    if (connections[id].signalingState == "stable") return;
+
+    console.log('>>>>>> Sending new answer to connection to user ' + connections[id].name);
+
+    connections[id].connection.setRemoteDescription(new RTCSessionDescription(offerDescription));
+    connections[id].connection.createAnswer().then(function(description) {
+      connections[id].connection.setLocalDescription(description);
+      socket.emit('newAnswer', {
+        id: id,
+        answer: description
+      });
+    }, function (e) {
+      console.log("Failed to create answer: " + e);
+      return;
+    });
+  });
+
   // We have received an answer to our PeerConnection offer
   socket.on('answer', function(message) {
     let id = message.id;
@@ -162,6 +190,20 @@ function init() {
 
     connections[id].connection.setRemoteDescription(new RTCSessionDescription(answerDescription));
     appendConnectionHTMLList(id);
+  });
+
+  // We have received a PeerConnection offer
+  socket.on('newAnswer', function(message) {
+    console.log("new answer")
+
+    let id = message.id;
+    let answerDescription = message.answer;
+
+    if (id === ourID) return;
+
+    if (connections[id].signalingState == "stable") return;
+
+    connections[id].connection.setRemoteDescription(new RTCSessionDescription(answerDescription));
   });
 
   // We have received an ICE candidate from a user we are connecting to
@@ -294,8 +336,20 @@ function createPeerConnection(id) {
     };
     pc.ontrack = function (event) {
       console.log('Remote stream added.');
-      connections[id].audio = event.streams[0]; // TODO: verify that this will always be zero
-      userGotMedia(id, event.streams[0]); // Adds track to 3D environment
+      console.log(event)
+
+      let newStream = new MediaStream([event.track])
+
+      if (event.track.kind == "audio") {
+        connections[id].audio = newStream; // TODO: verify that this will always be zero
+        userGotMedia(id, newStream); // Adds track to 3D environment
+      }
+
+      if (event.track.kind == "video") {
+        console.log("YAY!")
+        console.log("DOUBLE YAY! " + event.track.id + " " + shareID)
+        document.getElementById("screenTest").srcObject = newStream
+      }
     };
     pc.onremovestream = function (event) {
       // Here we might need to update something in 3D.js, but I'm not sure
@@ -313,6 +367,21 @@ function createPeerConnection(id) {
 
       event.channel.addEventListener("message", (message) => {
         dataChannelReceive(id, message.data); // Called when we receive a DataChannel message
+      });
+    };
+    pc.onnegotiationneeded = function (event) {
+      console.log("Negotiations needed")
+      console.log(event)
+
+      connections[id].connection.createOffer().then(function(description) {
+        connections[id].connection.setLocalDescription(description);
+        socket.emit('newOffer', {
+          id: id,
+          offer: description
+        });
+      }, function (e) {
+        console.log("Failed to create offer: " + e);
+        return;
       });
     };
 
@@ -428,6 +497,14 @@ function dataChannelReceive(id, data) {
     sendFile(id, message.option);
   } else if (message.type == "chat") {
     addChat(connections[id].name, message.message, message.whisper);
+  } else if (message.type == "share") {
+    if (message.id == 0) {
+      shareUser = null;
+      document.getElementById("screenTest").hidden = false;
+    } else {
+      shareUser = id;
+    }
+    shareID = message.id;
   }
 }
 
@@ -574,23 +651,6 @@ function updateFileList(id, message) {
   userFiles.childNodes[1].appendChild(file);
 }
 
-async function shareScreen(e) {
-
-  // TODO: We should only allow this if someone else is not sharing their screen!
-
-  let vid = document.getElementById("screenTest");
-
-  try {
-    vid.srcObject = await navigator.mediaDevices.getDisplayMedia(screenShareConstraints);
-    e.onclick = function () {
-      stopShareScreen(e);
-    };
-    e.value = "Stop Sharing Screen";
-  } catch(err) {
-    console.error("Error: " + err);
-  }
-}
-
 function requestFile(id, option) {
   connections[id].dataChannel.send(JSON.stringify({
     type: "request",
@@ -598,6 +658,46 @@ function requestFile(id, option) {
   }));
 
   document.getElementById("download").name = option;
+}
+
+async function shareScreen(e) {
+
+  if (shareUser) {
+    return; // Someone else is sharing their screen
+  }
+
+  let vid = document.getElementById("screenTest");
+  let screenCapture;
+
+  try {
+    screenCapture = await navigator.mediaDevices.getDisplayMedia(screenShareConstraints);
+    e.onclick = function () {
+      stopShareScreen(e);
+    };
+    e.value = "Stop Sharing Screen";
+  } catch(err) {
+    console.error("Error: " + err);
+  }
+
+  vid.srcObject = screenCapture;
+
+  let shareJSON = JSON.stringify({
+    type: "share",
+    id: screenCapture.id
+  })
+
+  for (let id in connections) {
+    console.log(connections[id].name)
+    connections[id].dataChannel.send(shareJSON);
+  }
+
+  setTimeout(function() {
+    for (let id in connections) {
+      console.log(connections[id].name)
+      connections[id].connection.addTrack(screenCapture.getVideoTracks()[0], screenCapture);
+      //connections[id].connection.addStream(screenCapture);
+    }
+  }, 3000);
 }
 
 function stopShareScreen(e) {
@@ -611,6 +711,16 @@ function stopShareScreen(e) {
 
   tracks.forEach(track => track.stop());
   document.getElementById("screenTest").srcObject = null;
+
+  let shareJSON = JSON.stringify({
+    type: "share",
+    id: 0 // Indicates that we are no longer sharing
+  })
+
+  for (let id in connections) {
+    connections[id].dataChannel.send(shareJSON);
+    connections[id].connection.removeTrack(screenCapture);
+  }
 }
 
 function sendFile(id, option) {
