@@ -41,7 +41,8 @@ chatSend.addEventListener("keyup", function(event) {
     }
   });
 
-var localStream; // This is our local audio stream
+var localAudioStream; // This is our local audio stream
+var localVideoTrack; // This is our local video stream
 var room; // This is the name of our conference room
 var socket; // This is the SocketIO connection to the signalling server
 var ourID; // This is our unique ID
@@ -81,7 +82,10 @@ const screenShareConstraints = {
 
 const cameraConstraints = {
   audio: false,
-  video: true
+  video: {
+    width: 250,
+    height: 200
+  }
 };
 
 // Adds a username to the list of connections on the HTML page
@@ -353,7 +357,8 @@ async function shareCamera() {
   let cameraCapture;
 
   try {
-    cameraCapture = await navigator.mediaDevices.getUserMedia({audio: false, video: true});
+    cameraCapture = await navigator.mediaDevices.getUserMedia(cameraConstraints);
+    localVideoTrack = cameraCapture.getVideoTracks()[0];
   } catch(e) {
     if (e.name === "NotAllowedError") {
       alert('Unfortunately, access to the microphone is necessary in order to use the program. ' +

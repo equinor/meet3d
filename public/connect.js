@@ -183,6 +183,9 @@ function sendOffer(id) {
   createDataChannel(id);
 
   connections[id].connection.addStream(localStream);
+  if (localVideoTrack) {
+    connections[id].connection.addTrack(localVideoTrack);
+  }
 
   connections[id].connection.createOffer().then(function(description) {
     connections[id].connection.setLocalDescription(description);
