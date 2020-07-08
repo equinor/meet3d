@@ -17,11 +17,14 @@ const maxY = 100; // This is probably not needed
 const maxZ = 100;
 const speed = 3;
 
+const objectWidth = 10;
+const objectHeight = 20;
+
 var listener;
 
 function init3D() {
 	scene = new THREE.Scene();
-	scene.background = new THREE.Color( 0xf0f0f0 );
+	scene.background = new THREE.Color(0xf0f0f0);
 
 	// CAMERA
 	camera = new THREE.PerspectiveCamera(100, (window.innerWidth / window.outerWidth), 0.1, 1000);
@@ -36,36 +39,36 @@ function init3D() {
 	renderer.domElement.id = "scene"; // Adds an ID to the canvas element
 	renderer.domElement.hidden = true; // Initially hides the scene
 	renderer.domElement.style.display = "none"
-	document.body.appendChild( renderer.domElement);
+	document.body.appendChild(renderer.domElement);
 
 
 	// LIGHT
-	var light = new THREE.PointLight( 0xff0000, 1, 100 );
-	light.position.set( 50, 50, 50 );
-	scene.add( light );
+	var light = new THREE.PointLight(0xff0000, 1, 100);
+	light.position.set(50, 50, 50);
+	scene.add(light);
 
 	// FLOOR
 	var floor = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, maxZ * 2, maxX * 2, maxZ * 2),
-		new THREE.MeshBasicMaterial({color: 0x0000ff, side: THREE.DoubleSide})
+		new THREE.MeshBasicMaterial({ color: 0x0000ff, side: THREE.DoubleSide })
 	);
 	floor.rotation.x += Math.PI / 2; //can rotate the floor/plane
-	scene.add( floor );
-	
+	scene.add(floor);
+
 	addWalls();
 
 	document.getElementById("open").hidden = false;
 
 	//choose which object to make when the makeobjectfunction is called
-	geometry = new THREE.BoxGeometry(10, 20, 10);
-	material = new THREE.MeshBasicMaterial( {color: 0x669966, wireframe: false});
+	geometry = new THREE.BoxGeometry(objectWidth, objectHeight, objectWidth);
+	material = new THREE.MeshBasicMaterial({ color: 0x669966, wireframe: false });
 	object = new THREE.Mesh(geometry, material);
 
 
 	// ADD GLTFLOADER HERE
 
 	// ORBITCONTROLS
-	controls = new THREE.OrbitControls( camera, renderer.domElement );
+	controls = new THREE.OrbitControls(camera, renderer.domElement);
 	controls.enableKeys = false;
 	controls.enablePan = false;
 	controls.minDistance = 1;
@@ -74,13 +77,13 @@ function init3D() {
 	controls.minAzimuthAngle = 0; // Prevents left-right rotation of camera
 	controls.maxAzimuthAngle = 0; // Prevents left-right rotation of camera
 
-	myID = new user(0, username.value, 10, 10, 0).getId();
 
 	listener = new THREE.AudioListener();
 
-	ourUser = findUser(myID)
+	myID = 0; // FIXME Should probably have unique myID
+	ourUser = new user(myID, username.value, 10, 10, 0);
 	ourUser.object.add(listener);
-	
+
 	addText(ourUser);
 
 	camera.position = ourUser.object.position
@@ -95,7 +98,7 @@ function addWalls() {
 
 	var wallLeft = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxY * 2, wallHeight, 1, 1),
-		new THREE.MeshBasicMaterial({color: 0xff0000, side: THREE.DoubleSide})
+		new THREE.MeshBasicMaterial({ color: 0xff0000, side: THREE.DoubleSide })
 	);
 
 	wallLeft.rotation.y += Math.PI / 2; //can rotate the floor/plane
@@ -104,7 +107,7 @@ function addWalls() {
 
 	var wallRight = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxY * 2, wallHeight, 1, 1),
-		new THREE.MeshBasicMaterial({color: 0xff0000, side: THREE.DoubleSide})
+		new THREE.MeshBasicMaterial({ color: 0xff0000, side: THREE.DoubleSide })
 	);
 
 	wallRight.rotation.y += Math.PI / 2; //can rotate the floor/plane
@@ -113,15 +116,15 @@ function addWalls() {
 
 	var wallFront = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, wallHeight, 1, 1),
-		new THREE.MeshBasicMaterial({color: 0xff0000, side: THREE.DoubleSide})
+		new THREE.MeshBasicMaterial({ color: 0xff0000, side: THREE.DoubleSide })
 	);
-	
+
 	wallFront.position.z = -maxZ;
 	wallFront.position.y += wallHeight / 2;
 
-	scene.add( wallLeft );
-	scene.add( wallRight );
-	scene.add( wallFront );
+	scene.add(wallLeft);
+	scene.add(wallRight);
+	scene.add(wallFront);
 }
 
 function addText(user) {
@@ -130,35 +133,39 @@ function addText(user) {
 	loader.load('helvetiker_regular.typeface.json', function(font) {
 
 		let color, nameShowed;
-		
+
 		if(user == ourUser) {
 			color = 0x00ff00;
-			nameShowed = 'Me (' + ourUser.getName() + ')';
+			nameShowed = 'Me (' + user.getName() + ')';
 		}
 		else {
-			color = 0x006699;
+			color = 0x000000;
 			nameShowed = user.getName();
-
 		}
 
-		let textMaterial = new THREE.MeshBasicMaterial( {
+		let textMaterial = new THREE.MeshBasicMaterial({
 			color: color,
 			transparent: true,
 			opacity: 1.0,
 			side: THREE.DoubleSide
-		} );
+		});
 
 		const shapeSize = 2;
-		
+
 		// Creates an array of Shapes representing nameShowed
 		let shapes = font.generateShapes(nameShowed, shapeSize);
 
 		let textGeometry = new THREE.ShapeBufferGeometry(shapes);
 		
-		//Determine position of text object
-		textGeometry.translate(user.getxPosition() - 0.6 * shapeSize * shapes.length, user.getyPosition() + 3, user.getzPosition());
+		// Set center of text object equal to center of 3D-object
+		textGeometry.computeBoundingBox();
+		textGeometry.center();
 		
+		// Determine position of text object realtive to 3D-object
+		textGeometry.translate(0, 0.5 * objectHeight + shapeSize, 0.25 * objectWidth);
+
 		var text = new THREE.Mesh(textGeometry, textMaterial);
+		
 		user.object.add(text);
 	});
 } // end of addText() function
@@ -204,7 +211,7 @@ function userGotMedia(id, mediaStream) {
 	try {
 		posAudio.setNodeSource(audio1);
 		findUser(id).object.add(posAudio)
-	} catch(err){
+	} catch(err) {
 		console.log(err);
 	};
 }
@@ -217,8 +224,8 @@ function userLeft(id) {
 }
 
 //function that makes an object and position it at input coordinates
-var makeNewObject = function(xPosition, yPosition, zPosition){
-	let object = new THREE.Mesh(geometry,material);
+var makeNewObject = function(xPosition, yPosition, zPosition) {
+	let object = new THREE.Mesh(geometry, material);
 	object.position.x = xPosition;
 	object.position.y = yPosition;
 	object.position.z = zPosition;
@@ -235,11 +242,11 @@ class user {
 		this.object = makeNewObject(xPosition, yPosition, zPosition);
 		addToUserMap(this)
 	};
-	getName(){ return this.name };
-	getId(){ return this.id };
-	getxPosition(){ return this.object.position.x; }
-	getyPosition(){ return this.object.position.y; }
-	getzPosition(){ return this.object.position.z; }
+	getName() { return this.name; }
+	getId() { return this.id; }
+	getxPosition() { return this.object.position.x; }
+	getyPosition() { return this.object.position.y; }
+	getzPosition() { return this.object.position.z; }
 	setxPosition(xPosition) {
 		if (xPosition < maxX && xPosition > -maxX) {
 			this.object.position.x = xPosition;
@@ -269,7 +276,7 @@ class user {
 		if (yPosition < maxY && yPosition > -maxY) this.object.position.y = yPosition;
 		if (zPosition < maxZ && zPosition > -maxZ) this.object.position.z = zPosition;
 	}
-	getMedia(){return this.media};
+	getMedia() { return this.media; }
 	setMedia(media) {
 		this.media = media;
 	}
@@ -346,7 +353,6 @@ function onDocumentKeyUp(event) {
 //function to update frame
 function update() {
 	renderer.render(scene, camera);
-	//text.rotation.x = controls.getPolarAngle();
 	requestID = requestAnimationFrame(update);
 }
 
