@@ -47,12 +47,12 @@
 			<br/>
 
 			<files id="files" hidden>
-				Share Files:
+				Your Files:
 				<br/>
 				<br/>
 				<uploadFile>
 	      	<input type="file" id="sendFile" multiple>
-	      	<button onclick="advertiseFile()" id="uploadButton">Upload File</button>
+	      	<button onclick="advertiseFile()" id="uploadButton">Share File</button>
 				</uploadFile>
 				<p id="remoteFiles" hidden> Remote Files: </p>
 	    </files>
@@ -65,7 +65,7 @@
 
 			<video controls muted id="localVideo" autoplay playsinline hidden></video>
 			<div id="video" hidden>
-				<!-- Videos in the 3D environment go here -->
+				<!-- Received video streams go here -->
 			</div>
 
 		</div>
@@ -79,8 +79,7 @@
 			<!-- This is where the 3D canvas goes -->
 		</div>
 
-
-		<video id="screenTest" style="border: 1px solid #999; width: 98%; max-width: 860px;" hidden autoplay></video>
+		<video id="screenShare" style="border: 1px solid #999; width: 98%; max-width: 860px;" hidden autoplay></video>
 
 	  <script src="socket.io.js"></script>
 	  <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>

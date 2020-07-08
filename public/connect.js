@@ -1,11 +1,11 @@
 function init() {
 
-  if (username.value === '') {
+  if (username.value === '') { // No username given
     alert('Please enter a username');
     return;
   }
 
-  if (roomName.value === '') {
+  if (roomName.value === '') { // No room name given
     alert('Please enter a room name');
     return;
   }
@@ -50,7 +50,7 @@ function init() {
     ourID = connectionInfo.id;
 
     init3D(); // Renders the 3D environment
-    initSwapView();
+    initSwapView(); // Lets the user quickly switch between chat mode and 3D mode
   });
 
   // A user moved in the 3D space
@@ -91,7 +91,7 @@ function init() {
     newUserJoined(id, name); // Add new user to 3D environment
   });
 
-  // We have received a PeerConnection offer
+  // We have received an updated PeerConnection offer
   socket.on('newOffer', function(message) {
     let id = message.id;
     let offerDescription = message.offer;
@@ -126,7 +126,7 @@ function init() {
     appendConnectionHTMLList(id);
   });
 
-  // We have received a PeerConnection offer
+  // We have received an answer to our updated PeerConnection offer
   socket.on('newAnswer', function(message) {
 
     let id = message.id;
