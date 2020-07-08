@@ -109,3 +109,9 @@ videos ul li {
 buttons {
   display: inline-block;
 }
+
+canvas {
+  position: absolute;
+  left: 0%;
+  bottom: 0%;
+}

@@ -40,7 +40,7 @@ function init3D() {
 
 	// RENDERER
 	renderer = new THREE.WebGLRenderer();
-	renderer.setSize(window.innerWidth - 5, window.innerHeight - 25);
+	renderer.setSize(window.innerWidth - 5, window.innerHeight - 30);
 	renderer.domElement.id = "scene"; // Adds an ID to the canvas element
 	document.getElementById("3D").appendChild( renderer.domElement);
 

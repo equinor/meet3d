@@ -292,6 +292,7 @@ function createPeerConnection(id) {
           remoteStreamLi.appendChild(remoteStream);
           videoElement.children[0].appendChild(remoteStreamLi);
           videoElement.hidden = false;
+          renderer.setSize(window.innerWidth - 320, window.innerHeight - 30);
         }
       }
 

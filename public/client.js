@@ -382,6 +382,8 @@ async function shareCamera() {
   videoElement.children[0].appendChild(cameraStreamLi);
   videoElement.hidden = false;
 
+  renderer.setSize(window.innerWidth - 320, window.innerHeight - 30);
+
   cameraButton.value = "Stop Sharing Camera";
   cameraButton.onclick = function () { stopShareCamera(cameraCapture.id) };
 
@@ -532,6 +534,7 @@ function openChat() {
 
   openButton.onclick = function() { open3D() };
   openButton.value = "Open 3D";
+  document.body.style.backgroundColor = "white";
 }
 
 // Open the 3D environment and hide the chat
@@ -545,6 +548,8 @@ function open3D() {
 
   openButton.onclick = function() { openChat() };
   openButton.value = "Open Chat";
+
+  document.body.style.backgroundColor = "grey";
 }
 
 // Make 'c'-keypress swap between chat and 3D-space
