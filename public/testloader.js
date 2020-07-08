@@ -23,7 +23,7 @@ scene.add( ambientLight );
 var directionalLight = new THREE.DirectionalLight( 0xffffff );
 directionalLight.position.set( 0, 1, 1 ).normalize();
 scene.add( directionalLight );				
-
+/*
  // glTf 2.0 Loader
 var loader = new THREE.GLTFLoader();				
 	loader.load( 'objects/Clownfish/Clownfish.glb', function ( gltf ) {             
@@ -35,6 +35,8 @@ var loader = new THREE.GLTFLoader();
 	
 	scene.add( gltf.scene );
 	});	 
+*/
+
 
 function animate() {
 	render();
