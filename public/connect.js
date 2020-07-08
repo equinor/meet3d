@@ -272,30 +272,28 @@ function createPeerConnection(id) {
       let newStream = new MediaStream([event.track]) // Create a new stream containing the received track
 
       if (event.track.kind == "audio") {
-        userGotMedia(id, newStream); // Adds track to 3D environment
+        userGotMedia(id, newStream); // Adds audio track to 3D environment
       }
 
       if (event.track.kind == "video") {
         if (sharing && id == shareUser) { // Screen capture video
           screenShare.srcObject = newStream;
 
-          if (document.getElementById(newStream.id)){
-            return
-          }
+          if (document.getElementById(newStream.id)) return; // Ignore if there already is screen sharing
+
           screenShare.srcObject = null;
           screenShare.autoplay = true;
           screenShare.srcObject = newStream;
-          addWalls();
+          addWalls(); // Add the video track to the 3D environment
+          
         } else { // Web camera video
-          if (!event.streams[0]) {
-            return;
-          }
+
+          if (!event.streams[0]) return; // Web camera videos should always be in a stream
 
           connections[id].stream = event.streams[0];
 
           let remoteStream = document.createElement("video");
           let remoteStreamLi = document.createElement("li");
-
           remoteStreamLi.id = event.streams[0].id;
           remoteStream.autoplay = true;
           remoteStream.srcObject = event.streams[0];
@@ -307,21 +305,18 @@ function createPeerConnection(id) {
       }
 
       if (event.streams[0]) {
-        event.streams[0].onremovetrack = function (event) {
+        event.streams[0].onremovetrack = function (event) { // A track has been removed
           console.log(connections[id].name + ' removed a track from their stream.')
           if (event.track.kind == "video") {
-            let cameraLi = document.getElementById(connections[id].stream.id);
 
+            let cameraLi = document.getElementById(connections[id].stream.id);
             cameraLi.children[0].srcObject = null;
             screenShare.hidden = true;
-
             cameraLi.innerHTML = '';
-
             videoElement.children[0].removeChild(cameraLi);
 
-            if (videoElement.children[0].children.length == 0) {
+            if (videoElement.children[0].children.length == 0)
               renderer.setSize(window.innerWidth, window.innerHeight - 30);
-            }
           }
         }
       }

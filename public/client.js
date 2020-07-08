@@ -590,6 +590,7 @@ function leave() {
     window.URL.revokeObjectURL(textFile); // Avoid memory leaks
   }
 
+  stopShareScreen();
   stopShareCamera();
 
   files.hidden = true;
@@ -619,10 +620,7 @@ function leave() {
   localStream.getTracks().forEach(track => track.stop()); // Stop all local media tracks
   localStream = null;
 
-  stopShareScreen();
-
   leave3D(); // Closes the 3D environment
-
   stop();
 
   if (room) {
