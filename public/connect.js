@@ -184,7 +184,7 @@ function sendOffer(id) {
 
   connections[id].connection.addStream(localStream);
   if (localVideoTrack) {
-    connections[id].connection.addTrack(localVideoTrack);
+    connections[id].senderCam = connections[id].connection.addTrack(localVideoTrack, localStream);
   }
 
   connections[id].connection.createOffer().then(function(description) {
@@ -266,6 +266,8 @@ function createPeerConnection(id) {
     pc.ontrack = function (event) {
       console.log('Remote stream added.');
 
+      console.log(event)
+
       let newStream = new MediaStream([event.track]) // Create a new stream containing the received track
 
       if (event.track.kind == "audio") {
@@ -284,30 +286,40 @@ function createPeerConnection(id) {
           screenShare.srcObject = newStream;
           addWalls();
         } else { // Web camera video
+          if (!event.streams[0]) {
+            return;
+          }
+
+          connections[id].stream = event.streams[0];
+
           let remoteStream = document.createElement("video");
           let remoteStreamLi = document.createElement("li");
-          remoteStream.id = newStream.id;
+
+          remoteStreamLi.id = event.streams[0].id;
           remoteStream.autoplay = true;
-          remoteStream.srcObject = newStream;
+          remoteStream.srcObject = event.streams[0];
           remoteStreamLi.appendChild(remoteStream);
-          videoElement.children[0].appendChild(remoteStreamLi);
           videoElement.hidden = false;
           renderer.setSize(window.innerWidth - 320, window.innerHeight - 30);
+          videoElement.children[0].appendChild(remoteStreamLi);
         }
       }
 
-      newStream.onremovetrack = function (event) {
-        if (event.track.kind == "video") {
-          let cameraLi = document.getElementById(event.track.id);
+      if (event.streams[0]) {
+        event.streams[0].onremovetrack = function (event) {
+          console.log(connections[id].name + ' removed a track.')
+          if (event.track.kind == "video") {
+            let cameraLi = document.getElementById(connections[id].stream.id);
 
-          cameraLi.children[0].srcObject = null;
-          screenShare.hidden = true;
+            cameraLi.children[0].srcObject = null;
+            screenShare.hidden = true;
 
-          cameraLi.innerHTML = '';
+            cameraLi.innerHTML = '';
 
-          videoElement.children[0].removeChild(cameraLi);
+            videoElement.children[0].removeChild(cameraLi);
+          }
         }
-      };
+      }
     };
     pc.onremovestream = function (event) {
       console.log("Lost a stream from " + connections[id].name);

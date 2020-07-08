@@ -375,26 +375,32 @@ async function shareCamera() {
 
   let cameraStream = document.createElement("video");
   let cameraStreamLi = document.createElement("li");
-  cameraStreamLi.id = cameraCapture.id;
+  cameraStreamLi.id = "ourCamera";
   cameraStream.autoplay = true;
   cameraStream.srcObject = cameraCapture;
   cameraStreamLi.appendChild(cameraStream);
-  videoElement.children[0].appendChild(cameraStreamLi);
   videoElement.hidden = false;
+
+  if (videoElement.children[0].children.length > 0) {
+    videoElement.children[0].insertBefore(cameraStreamLi, videoElement.children[0].firstChild);
+  } else {
+    videoElement.children[0].appendChild(cameraStreamLi);
+  }
 
   renderer.setSize(window.innerWidth - 320, window.innerHeight - 30);
 
   cameraButton.value = "Stop Sharing Camera";
-  cameraButton.onclick = function () { stopShareCamera(cameraCapture.id) };
+  cameraButton.onclick = function () { stopShareCamera() };
 
   for (let id in connections) {
-    connections[id].senderCam = connections[id].connection.addTrack(cameraCapture.getVideoTracks()[0]); // Update our media stream
+    connections[id].senderCam = connections[id].connection.addTrack(cameraCapture.getVideoTracks()[0], localStream); // Update our media stream
+    console.log(connections[id].senderCam)
   }
 }
 
-function stopShareCamera(camID) {
+function stopShareCamera() {
 
-  let cameraLi = document.getElementById(camID);
+  let cameraLi = document.getElementById("ourCamera");
 
   if (!cameraLi) {
     return; // We are not sharing our camera anyways
@@ -581,6 +587,8 @@ function leave() {
     window.URL.revokeObjectURL(textFile); // Avoid memory leaks
   }
 
+  stopShareCamera();
+
   files.hidden = true;
   files.style.display = "none";
   roomName.readOnly = false;
@@ -591,16 +599,20 @@ function leave() {
   received.style.display = "none";
   chatBox.hidden = true;
   chatBox.style.display = "none";
-  localStream = null;
   users.hidden = true;
   users.style.display = "none";
   connectionList.innerHTML = '';
   openButton.hidden = true;
   for (let id in connections) {
+    if (connections[id].stream)
+      connections[id].stream.getTracks().forEach(track => track.stop()); // Stop all remote media tracks
     connections[id].connection.close();
     connections[id].dataChannel.close();
   }
   connections = {};
+
+  localStream.getTracks().forEach(track => track.stop()); // Stop all local media tracks
+  localStream = null;
 
   stopShareScreen();
 
