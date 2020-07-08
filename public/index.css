@@ -88,3 +88,24 @@ files {
   margin-left: 50px;
   background-color: #ff6666;
 }
+
+videos ul {
+  list-style-type: none;
+  padding-left: 0px;
+  display: inline-block;
+  vertical-align: super;
+  position: absolute;
+  right: 0px;
+  position: absolute;
+  top: 0%;
+}
+
+videos ul li {
+  list-style-type: none;
+  padding-bottom: 0px;
+  padding-top: 0px;
+}
+
+buttons {
+  display: inline-block;
+}

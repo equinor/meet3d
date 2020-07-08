@@ -270,24 +270,40 @@ function createPeerConnection(id) {
       }
 
       if (event.track.kind == "video") {
-        if (sharing && id == shareUser) {
-          screenShare.srcObject = newStream; // Screen capture video
+        if (sharing && id == shareUser) { // Screen capture video
+          screenShare.srcObject = newStream;
 
           if (document.getElementById(newStream.id)){
             return
           }
-
+          screenShare.srcObject = null;
+          screenShare.autoplay = true;
+          screenShare.srcObject = newStream;
+          addWalls();
+        } else { // Web camera video
           let remoteStream = document.createElement("video");
+          let remoteStreamLi = document.createElement("li");
           remoteStream.id = newStream.id;
-          remoteStreamList.push(remoteStream.id);
           remoteStream.autoplay = true;
           remoteStream.srcObject = newStream;
-          document.getElementById("video").appendChild(remoteStream);
-          addWalls();
-        } else {
-          // Web camera video
+          remoteStreamLi.appendChild(remoteStream);
+          videoElement.children[0].appendChild(remoteStreamLi);
+          videoElement.hidden = false;
         }
       }
+
+      newStream.onremovetrack = function (event) {
+        if (event.track.kind == "video") {
+          let cameraLi = document.getElementById(event.track.id);
+
+          cameraLi.children[0].srcObject = null;
+          screenShare.hidden = true;
+
+          cameraLi.innerHTML = '';
+
+          videoElement.children[0].removeChild(cameraLi);
+        }
+      };
     };
     pc.onremovestream = function (event) {
       console.log("Lost a stream from " + connections[id].name);

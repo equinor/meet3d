@@ -1,7 +1,5 @@
 'use strict';
 
-var remoteStreamList = [];
-
 var roomName = document.getElementById("roomName");
 var leaveRoom = document.getElementById("leaveButton");
 var startButton = document.getElementById("start");
@@ -19,6 +17,8 @@ var shareButton = document.getElementById("shareButton");
 var screenShare = document.getElementById("screenShare");
 var notification = document.getElementById("notification");
 var sceneDiv = document.getElementById("3D");
+var videoElement = document.getElementById("remoteVideo")
+var cameraButton = document.getElementById("cameraButton");
 
 username.addEventListener("keyup", function(event) {
     if (event.keyCode === 13) { // This is the 'enter' key-press
@@ -68,7 +68,7 @@ const sdpConstraints = {
 // Our local media constraints
 const constraints = {
   audio: true,
-  video: true
+  video: false
 };
 
 // Our share screen constraints
@@ -77,7 +77,12 @@ const screenShareConstraints = {
     cursor: "always"
   },
   audio: false
-}
+};
+
+const cameraConstraints = {
+  audio: false,
+  video: true
+};
 
 // Adds a username to the list of connections on the HTML page
 function appendConnectionHTMLList(id) {
@@ -129,6 +134,8 @@ function dataChannelReceive(id, data) {
     } else { // If they have stopped sharing
       shareUser = null;
       shareButton.hidden = false; // Unhide the share screen button
+      screenShare.srcObject = null;
+      addWalls(); // Re-add the 3D walls without the video texture
     }
     sharing = message.sharing; // This boolean stores whether or not someone is streaming
   }
@@ -339,6 +346,74 @@ function receiveFile(id, data) {
 }
 
 // Shares our screen with the other users, if noone is doing so already
+async function shareCamera() {
+
+  if (shareUser) return; // Someone else is sharing their screen
+
+  let cameraCapture;
+
+  try {
+    cameraCapture = await navigator.mediaDevices.getUserMedia({audio: false, video: true});
+  } catch(e) {
+    if (e.name === "NotAllowedError") {
+      alert('Unfortunately, access to the microphone is necessary in order to use the program. ' +
+      'Permissions for this webpage can be updated in the settings for your browser, ' +
+      'or by refreshing the page and trying again.');
+    } else if (e.name === "NotFoundError") {
+      alert('No camera was detected.')
+    } else {
+      console.log(e);
+      alert('Unable to access local media: ' + e.name);
+    }
+    return;
+  }
+
+  let cameraStream = document.createElement("video");
+  let cameraStreamLi = document.createElement("li");
+  cameraStreamLi.id = cameraCapture.id;
+  cameraStream.autoplay = true;
+  cameraStream.srcObject = cameraCapture;
+  cameraStreamLi.appendChild(cameraStream);
+  videoElement.children[0].appendChild(cameraStreamLi);
+  videoElement.hidden = false;
+
+  cameraButton.value = "Stop Sharing Camera";
+  cameraButton.onclick = function () { stopShareCamera(cameraCapture.id) };
+
+  for (let id in connections) {
+    connections[id].senderCam = connections[id].connection.addTrack(cameraCapture.getVideoTracks()[0]); // Update our media stream
+  }
+}
+
+function stopShareCamera(camID) {
+
+  let cameraLi = document.getElementById(camID);
+
+  if (!cameraLi) {
+    return; // We are not sharing our camera anyways
+  }
+
+  let videoSrc = cameraLi.children[0].srcObject;
+
+  for (let id in connections) {
+    connections[id].connection.removeTrack(connections[id].senderCam); // Update our media stream
+  }
+
+  cameraButton.onclick = function () { shareCamera() };
+  cameraButton.value = "Add video";
+
+  let tracks = videoSrc.getTracks();
+
+  tracks.forEach(track => track.stop()); // Stop all relevant media tracks
+  cameraLi.children[0].srcObject = null;
+  screenShare.hidden = true;
+
+  cameraLi.innerHTML = '';
+
+  videoElement.children[0].removeChild(cameraLi);
+}
+
+// Shares our screen with the other users, if noone is doing so already
 async function shareScreen() {
 
   if (shareUser) return; // Someone else is sharing their screen
@@ -359,26 +434,16 @@ async function shareScreen() {
 
   shareButton.value = "Stop Sharing Screen";
   shareButton.onclick = function () { stopShareScreen() };
-
   shareUser = ourID;
   screenShare.srcObject = screenCapture;
+  screenShare.autoplay = true;
+  sharing = true;
+  addWalls(); // Add the stream to the 3D environment
 
   let shareJSON = JSON.stringify({
     type: "share",
     sharing: true
   })
-
-  sharing = true;
-
-  if (!document.getElementById(screenCapture.id)) { // Add the stream to the 3D environment
-    let remoteStream = document.createElement("video");
-    remoteStream.id = screenCapture.id;
-    remoteStreamList.push(remoteStream.id);
-    remoteStream.autoplay = true;
-    remoteStream.srcObject = screenCapture;
-    document.getElementById("video").appendChild(remoteStream);
-    addWalls();
-  }
 
   for (let id in connections) {
     connections[id].dataChannel.send(shareJSON); // Notify everyone that we want to share our screen
@@ -395,7 +460,7 @@ async function shareScreen() {
 function stopShareScreen() {
 
   if (!screenShare.srcObject || shareUser !== ourID) {
-    return; // We are not sharing our screen anywats
+    return; // We are not sharing our screen anyways
   }
 
   shareButton.onclick = function () { shareScreen() };
@@ -407,6 +472,7 @@ function stopShareScreen() {
   screenShare.srcObject = null;
   screenShare.hidden = true;
   sharing = false;
+  addWalls(); // Re-add the 3D walls without the video texture
 
   let shareJSON = JSON.stringify({
     type: "share",
@@ -438,6 +504,7 @@ function initChat() {
   connectionList.hidden = false;
   chatBox.style.display = "inline-block";
   received.style.display = "none";
+  cameraButton.hidden = false;
 
   if ((sharing && shareUser == ourID) || !sharing) {
     shareButton.hidden = false;

@@ -62,17 +62,20 @@
 				<br/>
 				<a id="download" target="_blank" hidden>Download file</a>
 			</received>
-
-			<video controls muted id="localVideo" autoplay playsinline hidden></video>
-			<div id="video" hidden>
-				<!-- Received video streams go here -->
-			</div>
-
 		</div>
 
-		<input type="button" id="open" onclick="open3D()" value="Open Chat" hidden></input>
+		<video controls muted id="localVideo" autoplay playsinline hidden></video>
+		<videos id="remoteVideo" hidden>
+			<ul>
+				<!-- Received video streams go here -->
+			</ul>
+		</videos>
 
-		<input type="button" id="shareButton" onclick="shareScreen()" value="Share Screen" hidden></input>
+		<buttons>
+			<input type="button" id="open" onclick="open3D()" value="Open Chat" hidden></input>
+			<input type="button" id="shareButton" onclick="shareScreen()" value="Share Screen" hidden></input>
+			<input type="button" id="cameraButton" onclick="shareCamera()" value="Add video" hidden></input>
+		</buttons>
 
 		<div id="3D">
 			<notification id="notification"></notification>
