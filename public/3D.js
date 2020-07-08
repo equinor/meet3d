@@ -302,6 +302,21 @@ class user {
 		setMedia(media) {
 			this.media = media;
 		}
+		setRotation(x, y, z){
+			this.object.rotation.x = x;
+			this.object.rotation.y = y;
+			this.object.rotation.z = z;
+			console.log(this.object.rotation);
+		}
+		getRotationX(){
+			return this.object.rotation.x;
+		}
+		getRotationY(){
+			return this.object.rotation.y;
+		}
+		getRotationZ(){
+			return this.object.rotation.z;
+		}
 };
 
 var keysPressed = {};
@@ -315,11 +330,14 @@ function onDocumentKeyDown(event) {
 			if ((keysPressed['d']) || (keysPressed['arrow right'])) {
 				if (ourUser.setxPosition(ourUser.getxPosition() + speed)) camera.position.x += speed;
 				if (ourUser.setzPosition(ourUser.getzPosition() - speed)) camera.position.z -= speed;
+				ourUser.setRotation(0,135 * Math.PI / 180,0);
 			} else if ((keysPressed['a']) || (keysPressed['arrow left'])) {
 				if (ourUser.setxPosition(ourUser.getxPosition() - speed)) camera.position.x -= speed;
 				if (ourUser.setzPosition(ourUser.getzPosition() - speed)) camera.position.z -= speed;
+				ourUser.setRotation(0,-135 * Math.PI / 180,0);
 			} else {
 				if (ourUser.setzPosition(ourUser.getzPosition() - speed)) camera.position.z -= speed;
+				ourUser.setRotation(0,180 * Math.PI / 180,0);
 			}
 			break;
 		case 's':
@@ -327,11 +345,14 @@ function onDocumentKeyDown(event) {
 			if ((keysPressed['d']) || (keysPressed['arrow right'])) {
 				if (ourUser.setxPosition(ourUser.getxPosition() + speed)) camera.position.x += speed;
 				if (ourUser.setzPosition(ourUser.getzPosition() + speed)) camera.position.z += speed;
+				ourUser.setRotation(0,45 * Math.PI / 180,0);
 			} else if ((keysPressed['a']) || (keysPressed['arrow left'])) {
 				if (ourUser.setxPosition(ourUser.getxPosition() - speed)) camera.position.x -= speed;
 				if (ourUser.setzPosition(ourUser.getzPosition() + speed)) camera.position.z += speed;
+				ourUser.setRotation(0,-45 * Math.PI / 180,0);
 			} else {
 				if (ourUser.setzPosition(ourUser.getzPosition() + speed)) camera.position.z += speed;
+				ourUser.setRotation(0,0,0);
 			}
 			break;
 		case 'd':
@@ -339,11 +360,14 @@ function onDocumentKeyDown(event) {
 			if ((keysPressed['w']) || (keysPressed['arrow up'])) {
 				if (ourUser.setxPosition(ourUser.getxPosition() + speed)) camera.position.x += speed;
 				if (ourUser.setzPosition(ourUser.getzPosition() - speed)) camera.position.z -= speed;
+				ourUser.setRotation(0,135 * Math.PI / 180,0);
 			} else if ((keysPressed['s']) || (keysPressed['arrow down'])) {
 				if (ourUser.setxPosition(ourUser.getxPosition() + speed)) camera.position.x += speed;
 				if (ourUser.setzPosition(ourUser.getzPosition() + speed)) camera.position.z += speed;
+				ourUser.setRotation(0,45 * Math.PI / 180,0);
 			} else {
 				if (ourUser.setxPosition(ourUser.getxPosition() + speed)) camera.position.x += speed;
+				ourUser.setRotation(0,90 * Math.PI / 180,0);
 			}
 			break;
 		case 'a':
@@ -351,11 +375,14 @@ function onDocumentKeyDown(event) {
 			if ((keysPressed['w']) || (keysPressed['arrow up'])) {
 				if (ourUser.setxPosition(ourUser.getxPosition() - speed)) camera.position.x -= speed;
 				if (ourUser.setzPosition(ourUser.getzPosition() - speed)) camera.position.z -= speed;
+				ourUser.setRotation(0,-135 * Math.PI / 180,0);
 			} else if ((keysPressed['s']) || (keysPressed['arrow down'])) {
 				if (ourUser.setxPosition(ourUser.getxPosition() - speed)) camera.position.x -= speed;
 				if (ourUser.setzPosition(ourUser.getzPosition() + speed)) camera.position.z += speed;
+				ourUser.setRotation(0,-45 * Math.PI / 180,0);
 			} else {
 				if (ourUser.setxPosition(ourUser.getxPosition() - speed)) camera.position.x -= speed;
+				ourUser.setRotation(0,-90 * Math.PI / 180,0);
 			}
 			break;
 		default:
