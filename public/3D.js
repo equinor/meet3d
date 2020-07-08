@@ -4,9 +4,7 @@ var camera
 var scene
 var controls
 
-var geometry
-var material
-var object
+
 var myID
 var requestID = undefined
 
@@ -18,9 +16,9 @@ const maxY = 100; // This is probably not needed
 const maxZ = 100;
 const speed = 3;
 
-var listener;
-var loader;
-var model;
+var listener
+var loader
+
 
 
 function init3D() {
@@ -29,22 +27,19 @@ function init3D() {
 
 	// CAMERA
 	camera = new THREE.PerspectiveCamera(100, (window.innerWidth / window.outerWidth), 0.1, 1000);
-	camera.position.x = 0;
-	camera.position.y = 0;
-	camera.position.z = 70;
+	camera.position.x = 0; camera.position.y = 0; camera.position.z = 70; //camera positions
 
-	var light = new THREE.PointLight( 0xff0000, 1, 100 );
+	//light
+	let light = new THREE.PointLight( 0xff0000, 1, 100 );
+	let ambientLight = new THREE.AmbientLight( 0xcccccc ); //keep the ambient light. The objects look a lot better
+	let directionalLight = new THREE.DirectionalLight( 0xffffff );
+	directionalLight.position.set( 50, 50, 50 ).normalize();
 
-	var ambientLight = new THREE.AmbientLight( 0xcccccc );
+	scene.add( light );
 	scene.add( ambientLight );
- 
-	var directionalLight = new THREE.DirectionalLight( 0xffffff );
-	directionalLight.position.set( 50, 50, 59 ).normalize();
 	scene.add( directionalLight );
 
-	light.position.set( 50, 50, 50 );
-
-
+    
 
 	// RENDERER
 	renderer = new THREE.WebGLRenderer();
@@ -55,12 +50,11 @@ function init3D() {
 	document.body.appendChild( renderer.domElement);
 
 	
-	scene.add( light );
 
 	// FLOOR
-	var floortext = new THREE.TextureLoader().load( "objects/Clownfish/floor.jpg" );
+	let floortext = new THREE.TextureLoader().load( "objects/obj/floor.jpg" );
 
-	var floor = new THREE.Mesh(
+	let floor = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, maxZ * 2, maxX * 2, maxZ * 2),
 		new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: floortext})
 	);
@@ -73,22 +67,18 @@ function init3D() {
 	//addPlant
 
 	const plant = new THREE.Object3D();
-	loader.load('objects/Clownfish/planten.glb', function(gltf) {				
+	loader.load('objects/obj/planten.glb', function(gltf) {				
 		plant.add(gltf.scene);
-		plant.scale.x = 20;
-		plant.scale.y = 20;
-		plant.scale.z = 20;
-		plant.position.y = 7;
-		plant.position.z = 10;
+		plant.scale.x = 20; plant.scale.y = 20; plant.scale.z = 20;
+		plant.position.x= 0; plant.position.y = 7; plant.position.z = 10;
 		scene.add(plant);
 	});
+
 	//add table
 	const table = new THREE.Object3D();
-	loader.load('objects/Clownfish/table.glb', function(gltf) {				
+	loader.load('objects/obj/table.glb', function(gltf) {				
 		table.add(gltf.scene);
-		table.scale.x = 20;
-		table.scale.y = 20;
-		table.scale.z = 20;
+		table.scale.x = 20; table.scale.y = 20; table.scale.z = 20;
 		table.rotation.y += Math.PI / 2;  
 		scene.add(table);
 	});
@@ -98,12 +88,7 @@ function init3D() {
 	document.getElementById("open").hidden = false;
 
 	
-	/*
-	//choose which object to make when the makeobjectfunction is called
-	geometry = new THREE.BoxGeometry(10, 20, 10);
-	material = new THREE.MeshBasicMaterial( {color: 0x669966, wireframe: false});
-	object = new THREE.Mesh(geometry, material);
-*/
+	
 
 	// ADD GLTFLOADER HERE
 
@@ -117,7 +102,7 @@ function init3D() {
 	controls.minAzimuthAngle = 0; // Prevents left-right rotation of camera
 	controls.maxAzimuthAngle = 0; // Prevents left-right rotation of camera
 
-	myID = new user(0, "test", 10, 10, 5).getId();
+	myID = new user(0, "test", 10, 20, 5).getId();
 
 	listener = new THREE.AudioListener();
 
@@ -253,7 +238,7 @@ function userLeft(id) {
 var makeNewObject = function(xPosition, yPosition, zPosition){
 	const obj = new THREE.Object3D();
 	console.log("makeNewObject...");
-	loader.load('objects/Clownfish/slimemodel.glb', function(gltf) {
+	loader.load('objects/obj/BlueGoldfish.glb', function(gltf) {
 		var object = gltf.scene;				
 		//scene.add( gltf.scene );
 		obj.add(object);
