@@ -58,7 +58,7 @@ function init3D() {
 	scene.add( light );
 
 	// FLOOR
-	var floortext = new THREE.TextureLoader().load( "objects/Clownfish/woodenfloor.jpg" );
+	var floortext = new THREE.TextureLoader().load( "objects/Clownfish/floor.jpg" );
 
 	var floor = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, maxZ * 2, maxX * 2, maxZ * 2),
@@ -66,13 +66,38 @@ function init3D() {
 	);
 	floor.rotation.x += Math.PI / 2; //can rotate the floor/plane
 	scene.add( floor );
+
+	//load models
+	loader = new THREE.GLTFLoader();
+
+	//addPlant
+
+	const plant = new THREE.Object3D();
+	loader.load('objects/Clownfish/planten.glb', function(gltf) {				
+		plant.add(gltf.scene);
+		plant.scale.x = 20;
+		plant.scale.y = 20;
+		plant.scale.z = 20;
+		plant.position.y = 7;
+		plant.position.z = 10;
+		scene.add(plant);
+	});
+	//add table
+	const table = new THREE.Object3D();
+	loader.load('objects/Clownfish/table.glb', function(gltf) {				
+		table.add(gltf.scene);
+		table.scale.x = 20;
+		table.scale.y = 20;
+		table.scale.z = 20;
+		table.rotation.y += Math.PI / 2;  
+		scene.add(table);
+	});
 	
 	addWalls()
 
 	document.getElementById("open").hidden = false;
 
-	//load models
-	loader = new THREE.GLTFLoader();
+	
 	/*
 	//choose which object to make when the makeobjectfunction is called
 	geometry = new THREE.BoxGeometry(10, 20, 10);
@@ -92,7 +117,7 @@ function init3D() {
 	controls.minAzimuthAngle = 0; // Prevents left-right rotation of camera
 	controls.maxAzimuthAngle = 0; // Prevents left-right rotation of camera
 
-	myID = new user(0, "test", 10, 10, 0).getId();
+	myID = new user(0, "test", 10, 10, 5).getId();
 
 	listener = new THREE.AudioListener();
 
@@ -137,7 +162,7 @@ function addWalls() {
 
 	var wallLeft = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxY * 2, wallHeight, 1, 1),
-		new THREE.MeshBasicMaterial({color: 0xff0000, side: THREE.DoubleSide})
+		new THREE.MeshBasicMaterial({color: "white", side: THREE.DoubleSide})
 	);
 
 	wallLeft.rotation.y += Math.PI / 2; //can rotate the floor/plane
@@ -146,7 +171,7 @@ function addWalls() {
 
 	var wallRight = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxY * 2, wallHeight, 1, 1),
-		new THREE.MeshBasicMaterial({color: 0xff0000, side: THREE.DoubleSide})
+		new THREE.MeshBasicMaterial({color: "white", side: THREE.DoubleSide})
 	);
 
 	wallRight.rotation.y += Math.PI / 2; //can rotate the floor/plane
@@ -228,10 +253,14 @@ function userLeft(id) {
 var makeNewObject = function(xPosition, yPosition, zPosition){
 	const obj = new THREE.Object3D();
 	console.log("makeNewObject...");
-	loader.load('objects/Clownfish/Clownfish.glb', function(gltf) {
+	loader.load('objects/Clownfish/slimemodel.glb', function(gltf) {
 		var object = gltf.scene;				
 		//scene.add( gltf.scene );
 		obj.add(object);
+		obj.color = "blue";
+		obj.scale.x =7;
+		obj.scale.y =7;
+		obj.scale.z =7;
 		scene.add(obj);
 	});
 	
