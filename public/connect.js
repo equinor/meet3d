@@ -318,6 +318,10 @@ function createPeerConnection(id) {
             cameraLi.innerHTML = '';
 
             videoElement.children[0].removeChild(cameraLi);
+
+            if (videoElement.children[0].children.length == 0) {
+              renderer.setSize(window.innerWidth, window.innerHeight - 30);
+            }
           }
         }
       }

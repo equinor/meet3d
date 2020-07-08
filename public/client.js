@@ -423,6 +423,10 @@ function stopShareCamera() {
   cameraLi.innerHTML = '';
 
   videoElement.children[0].removeChild(cameraLi);
+
+  if (videoElement.children[0].children.length == 0) {
+    renderer.setSize(window.innerWidth, window.innerHeight - 30);
+  }
 }
 
 // Shares our screen with the other users, if noone is doing so already
