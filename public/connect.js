@@ -64,6 +64,7 @@ function init() {
     console.log("User " + connections[id].name + " left");
     removeConnectionHTMLList(id);
     userLeft(id) // Removes the user from the 3D environment
+    if (connections[id].stream) document.getElementById(connections[id].stream.id).outerHTML = '';
     if (connections[id].connection) connections[id].connection.close();
     if (connections[id].dataChannel) connections[id].dataChannel.close();
     delete connections[id];
@@ -307,7 +308,7 @@ function createPeerConnection(id) {
 
       if (event.streams[0]) {
         event.streams[0].onremovetrack = function (event) {
-          console.log(connections[id].name + ' removed a track.')
+          console.log(connections[id].name + ' removed a track from their stream.')
           if (event.track.kind == "video") {
             let cameraLi = document.getElementById(connections[id].stream.id);
 

@@ -419,7 +419,6 @@ function stopShareCamera() {
 
   tracks.forEach(track => track.stop()); // Stop all relevant media tracks
   cameraLi.children[0].srcObject = null;
-  screenShare.hidden = true;
 
   cameraLi.innerHTML = '';
 
@@ -603,6 +602,8 @@ function leave() {
   users.style.display = "none";
   connectionList.innerHTML = '';
   openButton.hidden = true;
+  videoElement.innerHTML = '<ul></ul>';
+  cameraButton.hidden = true;
   for (let id in connections) {
     if (connections[id].stream)
       connections[id].stream.getTracks().forEach(track => track.stop()); // Stop all remote media tracks
