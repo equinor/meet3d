@@ -62,7 +62,7 @@ function init3D() {
 
 	let floor = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, maxZ * 2, maxX * 2, maxZ * 2),
-		new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: floortext})
+		new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: floortext})
 	);
 	floor.rotation.x += Math.PI / 2; //can rotate the floor/plane
 	scene.add( floor );
@@ -147,7 +147,7 @@ function addWalls() {
 
 	wallLeft = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxY * 2, wallHeight, 1, 1),
-		new THREE.MeshBasicMaterial( { color: 0xff0000, side: THREE.DoubleSide } )
+		new THREE.MeshBasicMaterial( { color: "cadetblue", side: THREE.DoubleSide } )
 	);
 
 	wallLeft.rotation.y += Math.PI / 2;
@@ -156,7 +156,7 @@ function addWalls() {
 
 	wallRight = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxY * 2, wallHeight, 1, 1),
-		new THREE.MeshBasicMaterial( { color: 0xff0000, side: THREE.DoubleSide } )
+		new THREE.MeshBasicMaterial( { color: "cadetblue", side: THREE.DoubleSide } )
 	);
 
 	wallRight.rotation.y += Math.PI / 2;
@@ -166,7 +166,7 @@ function addWalls() {
 	if (!texture) { // If there is no video assign a colour to the front wall
 		wallFront = new THREE.Mesh(
 			new THREE.PlaneBufferGeometry(maxX * 2, wallHeight, 1, 1),
-			new THREE.MeshBasicMaterial( { color: 0xff0000, side: THREE.DoubleSide } )
+			new THREE.MeshBasicMaterial( { color: "cadetblue", side: THREE.DoubleSide } )
 		);
 	} else { // If there is a video place the video texture on the wall
 		wallFront = new THREE.Mesh(
