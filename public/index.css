@@ -32,6 +32,22 @@ chat {
   background-color: #cccccc;
 }
 
+uploadFile {
+  border-style: groove;
+  border-width: 2px;
+  padding-bottom: 5px;
+  padding-top: 5px;
+}
+
+received {
+  background-color: #ffff66;
+  border-style: groove;
+  border-width: 2px;
+  display: none;
+  width: 180px;
+  padding: 5px;
+}
+
 .users {
   vertical-align: top;
   height: 470px;
@@ -71,4 +87,38 @@ files {
   border-style: groove;
   margin-left: 50px;
   background-color: #ff6666;
+}
+
+videos {
+  position: absolute;
+  top: 0%;
+  position: absolute;
+  right: 0%;
+}
+
+videos ul {
+  list-style-type: none;
+  padding-left: 0px;
+  display: inline-block;
+  vertical-align: super;
+  position: absolute;
+  right: 0px;
+  position: absolute;
+  top: 0%;
+}
+
+videos ul li {
+  list-style-type: none;
+  padding-bottom: 0px;
+  padding-top: 0px;
+}
+
+buttons {
+  display: inline-block;
+}
+
+canvas {
+  position: absolute;
+  left: 0%;
+  bottom: 0%;
 }

@@ -1,20 +1,28 @@
 
-var renderer
-var camera
-var scene
-var controls
+var renderer;
+var camera;
+var scene;
+var controls;
 
-
-var myID
-var requestID = undefined
-
+var geometry;
+var material;
+var object;
+var myID;
+var requestID = undefined;
 var userCount = 0;
-const distance = 15;
+var listener;
+var allObjects = []; // Stores all 3D objects so that they can be removed later
 
+let wallLeft;
+let wallRight;
+let wallFront;
+
+const distance = 15;
 const maxX = 100;
 const maxY = 100; // This is probably not needed
 const maxZ = 100;
 const speed = 3;
+const wallHeight = 100;
 
 var listener
 var loader
@@ -43,11 +51,9 @@ function init3D() {
 
 	// RENDERER
 	renderer = new THREE.WebGLRenderer();
-	renderer.setSize(window.innerWidth - 5, window.innerHeight - 25);
+	renderer.setSize(window.innerWidth, window.innerHeight - 30);
 	renderer.domElement.id = "scene"; // Adds an ID to the canvas element
-	renderer.domElement.hidden = true; // Initially hides the scene
-	renderer.domElement.style.display = "none"
-	document.body.appendChild( renderer.domElement);
+	document.getElementById("3D").appendChild( renderer.domElement);
 
 	
 
@@ -60,6 +66,7 @@ function init3D() {
 	);
 	floor.rotation.x += Math.PI / 2; //can rotate the floor/plane
 	scene.add( floor );
+	allObjects.push(floor);
 
 	//load models
 	loader = new THREE.GLTFLoader();
@@ -84,13 +91,19 @@ function init3D() {
 	});
 	
 	addWalls()
+	allObjects.push(table);
+	allObjects.push(plant);
 
 	document.getElementById("open").hidden = false;
 
+/*
+	//choose which object to make when the makeobjectfunction is called
+	geometry = new THREE.BoxGeometry(10, 20, 10);
+	material = new THREE.MeshBasicMaterial( {color: 0x669966, wireframe: false});
+	object = new THREE.Mesh(geometry, material);
+	allObjects.push(object);
+*/
 	
-	
-
-	// ADD GLTFLOADER HERE
 
 	// ORBITCONTROLS
 	controls = new THREE.OrbitControls( camera, renderer.domElement );
@@ -106,78 +119,74 @@ function init3D() {
 
 	listener = new THREE.AudioListener();
 
-	
-	var ourUser = findUser(myID);
+	ourUser = findUser(myID);
 	ourUser.object.add(listener);
 	
 
-	camera.position = ourUser.object.position
-	controls.target.set(ourUser.object.position.x, ourUser.object.position.y, ourUser.object.position.z)
-
+	camera.position = ourUser.object.position;
+	controls.target.set(ourUser.object.position.x, ourUser.object.position.y, ourUser.object.position.z);
 
 	update();
 }
 
-//Create the texture to display video on wall
-
-for (var x in remoteStreamList){
-	var video = remoteStreamList[x];
-	var texture = new THREE.VideoTexture(video);
-	texture.minFilter = THREE.LinearFilter;
-	texture.magFilter = THREE.LinearFilter;
-	texture.format = THREE.RGBFormat;
-}
-
-
-
 function addWalls() {
-	if (remoteStreamList.length > 0){
-		for (var x in remoteStreamList){
-			var video = document.getElementById(remoteStreamList[x]);
-			var texture = new THREE.VideoTexture(video);
+	let texture = 0;
+
+	if (wallLeft && wallRight && wallFront) {
+		scene.remove(wallLeft);
+		scene.remove(wallRight);
+		scene.remove(wallFront);
+	}
+
+	if (screenShare.srcObject) {
+			texture = new THREE.VideoTexture(screenShare);
 			texture.minFilter = THREE.LinearFilter;
 			texture.magFilter = THREE.LinearFilter;
 			texture.format = THREE.RGBFormat;
-		}
 	}
-	else{
-		var texture = 0;}
 
-	let wallHeight = 100;
-
-	var wallLeft = new THREE.Mesh(
+	wallLeft = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxY * 2, wallHeight, 1, 1),
-		new THREE.MeshBasicMaterial({color: "white", side: THREE.DoubleSide})
+		new THREE.MeshBasicMaterial( { color: 0xff0000, side: THREE.DoubleSide } )
 	);
 
-	wallLeft.rotation.y += Math.PI / 2; //can rotate the floor/plane
+	wallLeft.rotation.y += Math.PI / 2;
 	wallLeft.position.x = -maxX;
 	wallLeft.position.y += wallHeight / 2;
 
-	var wallRight = new THREE.Mesh(
+	wallRight = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxY * 2, wallHeight, 1, 1),
-		new THREE.MeshBasicMaterial({color: "white", side: THREE.DoubleSide})
+		new THREE.MeshBasicMaterial( { color: 0xff0000, side: THREE.DoubleSide } )
 	);
 
-	wallRight.rotation.y += Math.PI / 2; //can rotate the floor/plane
+	wallRight.rotation.y += Math.PI / 2;
 	wallRight.position.x = maxX;
 	wallRight.position.y += wallHeight / 2;
 
-	var wallFront = new THREE.Mesh(
-		new THREE.PlaneBufferGeometry(maxX * 2, wallHeight, 1, 1),
-		new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: texture})
-		)
+	if (!texture) { // If there is no video assign a colour to the front wall
+		wallFront = new THREE.Mesh(
+			new THREE.PlaneBufferGeometry(maxX * 2, wallHeight, 1, 1),
+			new THREE.MeshBasicMaterial( { color: 0xff0000, side: THREE.DoubleSide } )
+		);
+	} else { // If there is a video place the video texture on the wall
+		wallFront = new THREE.Mesh(
+			new THREE.PlaneBufferGeometry(maxX * 2, wallHeight, 1, 1),
+			new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: texture } )
+		);
+	}
+
 	wallFront.position.z = -maxZ;
 	wallFront.position.y += wallHeight / 2;
-		
+
 	scene.add( wallLeft );
 	scene.add( wallRight );
 	scene.add( wallFront );
+	allObjects.push( wallLeft );
+	allObjects.push( wallRight );
+	allObjects.push( wallFront );
 
 	renderer.render(scene, camera);
-	
 }
-
 
 //function to add a user to the UsersMap
 function addToUserMap(User) {
@@ -190,6 +199,7 @@ function removeUser(id) {
 	return UserMap.delete(id);
 }
 
+// Returns the user object corresponding to the given user ID
 function findUser(id) {
 	return UserMap.get(id);
 }
@@ -198,10 +208,10 @@ function findUser(id) {
 var UserMap = new Map();
 
 function newUserJoined(id, name) {
-	console.log("Adding new user to the environment: " + name)
+	console.log("Adding new user to the environment: " + name);
 	let newUser = new user(id, name, 10, 10, distance * userCount); // This does not look great at the moment
 	addToUserMap(newUser);
-	userCount++
+	userCount++;
 }
 
 function changeUserPosition(id, x, y, z) {
@@ -212,15 +222,13 @@ function userGotMedia(id, mediaStream) {
 	findUser(id).setMedia(mediaStream);
 	var posAudio = new THREE.PositionalAudio(listener);
 	posAudio.setRefDistance(20);
-	//posAudio.setDirectionalCone(180,320,0.1);
 	posAudio.setRolloffFactor(2);
 	const audio1 = posAudio.context.createMediaStreamSource(mediaStream);
 
 	try {
 		posAudio.setNodeSource(audio1);
-		findUser(id).object.add(posAudio)
-		//findUser(id).add(posAudio)
-	} catch(err){
+		findUser(id).object.add(posAudio);
+	} catch(err) {
 		console.log(err);
 	};
 }
@@ -228,7 +236,6 @@ function userGotMedia(id, mediaStream) {
 function userLeft(id) {
 	scene.remove(findUser(id).object);
 	if (removeUser(id)) {
-		scene.remove(findUser(id).object);
 		userCount--;
 	}
 }
@@ -252,6 +259,17 @@ var makeNewObject = function(xPosition, yPosition, zPosition){
 	console.log("MakeNewObject finished");
 	return obj;
 };
+/*	
+var makeNewObject = function(xPosition, yPosition, zPosition) {
+	var object = new THREE.Mesh(geometry,material);
+	object.position.x = xPosition;
+	object.position.y = yPosition;
+	object.position.z = zPosition;
+	scene.add(object);
+	allObjects.push(object);
+	return object;
+}; 
+*/
 
 //A user class. The constructor calls the makenewobject function.
 //constructor adds a user to UserMap
@@ -261,53 +279,58 @@ class user {
 		this.name = name,
 		this.id = id,
 		this.object = makeNewObject(xPosition, yPosition, zPosition),
-		addToUserMap(this),
-		console.log(UserMap),
-		console.log("constructing user finished")};
-		getName(){ return this.name };
-		getId(){ return this.id };
-		getxPosition(){ return this.object.position.x; }
-		getyPosition(){ return this.object.position.y; }
-		getzPosition(){ return this.object.position.z; }
-		setxPosition(xPosition) {
-			if (xPosition < maxX && xPosition > -maxX) {
-				this.object.position.x = xPosition;
-				return true
-			} else {
-				return false
-			}
+		addToUserMap(this)
+	};
+
+	getName(){ return this.name };
+	getId(){ return this.id };
+	getxPosition(){ return this.object.position.x; }
+	getyPosition(){ return this.object.position.y; }
+	getzPosition(){ return this.object.position.z; }
+
+	setxPosition(xPosition) {
+		if (xPosition < maxX && xPosition > -maxX) {
+			this.object.position.x = xPosition;
+			return true
+		} else {
+			return false
 		}
-		setyPosition(yPosition) {
-			if (yPosition < maxY && yPosition > -maxY) {
-				this.object.position.y = yPosition;
-				return true
-			} else {
-				return false
-			}
+	}
+
+	setyPosition(yPosition) {
+		if (yPosition < maxY && yPosition > -maxY) {
+			this.object.position.y = yPosition;
+			return true
+		} else {
+			return false
 		}
-		setzPosition(zPosition) {
-			if (zPosition < maxZ && zPosition > -maxZ) {
-				this.object.position.z = zPosition;
-				return true
-			} else {
-				return false
-			}
+	}
+
+	setzPosition(zPosition) {
+		if (zPosition < maxZ && zPosition > -maxZ) {
+			this.object.position.z = zPosition;
+			return true
+		} else {
+			return false
 		}
-		setPosition(xPosition, yPosition, zPosition) {
-			if (xPosition < maxX && xPosition > -maxX) this.object.position.x = xPosition;
-			if (yPosition < maxY && yPosition > -maxY) this.object.position.y = yPosition;
-			if (zPosition < maxZ && zPosition > -maxZ) this.object.position.z = zPosition;
-		}
-		getMedia(){return this.media};
-		setMedia(media) {
-			this.media = media;
-		}
+	}
+
+	setPosition(xPosition, yPosition, zPosition) {
+		if (xPosition < maxX && xPosition > -maxX) this.object.position.x = xPosition;
+		if (yPosition < maxY && yPosition > -maxY) this.object.position.y = yPosition;
+		if (zPosition < maxZ && zPosition > -maxZ) this.object.position.z = zPosition;
+	}
+
+	getMedia(){ return this.media };
+	setMedia(media) {
+		this.media = media;
+	}
 };
 
 var keysPressed = {};
 function onDocumentKeyDown(event) {
 	var key = event.key;
-	let ourUser = findUser(myID)
+	let ourUser = findUser(myID);
 	keysPressed[event.key] = true;
 	switch (key) {
 		case 'w':
@@ -362,10 +385,10 @@ function onDocumentKeyDown(event) {
 			break;
 	}
 
-	camera.position = ourUser.object.position
-	controls.target.set(ourUser.object.position.x, ourUser.object.position.y, ourUser.object.position.z)
+	camera.position = ourUser.object.position;
+	controls.target.set(ourUser.object.position.x, ourUser.object.position.y, ourUser.object.position.z);
 
-	changePos(ourUser.getxPosition(), ourUser.getyPosition(), ourUser.getzPosition())
+	changePos(ourUser.getxPosition(), ourUser.getyPosition(), ourUser.getzPosition());
 }
 
 function onDocumentKeyUp(event) {
@@ -385,10 +408,15 @@ function nameChange(userer, newname) {
 }
 
 function leave3D() {
+
+	for (let i in allObjects) {
+		if (allObjects[i]) scene.remove(allObjects[i]);
+	}
+
 	document.removeEventListener("keydown", onDocumentKeyDown);
 	document.removeEventListener("keyup", onDocumentKeyUp);
 	if (document.getElementById("scene")) {
-		document.getElementById("scene").outerHTML = '' // Deletes the scene
+		document.getElementById("scene").outerHTML = ''; // Deletes the scene canvas
 	}
 	controls = null;
 	renderer = null;
