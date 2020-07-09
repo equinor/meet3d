@@ -12,7 +12,7 @@ var requestID = undefined;
 var userCount = 0;
 var listener;
 var allObjects = []; // Stores all 3D objects so that they can be removed later
-var videoList = [0, 0];
+var videoList = [];
 var videoListLength = 0;
 var ourUser;
 
@@ -26,6 +26,7 @@ const maxY = 100; // This is probably not needed
 const maxZ = 100;
 const speed = 3;
 const wallHeight = 100;
+const videoCount = 3;
 
 // Initialises the 3D environment, including adding our own avatar
 function init3D() {
@@ -96,13 +97,13 @@ function init3D() {
 function addWalls() {
 	let texture = 0;
 
-	if (wallLeft && wallRight && wallFront) {
+	if (wallLeft && wallRight && wallFront) { // If the walls already exist, remove them
 		scene.remove(wallLeft);
 		scene.remove(wallRight);
 		scene.remove(wallFront);
 	}
 
-	if (screenShare.srcObject) {
+	if (screenShare.srcObject) { // If someone is sharing their screen, display it
 			texture = new THREE.VideoTexture(screenShare);
 			texture.minFilter = THREE.LinearFilter;
 			texture.magFilter = THREE.LinearFilter;
@@ -186,57 +187,59 @@ function changeUserPosition(id, x, y, z) {
 	}
 }
 
+/**
+ * This function updates the list of videos to display on the screen. Only the
+ * 'videoCount' number of videos closest to the user are displayed. This is
+ * done using a basic insertion sort algorithm.
+ */
 function updateVideoList(id) {
 
-	if (id == ourID || !connections[id].stream) {
-		return;
+	if (!connections[id].stream) {
+		return; // Ignore users who do not share video
 	}
 
-	if (videoList.includes(id) || id == myID) {
+	if (videoList.includes(id) || id == ourID) { // In this case we need to update the entire list using all positions
 		for (let i = 0; i < videoListLength; i++) {
 	    let id = videoList[i];
-			if (id && connections[id] && connections[id].stream) document.getElementById(connections[id].stream.id).hidden = true;
+			if (id && connections[id] && connections[id].stream) {
+				document.getElementById(connections[id].stream.id).hidden = true; // Hide currently shown videos
+			}
 	  }
-		videoList = [0, 0];
-		videoListLength = 0;
 
+		videoList = [];
+		videoListLength = 0;
 		for (const testID in UserMap) {
 			if (testID == 0 || !connections[testID].stream || testID == myID || videoList.includes(testID)) {
-				continue;
+				continue; // Ignore our own user, those who do not have video and those already in the list
 			}
 
-			let shiftedID = shiftVideoList(testID);
-			if (shiftedID !== 0) {
-				if (videoListLength < videoList.length) {
+			let shiftedID = shiftVideoList(testID); // Try to add 'testID' to the list
+			if (shiftedID !== 0) { // Someone was shifted out of the list
+				if (videoListLength < videoCount) { // If there is more room, add them in at the end
 					videoList[videoListLength] = shiftedID;
 					videoListLength++;
-				} else {
+				} else { // If there is no more room then hide them
 					document.getElementById(connections[shiftedID].stream.id).hidden = true;
 					document.getElementById(connections[shiftedID].stream.id).autoplay = false;
 				}
-			} else {
-				if (videoListLength < videoList.length) {
+			} else { // Noone was removed from the list, which means 'testID' was added
+				if (videoListLength < videoCount) {
 					videoList[videoListLength] = testID;
 					videoListLength++;
 				}
 			}
 		}
-	} else if (videoListLength < videoList.length) {
-		videoList[videoListLength] = id;
+	} else if (videoListLength < videoList.length) { // The list is not full so just add the user
+		videoList[videoListLength] = shiftVideoList(testID); // Re-add the user that was shifted out
 		videoListLength++;
-	} else {
+	} else { // Try to fit the user into the list, and if it succeeds then hide the user that was shifted out
 		let shiftedID = shiftVideoList(id);
-		if (shiftedID !== 0) {
-			if (videoListLength < videoList.length) {
-				videoList[videoListLength] = shiftedID;
-				videoListLength++;
-			} else {
-				document.getElementById(connections[shiftedID].stream.id).hidden = true;
-				document.getElementById(connections[shiftedID].stream.id).autoplay = false;
-			}
+		if (shiftedID !== 0) { // Someone was shifted out of the list, so we hide them
+			document.getElementById(connections[shiftedID].stream.id).hidden = true;
+			document.getElementById(connections[shiftedID].stream.id).autoplay = false;
 		}
 	}
-	updateVideoVisibility();
+	updateVideoVisibility(); // Updates the HTML so that only the users in the list are shown
 }
 
 function shiftVideoList(id) {

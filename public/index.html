@@ -23,8 +23,7 @@
 				<div>
 					Room name:
 					<input type="text" id="roomName" placeholder="Enter a room name here!"></input>
-					<input type="button" id="start" onclick="init()" value="Open room"></input>
-					<button id="leaveButton" onclick="leave()" hidden>Leave Room</button>
+					<input type="button" id="start/leave" onclick="init(this)" value="Open room"></input>
 				</div>
 			</room>
 
@@ -57,14 +56,13 @@
 				<p id="remoteFiles" hidden> Remote Files: </p>
 	    </files>
 
-			<received id="received">
+			<received id="receivedFiles">
 				Received Files:
 				<br/>
 				<a id="download" target="_blank" hidden>Download file</a>
 			</received>
 		</div>
 
-		<video controls muted id="localVideo" autoplay playsinline hidden></video>
 		<videos id="remoteVideo" hidden>
 			<ul>
 				<!-- Received video streams go here -->
@@ -72,9 +70,9 @@
 		</videos>
 
 		<buttons>
-			<input type="button" id="open" onclick="open3D()" value="Open Chat" hidden></input>
-			<input type="button" id="shareButton" onclick="shareScreen()" value="Share Screen" hidden></input>
-			<input type="button" id="cameraButton" onclick="shareCamera()" value="Add video" hidden></input>
+			<input type="button" id="changeMode" onclick="open3D()" value="Open Chat" hidden></input>
+			<input type="button" id="shareButton" onclick="shareScreen(this)" value="Share Screen" hidden></input>
+			<input type="button" id="cameraButton" onclick="shareCamera(this)" value="Add video" hidden></input>
 		</buttons>
 
 		<div id="3D">
