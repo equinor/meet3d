@@ -1,9 +1,7 @@
-
 var renderer
 var camera
 var scene
 var controls
-
 
 var myID
 var requestID = undefined
@@ -16,10 +14,10 @@ const maxY = 100; // This is probably not needed
 const maxZ = 100;
 const speed = 3;
 
-var listener
-var loader
+var listener;
+var loader;
 
-
+var listObjects = [];
 
 function init3D() {
 	scene = new THREE.Scene();
@@ -63,6 +61,19 @@ function init3D() {
 
 	//load models
 	loader = new THREE.GLTFLoader();
+
+	//load the fishes
+	/*makeNewObject('objects/Anglerfish/Anglerfish.glb', 10, 20, 5);
+	makeNewObject('objects/ArmoredCatfish/ArmoredCatfish.glb', 25, 5, 5);
+	makeNewObject('objects/Betta/Betta.glb', 5, 10, 10);
+	makeNewObject('objects/BlackLionFish/BlackLionFish.glb', 30, 35, 15);
+	makeNewObject('objects/Blobfish/Blobfish.glb', 5, 5, 10);*/
+	
+	makeNewObject('objects/obj/BlueGoldfish.glb', 10, 20, 5);
+	makeNewObject('objects/obj/BlueGoldfish.glb', 25, 5, 5);
+	makeNewObject('objects/obj/BlueGoldfish.glb', 5, 10, 10);
+	makeNewObject('objects/obj/BlueGoldfish.glb', 30, 35, 15);
+	makeNewObject('objects/obj/BlueGoldfish.glb', 5, 5, 10);
 
 	//addPlant
 
@@ -113,6 +124,9 @@ function init3D() {
 
 	camera.position = ourUser.object.position
 	controls.target.set(ourUser.object.position.x, ourUser.object.position.y, ourUser.object.position.z)
+
+	//makeNewObject('objects/obj/BlueGoldfish.glb', 10, 20, 5);
+
 
 
 	update();
@@ -225,18 +239,63 @@ function userGotMedia(id, mediaStream) {
 	};
 }
 
-function userLeft(id) {
+// OLD
+/*function userLeft(id) {
 	scene.remove(findUser(id).object);
 	if (removeUser(id)) {
 		scene.remove(findUser(id).object);
 		userCount--;
 	}
+}*/
+
+//put the model outside of the field of view and add it to the pool of usable models
+function userLeft(id) {
+	findUser(id).vanish();
+	listObjects.push(findUser(id).object);
+	if (removeUser(id)) {
+		userCount--;
+	}
+}
+
+//function that load a model and its corresponding animation at the input coordinates and add it to listObjects
+function makeNewObject(ressource, x, y, z){
+	//console.log("makeNewObject...");
+	const model = new THREE.Object3D();
+	loader.load(ressource, function(gltf){
+		//var object = [];
+		var model = gltf.scene;
+		model.scale.x =7;
+		model.scale.y =7;
+		model.scale.z =7;
+		model.position.x = x;
+		model.position.y = y;
+		model.position.z = z;
+		scene.add(model);
+
+		/*console.log("model :");
+		console.log(model);
+		scene.add(model);
+
+		object.push(model);
+		console.log("object :");
+		console.log(object);
+
+		listObjects.push(object);
+		console.log("listObjects :");
+		console.log(listObjects);*/
+		listObjects.push(model);
+	})
+	//console.log("listObjects after loading :");
+	//console.log(listObjects);
+	//console.log("makeNewObject finished");
+	//return listObjects[0][0];
 }
 
 
-//function that makes an object and position it at input coordinates
-var makeNewObject = function(xPosition, yPosition, zPosition){
+//function that makes an object and position it at input coordinates -- OLD
+/*var makeNewObject = function(xPosition, yPosition, zPosition){
 	const obj = new THREE.Object3D();
+	const animationSwim = new  THREE.AnimationClip();
 	console.log("makeNewObject...");
 	loader.load('objects/obj/BlueGoldfish.glb', function(gltf) {
 		var object = gltf.scene;				
@@ -247,23 +306,33 @@ var makeNewObject = function(xPosition, yPosition, zPosition){
 		obj.scale.y =7;
 		obj.scale.z =7;
 		scene.add(obj);
+		//var animationSwim = gltf.animations[0];
 	});
 	
 	console.log("MakeNewObject finished");
 	return obj;
-};
+};*/
 
 //A user class. The constructor calls the makenewobject function.
 //constructor adds a user to UserMap
 class user {
 	constructor(id, name, xPosition, yPosition, zPosition) {
-		console.log("constructing user...");
+		//console.log("constructing user...");
+		//console.log(listObjects);
 		this.name = name,
 		this.id = id,
-		this.object = makeNewObject(xPosition, yPosition, zPosition),
-		addToUserMap(this),
-		console.log(UserMap),
-		console.log("constructing user finished")};
+		//this.object = makeNewObject('objects/obj/BlueGoldfish.glb', xPosition, yPosition, zPosition),
+		//this.mixer = new THREE.AnimationMixer(this.object);
+		this.object = listObjects.pop();
+		//console.log(listObjects);
+		addToUserMap(this);
+		//console.log(UserMap);
+		this.object.position.x = xPosition;
+		this.object.position.y = yPosition;
+		this.object.position.z = zPosition;
+		//console.log(UserMap);
+		//console.log("constructing user finished")
+		};
 		getName(){ return this.name };
 		getId(){ return this.id };
 		getxPosition(){ return this.object.position.x; }
@@ -297,6 +366,11 @@ class user {
 			if (xPosition < maxX && xPosition > -maxX) this.object.position.x = xPosition;
 			if (yPosition < maxY && yPosition > -maxY) this.object.position.y = yPosition;
 			if (zPosition < maxZ && zPosition > -maxZ) this.object.position.z = zPosition;
+		}
+		vanish(){
+			this.object.position.x = maxX + 10;
+			this.object.position.y = maxY + 10;
+			this.object.position.z = maxZ + 10;
 		}
 		getMedia(){return this.media};
 		setMedia(media) {
