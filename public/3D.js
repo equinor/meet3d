@@ -238,7 +238,7 @@ function userLeft(id) {
 var makeNewObject = function(xPosition, yPosition, zPosition){
 	const obj = new THREE.Object3D();
 	console.log("makeNewObject...");
-	loader.load('objects/obj/BlueGoldfish.glb', function(gltf) {
+	loader.load('objects/obj/pawn.glb', function(gltf) {
 		var object = gltf.scene;				
 		//scene.add( gltf.scene );
 		obj.add(object);
