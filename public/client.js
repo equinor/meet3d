@@ -10,7 +10,8 @@ var chatReceive = document.getElementById("chatReceive");
 var chatBox = document.getElementById("chatBox");
 var chatSend = document.getElementById("chatSend");
 var chatDiv = document.getElementById("chatSection");
-var openButton = document.getElementById("open");
+var openButton1 = document.getElementById("open1");
+var openButton2 = document.getElementById("open2");
 var files = document.getElementById("files");
 var received = document.getElementById("received");
 var shareButton = document.getElementById("shareButton");
@@ -19,6 +20,7 @@ var notification = document.getElementById("notification");
 var sceneDiv = document.getElementById("3D");
 var videoElement = document.getElementById("remoteVideo")
 var cameraButton = document.getElementById("cameraButton");
+var allVideosDiv = document.getElementById("allVideos");
 
 username.addEventListener("keyup", function(event) {
     if (event.keyCode === 13) { // This is the 'enter' key-press
@@ -355,13 +357,22 @@ function addVideoStream(id, stream) {
   let remoteStream = document.createElement("video");
   let remoteStreamLi = document.createElement("li");
   remoteStreamLi.id = stream.id;
-  remoteStream.autoplay = true;
+  remoteStream.autoplay = false;
   remoteStream.srcObject = stream;
   remoteStreamLi.appendChild(remoteStream);
-  videoElement.hidden = false;
   remoteStreamLi.hidden = true;
   renderer.setSize(window.innerWidth - 320, window.innerHeight - 30);
   videoElement.children[0].appendChild(remoteStreamLi);
+
+  let allVideoElement = document.createElement("videoFrame");
+  let video = document.createElement("video");
+  video.autoplay = false;
+  video.srcObject = stream;
+  allVideoElement.id = id + "video";
+  allVideoElement.appendChild(video);
+  allVideosDiv.appendChild(allVideoElement);
+
+  document.getElementById("open2").hidden = false;
 
   updateVideoList(id);
 }
@@ -371,6 +382,7 @@ function updateVideoVisibility() {
     let id = videoList[i];
     if (id == 0) continue;
     document.getElementById(connections[id].stream.id).hidden = false;
+    document.getElementById(connections[id].stream.id).autoplay = true;
   }
 }
 
@@ -404,13 +416,22 @@ async function shareCamera() {
   cameraStream.autoplay = true;
   cameraStream.srcObject = cameraCapture;
   cameraStreamLi.appendChild(cameraStream);
-  videoElement.hidden = false;
 
   if (videoElement.children[0].children.length > 0) {
     videoElement.children[0].insertBefore(cameraStreamLi, videoElement.children[0].firstChild);
   } else {
     videoElement.children[0].appendChild(cameraStreamLi);
   }
+
+  let allVideoElement = document.createElement("videoFrame");
+  let video = document.createElement("video");
+  video.autoplay = false;
+  video.srcObject = cameraCapture;
+  allVideoElement.id = ourID + "video";
+  allVideoElement.appendChild(video);
+  allVideosDiv.appendChild(allVideoElement);
+
+  document.getElementById("open2").hidden = false;
 
   renderer.setSize(window.innerWidth - 320, window.innerHeight - 30);
 
@@ -419,7 +440,6 @@ async function shareCamera() {
 
   for (let id in connections) {
     connections[id].senderCam = connections[id].connection.addTrack(cameraCapture.getVideoTracks()[0], localStream); // Update our media stream
-    console.log(connections[id].senderCam)
   }
 }
 
@@ -450,6 +470,7 @@ function stopShareCamera() {
   videoElement.children[0].removeChild(cameraLi);
 
   if (videoElement.children[0].children.length == 0) {
+    document.getElementById("open2").hidden = true;
     renderer.setSize(window.innerWidth, window.innerHeight - 30);
   }
 }
@@ -560,14 +581,27 @@ function openChat() {
 	document.removeEventListener("keyup", onDocumentKeyUp);
 
   chatDiv.style.display = "inline-block";
-
   sceneDiv.style.display = "none"; // Hide the 3D environment
+  allVideosDiv.style.display = "none"; // Hide the video page
 
   unreadMessages = 0;
   notification.innerHTML = "";
 
-  openButton.onclick = function() { open3D() };
-  openButton.value = "Open 3D";
+  openButton1.onclick = function() { open3D() };
+  openButton1.value = "Open 3D";
+  openButton2.onclick = function() { openAllVideos() };
+  openButton2.value = "Open All Videos";
+
+  if (videoElement.children[0].children.length > 0)
+    videoElement.hidden = false;
+
+  for (let i in allVideosDiv.children) {
+    if (allVideosDiv.children[i].autoplay) {
+      allVideosDiv.children[i].autoplay = false;
+      allVideosDiv.children[i].style.display = "none";
+    }
+  }
+
   document.body.style.backgroundColor = "white";
 }
 
@@ -577,18 +611,54 @@ function open3D() {
 	document.addEventListener("keyup", onDocumentKeyUp, false);
 
   chatDiv.style.display = "none"; // Hide the chat
-
   sceneDiv.style.display = "inline-block";
+  allVideosDiv.style.display = "none"; // Hide the video page
 
-  openButton.onclick = function() { openChat() };
-  openButton.value = "Open Chat";
+  openButton1.onclick = function() { openChat() };
+  openButton1.value = "Open Chat";
+  openButton2.onclick = function() { openAllVideos() };
+  openButton2.value = "Open All Videos";
+
+  if (videoElement.children[0].children.length > 0)
+    videoElement.hidden = false;
+
+  for (let i in allVideosDiv.children) {
+    if (allVideosDiv.children[i].autoplay) {
+      allVideosDiv.children[i].autoplay = false;
+      allVideosDiv.children[i].style.display = "none";
+    }
+  }
 
   document.body.style.backgroundColor = "grey";
 }
 
+function openAllVideos() {
+  document.removeEventListener("keydown", onDocumentKeyDown);
+	document.removeEventListener("keyup", onDocumentKeyUp);
+
+  chatDiv.style.display = "none"; // Hide the chat
+  sceneDiv.style.display = "none"; // Hide the 3D environment
+  allVideosDiv.style.display = "inline-block"; // Show all the videos
+
+  videoElement.hidden = true;
+
+  openButton1.onclick = function() { openChat() };
+  openButton1.value = "Open Chat";
+  openButton2.onclick = function() { open3D() };
+  openButton2.value = "Open 3D";
+
+  for (let i in allVideosDiv.children) {
+    if (allVideosDiv.children[i].autoplay) {
+      allVideosDiv.children[i].autoplay = true;
+      allVideosDiv.children[i].style.display = "inline-block";
+    }
+  }
+
+  document.body.style.backgroundColor = "black";
+}
+
 // Make 'c'-keypress swap between chat and 3D-space
 function initSwapView() {
-  console.log("initiating swap view");
   document.addEventListener("keyup", swapViewOnC);
 
   chatSend.onfocus = function() { document.removeEventListener("keyup", swapViewOnC) };
@@ -598,12 +668,12 @@ function initSwapView() {
 // Switches between the chat and the 3D environment
 function swapViewOnC(event) {
   if (event.key == 'c') {
-    if (openButton.value == "Open 3D") {
+    if (openButton1.value == "Open 3D") {
       open3D();
-    } else if (openButton.value == "Open Chat") {
+    } else if (openButton1.value == "Open Chat") {
       openChat();
     } else {
-      console.log("Could not swap view: openButton.value = " + openButton.value);
+      console.log("Could not swap view: openButton1.value = " + openButton1.value);
     }
   }
 }

@@ -72,7 +72,8 @@
 		</videos>
 
 		<buttons>
-			<input type="button" id="open" onclick="open3D()" value="Open Chat" hidden></input>
+			<input type="button" id="open1" onclick="open3D()" value="Open 3D" hidden></input>
+			<input type="button" id="open2" onclick="openAllVideos()" value="Open All Videos" hidden></input>
 			<input type="button" id="shareButton" onclick="shareScreen()" value="Share Screen" hidden></input>
 			<input type="button" id="cameraButton" onclick="shareCamera()" value="Add video" hidden></input>
 		</buttons>
@@ -80,6 +81,10 @@
 		<div id="3D">
 			<notification id="notification"></notification>
 			<!-- This is where the 3D canvas goes -->
+		</div>
+
+		<div id="allVideos">
+
 		</div>
 
 		<video id="screenShare" style="border: 1px solid #999; width: 98%; max-width: 860px;" hidden autoplay></video>

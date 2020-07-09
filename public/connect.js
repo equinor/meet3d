@@ -305,8 +305,13 @@ function createPeerConnection(id) {
             cameraLi.innerHTML = '';
             videoElement.children[0].removeChild(cameraLi);
 
-            if (videoElement.children[0].children.length == 0)
+            connections[id].stream = null;
+
+            if (videoElement.children[0].children.length == 0) {
+              document.getElementById("open2").hidden = true;
               renderer.setSize(window.innerWidth, window.innerHeight - 30);
+            }
+            updateVideoList(id);
           }
         }
       }

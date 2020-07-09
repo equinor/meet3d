@@ -60,7 +60,7 @@ function init3D() {
 
 	addWalls();
 
-	document.getElementById("open").hidden = false;
+	document.getElementById("open1").hidden = false;
 
 	//choose which object to make when the makeobjectfunction is called
 	geometry = new THREE.BoxGeometry(10, 20, 10);
@@ -172,7 +172,7 @@ function findUser(id) {
 var UserMap = {};
 
 function newUserJoined(id, name) {
-	console.log("Adding new user to the environment: " + name);
+	console.log("Adding new user to the 3D environment: " + name);
 	let newUser = new user(id, name, 10, 10, distance * userCount); // This does not look great at the moment
 	addToUserMap(newUser);
 	userCount++;
@@ -195,7 +195,7 @@ function updateVideoList(id) {
 	if (videoList.includes(id) || id == myID) {
 		for (let i = 0; i < videoListLength; i++) {
 	    let id = videoList[i];
-			if (id) document.getElementById(connections[id].stream.id).hidden = true;
+			if (id && connections[id] && connections[id].stream) document.getElementById(connections[id].stream.id).hidden = true;
 	  }
 		videoList = [0, 0];
 		videoListLength = 0;
@@ -212,6 +212,7 @@ function updateVideoList(id) {
 					videoListLength++;
 				} else {
 					document.getElementById(connections[shiftedID].stream.id).hidden = true;
+					document.getElementById(connections[shiftedID].stream.id).autoplay = false;
 				}
 			} else {
 				if (videoListLength < videoList.length) {
@@ -231,6 +232,7 @@ function updateVideoList(id) {
 				videoListLength++;
 			} else {
 				document.getElementById(connections[shiftedID].stream.id).hidden = true;
+				document.getElementById(connections[shiftedID].stream.id).autoplay = false;
 			}
 		}
 	}
