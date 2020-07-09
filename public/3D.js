@@ -17,6 +17,7 @@ const speed = 3;
 var listener;
 var loader;
 
+var UserMap = new Map();
 var listObjects = [];
 
 function init3D() {
@@ -59,7 +60,6 @@ function init3D() {
 	floor.rotation.x += Math.PI / 2; //can rotate the floor/plane
 	scene.add( floor );
 
-	//load models
 	loader = new THREE.GLTFLoader();
 
 	//load the fishes
@@ -76,7 +76,6 @@ function init3D() {
 	makeNewObject('objects/obj/BlueGoldfish.glb', 5, 5, 10);
 
 	//addPlant
-
 	const plant = new THREE.Object3D();
 	loader.load('objects/obj/planten.glb', function(gltf) {				
 		plant.add(gltf.scene);
@@ -97,11 +96,6 @@ function init3D() {
 	addWalls()
 
 	document.getElementById("open").hidden = false;
-
-	
-	
-
-	// ADD GLTFLOADER HERE
 
 	// ORBITCONTROLS
 	controls = new THREE.OrbitControls( camera, renderer.domElement );
@@ -126,8 +120,6 @@ function init3D() {
 	controls.target.set(ourUser.object.position.x, ourUser.object.position.y, ourUser.object.position.z)
 
 	//makeNewObject('objects/obj/BlueGoldfish.glb', 10, 20, 5);
-
-
 
 	update();
 }
@@ -208,9 +200,6 @@ function findUser(id) {
 	return UserMap.get(id);
 }
 
-//map to store the Users
-var UserMap = new Map();
-
 function newUserJoined(id, name) {
 	console.log("Adding new user to the environment: " + name)
 	let newUser = new user(id, name, 10, 10, distance * userCount); // This does not look great at the moment
@@ -239,15 +228,6 @@ function userGotMedia(id, mediaStream) {
 	};
 }
 
-// OLD
-/*function userLeft(id) {
-	scene.remove(findUser(id).object);
-	if (removeUser(id)) {
-		scene.remove(findUser(id).object);
-		userCount--;
-	}
-}*/
-
 //put the model outside of the field of view and add it to the pool of usable models
 function userLeft(id) {
 	findUser(id).vanish();
@@ -259,10 +239,8 @@ function userLeft(id) {
 
 //function that load a model and its corresponding animation at the input coordinates and add it to listObjects
 function makeNewObject(ressource, x, y, z){
-	//console.log("makeNewObject...");
-	const model = new THREE.Object3D();
+	//const model = new THREE.Object3D();
 	loader.load(ressource, function(gltf){
-		//var object = [];
 		var model = gltf.scene;
 		model.scale.x =7;
 		model.scale.y =7;
@@ -271,126 +249,81 @@ function makeNewObject(ressource, x, y, z){
 		model.position.y = y;
 		model.position.z = z;
 		scene.add(model);
-
-		/*console.log("model :");
-		console.log(model);
-		scene.add(model);
-
-		object.push(model);
-		console.log("object :");
-		console.log(object);
-
-		listObjects.push(object);
-		console.log("listObjects :");
-		console.log(listObjects);*/
 		listObjects.push(model);
 	})
-	//console.log("listObjects after loading :");
-	//console.log(listObjects);
-	//console.log("makeNewObject finished");
-	//return listObjects[0][0];
 }
-
-
-//function that makes an object and position it at input coordinates -- OLD
-/*var makeNewObject = function(xPosition, yPosition, zPosition){
-	const obj = new THREE.Object3D();
-	const animationSwim = new  THREE.AnimationClip();
-	console.log("makeNewObject...");
-	loader.load('objects/obj/BlueGoldfish.glb', function(gltf) {
-		var object = gltf.scene;				
-		//scene.add( gltf.scene );
-		obj.add(object);
-		obj.color = "blue";
-		obj.scale.x =7;
-		obj.scale.y =7;
-		obj.scale.z =7;
-		scene.add(obj);
-		//var animationSwim = gltf.animations[0];
-	});
-	
-	console.log("MakeNewObject finished");
-	return obj;
-};*/
 
 //A user class. The constructor calls the makenewobject function.
 //constructor adds a user to UserMap
 class user {
 	constructor(id, name, xPosition, yPosition, zPosition) {
-		//console.log("constructing user...");
-		//console.log(listObjects);
+		console.log(listObjects);
 		this.name = name,
 		this.id = id,
-		//this.object = makeNewObject('objects/obj/BlueGoldfish.glb', xPosition, yPosition, zPosition),
-		//this.mixer = new THREE.AnimationMixer(this.object);
-		this.object = listObjects.pop();
-		//console.log(listObjects);
+		this.object = listObjects.pop(); //THE PROBLEM IS HERE
 		addToUserMap(this);
-		//console.log(UserMap);
 		this.object.position.x = xPosition;
 		this.object.position.y = yPosition;
 		this.object.position.z = zPosition;
-		//console.log(UserMap);
-		//console.log("constructing user finished")
-		};
-		getName(){ return this.name };
-		getId(){ return this.id };
-		getxPosition(){ return this.object.position.x; }
-		getyPosition(){ return this.object.position.y; }
-		getzPosition(){ return this.object.position.z; }
-		setxPosition(xPosition) {
-			if (xPosition < maxX && xPosition > -maxX) {
-				this.object.position.x = xPosition;
-				return true
-			} else {
-				return false
-			}
+	};
+	getName(){ return this.name };
+	getId(){ return this.id };
+	getxPosition(){ return this.object.position.x; }
+	getyPosition(){ return this.object.position.y; }
+	getzPosition(){ return this.object.position.z; }
+	setxPosition(xPosition) {
+		if (xPosition < maxX && xPosition > -maxX) {
+			this.object.position.x = xPosition;
+			return true
+		} else {
+			return false
 		}
-		setyPosition(yPosition) {
-			if (yPosition < maxY && yPosition > -maxY) {
-				this.object.position.y = yPosition;
-				return true
-			} else {
-				return false
-			}
+	}
+	setyPosition(yPosition) {
+		if (yPosition < maxY && yPosition > -maxY) {
+			this.object.position.y = yPosition;
+			return true
+		} else {
+			return false
 		}
-		setzPosition(zPosition) {
-			if (zPosition < maxZ && zPosition > -maxZ) {
-				this.object.position.z = zPosition;
-				return true
-			} else {
-				return false
-			}
+	}
+	setzPosition(zPosition) {
+		if (zPosition < maxZ && zPosition > -maxZ) {
+			this.object.position.z = zPosition;
+			return true
+		} else {
+			return false
 		}
-		setPosition(xPosition, yPosition, zPosition) {
-			if (xPosition < maxX && xPosition > -maxX) this.object.position.x = xPosition;
-			if (yPosition < maxY && yPosition > -maxY) this.object.position.y = yPosition;
-			if (zPosition < maxZ && zPosition > -maxZ) this.object.position.z = zPosition;
-		}
-		vanish(){
-			this.object.position.x = maxX + 10;
-			this.object.position.y = maxY + 10;
-			this.object.position.z = maxZ + 10;
-		}
-		getMedia(){return this.media};
-		setMedia(media) {
-			this.media = media;
-		}
-		setRotation(x, y, z){
-			this.object.rotation.x = x;
-			this.object.rotation.y = y;
-			this.object.rotation.z = z;
-			console.log(this.object.rotation);
-		}
-		getRotationX(){
-			return this.object.rotation.x;
-		}
-		getRotationY(){
-			return this.object.rotation.y;
-		}
-		getRotationZ(){
-			return this.object.rotation.z;
-		}
+	}
+	setPosition(xPosition, yPosition, zPosition) {
+		if (xPosition < maxX && xPosition > -maxX) this.object.position.x = xPosition;
+		if (yPosition < maxY && yPosition > -maxY) this.object.position.y = yPosition;
+		if (zPosition < maxZ && zPosition > -maxZ) this.object.position.z = zPosition;
+	}
+	vanish(){
+		this.object.position.x = maxX + 10;
+		this.object.position.y = maxY + 10;
+		this.object.position.z = maxZ + 10;
+	}
+	getMedia(){return this.media};
+	setMedia(media) {
+		this.media = media;
+	}
+	setRotation(x, y, z){
+		this.object.rotation.x = x;
+		this.object.rotation.y = y;
+		this.object.rotation.z = z;
+		console.log(this.object.rotation);
+	}
+	getRotationX(){
+		return this.object.rotation.x;
+	}
+	getRotationY(){
+		return this.object.rotation.y;
+	}
+	getRotationZ(){
+		return this.object.rotation.z;
+	}
 };
 
 var keysPressed = {};
