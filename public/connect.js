@@ -285,22 +285,12 @@ function createPeerConnection(id) {
           screenShare.autoplay = true;
           screenShare.srcObject = newStream;
           addWalls(); // Add the video track to the 3D environment
-          
+
         } else { // Web camera video
 
           if (!event.streams[0]) return; // Web camera videos should always be in a stream
 
-          connections[id].stream = event.streams[0];
-
-          let remoteStream = document.createElement("video");
-          let remoteStreamLi = document.createElement("li");
-          remoteStreamLi.id = event.streams[0].id;
-          remoteStream.autoplay = true;
-          remoteStream.srcObject = event.streams[0];
-          remoteStreamLi.appendChild(remoteStream);
-          videoElement.hidden = false;
-          renderer.setSize(window.innerWidth - 320, window.innerHeight - 30);
-          videoElement.children[0].appendChild(remoteStreamLi);
+          addVideoStream(id, event.streams[0]);
         }
       }
 

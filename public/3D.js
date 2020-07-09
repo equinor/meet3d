@@ -12,6 +12,9 @@ var requestID = undefined;
 var userCount = 0;
 var listener;
 var allObjects = []; // Stores all 3D objects so that they can be removed later
+var videoList = [0, 0];
+var videoListLength = 0;
+var ourUser;
 
 let wallLeft;
 let wallRight;
@@ -151,32 +154,113 @@ function addWalls() {
 
 //function to add a user to the UsersMap
 function addToUserMap(User) {
-	UserMap.set(User.getId(), User);
+	UserMap[User.getId()] = User;
 	return UserMap;
 }
 
 //return true if a user with the id passed in parameter was a part of the UserMap and removed, false otherwise
 function removeUser(id) {
-	return UserMap.delete(id);
+	delete UserMap[id];
 }
 
 // Returns the user object corresponding to the given user ID
 function findUser(id) {
-	return UserMap.get(id);
+	return UserMap[id];
 }
 
 //map to store the Users
-var UserMap = new Map();
+var UserMap = {};
 
 function newUserJoined(id, name) {
 	console.log("Adding new user to the environment: " + name);
 	let newUser = new user(id, name, 10, 10, distance * userCount); // This does not look great at the moment
 	addToUserMap(newUser);
 	userCount++;
+	updateVideoList(id);
 }
 
 function changeUserPosition(id, x, y, z) {
 	findUser(id).setPosition(x, y, z);
+	if (connections[id].stream) {
+		updateVideoList(id);
+	}
+}
+
+function updateVideoList(id) {
+
+	if (id !== myID && !connections[id].stream) {
+		return;
+	}
+
+	if (videoList.includes(id) || id == myID) {
+		for (let i = 0; i < videoListLength; i++) {
+	    let id = videoList[i];
+			if (id) document.getElementById(connections[id].stream.id).hidden = true;
+	  }
+		videoList = [0, 0];
+		videoListLength = 0;
+
+		for (const testID in UserMap) {
+			if (testID == 0 || !connections[testID].stream || testID == myID || videoList.includes(testID)) {
+				continue;
+			}
+
+			let shiftedID = shiftVideoList(testID);
+			if (shiftedID !== 0) {
+				if (videoListLength < videoList.length) {
+					videoList[videoListLength] = shiftedID;
+					videoListLength++;
+				} else {
+					document.getElementById(connections[shiftedID].stream.id).hidden = true;
+				}
+			} else {
+				if (videoListLength < videoList.length) {
+					videoList[videoListLength] = testID;
+					videoListLength++;
+				}
+			}
+		}
+	} else if (videoListLength < videoList.length) {
+		videoList[videoListLength] = id;
+		videoListLength++;
+	} else {
+		let shiftedID = shiftVideoList(id);
+		if (shiftedID !== 0) {
+			if (videoListLength < videoList.length) {
+				videoList[videoListLength] = shiftedID;
+				videoListLength++;
+			} else {
+				document.getElementById(connections[shiftedID].stream.id).hidden = true;
+			}
+		}
+	}
+	updateVideoVisibility();
+}
+
+function shiftVideoList(id) {
+	let thisDistance = getDistance(id);
+	let shiftedID = 0;
+	for (let i = 0; i < videoListLength; i++) {
+		if (videoList[i] == 0) {
+			break;
+		}
+		if (shiftedID) {
+			let tempID = shiftedID
+			shiftedID = videoList[i];
+			videoList[i] = tempID;
+		}	else if (getDistance(videoList[i]) > thisDistance) {
+			shiftedID = videoList[i];
+			videoList[i] = id;
+		}
+	}
+	return shiftedID;
+}
+
+function getDistance(id) {
+	let otherUser = findUser(id);
+	return Math.abs(otherUser.getxPosition() - ourUser.getxPosition()) +
+		Math.abs(otherUser.getyPosition() - ourUser.getyPosition()) +
+		Math.abs(otherUser.getzPosition() - ourUser.getzPosition());
 }
 
 function userGotMedia(id, mediaStream) {
@@ -222,25 +306,25 @@ class user {
 		addToUserMap(this)
 	};
 
-	getName(){ return this.name };
-	getId(){ return this.id };
-	getxPosition(){ return this.object.position.x; }
-	getyPosition(){ return this.object.position.y; }
-	getzPosition(){ return this.object.position.z; }
+	getName() { return this.name };
+	getId() { return this.id };
+	getxPosition() { return this.object.position.x; }
+	getyPosition() { return this.object.position.y; }
+	getzPosition() { return this.object.position.z; }
 
 	setxPosition(xPosition) {
 		if (xPosition < maxX && xPosition > -maxX) {
 			this.object.position.x = xPosition;
-			return true
+			return true;
 		} else {
-			return false
+			return false;
 		}
 	}
 
 	setyPosition(yPosition) {
 		if (yPosition < maxY && yPosition > -maxY) {
 			this.object.position.y = yPosition;
-			return true
+			return true;
 		} else {
 			return false
 		}
@@ -249,9 +333,9 @@ class user {
 	setzPosition(zPosition) {
 		if (zPosition < maxZ && zPosition > -maxZ) {
 			this.object.position.z = zPosition;
-			return true
+			return true;
 		} else {
-			return false
+			return false;
 		}
 	}
 
@@ -270,7 +354,7 @@ class user {
 var keysPressed = {};
 function onDocumentKeyDown(event) {
 	var key = event.key;
-	let ourUser = findUser(myID);
+	//let ourUser = findUser(myID);
 	keysPressed[event.key] = true;
 	switch (key) {
 		case 'w':
@@ -329,12 +413,12 @@ function onDocumentKeyDown(event) {
 	controls.target.set(ourUser.object.position.x, ourUser.object.position.y, ourUser.object.position.z);
 
 	changePos(ourUser.getxPosition(), ourUser.getyPosition(), ourUser.getzPosition());
+	updateVideoList(myID);
 }
 
 function onDocumentKeyUp(event) {
 	delete keysPressed[event.key];
 }
-
 
 //function to update frame
 function update() {

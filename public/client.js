@@ -349,6 +349,31 @@ function receiveFile(id, data) {
   received.style.display = "inline-block";
 }
 
+function addVideoStream(id, stream) {
+  connections[id].stream = stream;
+
+  let remoteStream = document.createElement("video");
+  let remoteStreamLi = document.createElement("li");
+  remoteStreamLi.id = stream.id;
+  remoteStream.autoplay = true;
+  remoteStream.srcObject = stream;
+  remoteStreamLi.appendChild(remoteStream);
+  videoElement.hidden = false;
+  remoteStreamLi.hidden = true;
+  renderer.setSize(window.innerWidth - 320, window.innerHeight - 30);
+  videoElement.children[0].appendChild(remoteStreamLi);
+
+  updateVideoList(id);
+}
+
+function updateVideoVisibility() {
+	for (let i = 0; i < videoListLength; i++) {
+    let id = videoList[i];
+    if (id == 0) continue;
+    document.getElementById(connections[id].stream.id).hidden = false;
+  }
+}
+
 // Shares our screen with the other users, if noone is doing so already
 async function shareCamera() {
 
