@@ -29,20 +29,18 @@ function init3D() {
 
 	// CAMERA
 	camera = new THREE.PerspectiveCamera(100, (window.innerWidth / window.outerWidth), 0.1, 1000);
-	camera.position.x = 0;
-	camera.position.y = 0;
 	camera.position.z = 70;
 
-	var light = new THREE.PointLight( 0xff0000, 1, 100 );
-	light.position.set( 50, 50, 50 );
+	var light = new THREE.PointLight(0xff0000, 1, 100);
+	light.position.set(50, 50, 50);
 
 	// RENDERER
 	renderer = new THREE.WebGLRenderer();
 	renderer.setSize(window.innerWidth - 5, window.innerHeight - 25);
 	renderer.domElement.id = "scene"; // Adds an ID to the canvas element
-	document.getElementById("3D").appendChild( renderer.domElement);
+	document.getElementById("3D").appendChild(renderer.domElement);
 
-	scene.add( light );
+	scene.add(light);
 
 	// FLOOR
 	var floor = new THREE.Mesh(
@@ -82,8 +80,8 @@ function init3D() {
 
 	addText(ourUser);
 
-	camera.position = ourUser.object.position;
-	controls.target.set(ourUser.object.position.x, ourUser.object.position.y, ourUser.object.position.z);
+	controls.target.set(ourUser.getxPosition(), ourUser.getyPosition(), ourUser.getzPosition());
+	controls.update();
 
 	update();
 }
@@ -208,7 +206,7 @@ var UserMap = new Map();
 
 function newUserJoined(id, name) {
 	console.log("Adding new user to the environment: " + name);
-	let newUser = new User(id, name, 10, 10, distance * userCount); // This does not look great at the moment
+	let newUser = new User(id, name, 10, 10, distance * userCount);
 	addText(newUser);
 	addToUserMap(newUser);
 	userCount++;
@@ -264,34 +262,36 @@ class User {
 	getxPosition() { return this.object.position.x; }
 	getyPosition() { return this.object.position.y; }
 	getzPosition() { return this.object.position.z; }
-	setxPosition(xPosition) {
-		if (xPosition < maxX && xPosition > -maxX) {
-			this.object.position.x = xPosition;
-			return true
-		} else {
-			return false
-		}
-	}
-	setyPosition(yPosition) {
-		if (yPosition < maxY && yPosition > -maxY) {
-			this.object.position.y = yPosition;
-			return true
-		} else {
-			return false
-		}
-	}
-	setzPosition(zPosition) {
-		if (zPosition < maxZ && zPosition > -maxZ) {
-			this.object.position.z = zPosition;
-			return true
-		} else {
-			return false
-		}
-	}
+	getPosition() { return this.object.position; }
+
+	setName(newname) { this.name = newname; }
+	setxPosition(xPosition) { this.object.position.x = xPosition; }
+	setyPosition(yPosition) { this.object.position.y = yPosition; }
+	setzPosition(zPosition) { this.object.position.z = zPosition; }
 	setPosition(xPosition, yPosition, zPosition) {
-		if (xPosition < maxX && xPosition > -maxX) this.object.position.x = xPosition;
-		if (yPosition < maxY && yPosition > -maxY) this.object.position.y = yPosition;
-		if (zPosition < maxZ && zPosition > -maxZ) this.object.position.z = zPosition;
+		this.setxPosition(xPosition);
+		this.setyPosition(yPosition);
+		this.setzPosition(zPosition);
+	}
+	getValidPosition(xPosition, yPosition, zPosition) {
+		let posVec = new THREE.Vector3(xPosition, yPosition, zPosition);
+
+		posVec.x = Math.max( -(maxX - 0.5 * objectWidth), Math.min(xPosition, maxX - 0.5 * objectWidth) );
+		posVec.y = Math.max( -(maxY - 0.5 * objectHeight), Math.min(yPosition, maxY - 0.5 * objectHeight) );
+		posVec.z = Math.max( -(maxZ - 0.5 * objectWidth), Math.min(zPosition, maxZ - 0.5 * objectWidth) );
+
+
+		return posVec;
+	}
+	// Return the Vector3 from current position to a valid new position
+	getValidMoveVec(velX, velY, velZ) {
+		let validPos = this.getValidPosition( this.getxPosition() + velX, this.getyPosition() + velY, this.getzPosition() + velZ );
+		return validPos.sub(this.getPosition());
+	}
+	// Moves both the 3D-object and the camera
+	move(moveVec) {
+		this.setPosition(this.getxPosition() + moveVec.x, this.getyPosition() + moveVec.y, this.getzPosition() + moveVec.z);
+		camera.position.add(moveVec);
 	}
 	getMedia() { return this.media; }
 	setMedia(media) {
@@ -303,62 +303,45 @@ var keysPressed = {};
 function onDocumentKeyDown(event) {
 	var key = event.key;
 	let ourUser = findUser(myID);
+	var moveVec = new THREE.Vector3(0,0,0);
 	keysPressed[event.key] = true;
 	switch (key) {
 		case 'w':
 		case 'arrow up':
 			if ((keysPressed['d']) || (keysPressed['arrow right'])) {
-				if (ourUser.setxPosition(ourUser.getxPosition() + speed)) camera.position.x += speed;
-				if (ourUser.setzPosition(ourUser.getzPosition() - speed)) camera.position.z -= speed;
+				moveVec = ourUser.getValidMoveVec( speed, 0, -speed );
 			} else if ((keysPressed['a']) || (keysPressed['arrow left'])) {
-				if (ourUser.setxPosition(ourUser.getxPosition() - speed)) camera.position.x -= speed;
-				if (ourUser.setzPosition(ourUser.getzPosition() - speed)) camera.position.z -= speed;
+				moveVec = ourUser.getValidMoveVec( -speed, 0, -speed );
 			} else {
-				if (ourUser.setzPosition(ourUser.getzPosition() - speed)) camera.position.z -= speed;
+				moveVec = ourUser.getValidMoveVec( 0, 0, -speed );
 			}
 			break;
 		case 's':
 		case 'arrow down':
 			if ((keysPressed['d']) || (keysPressed['arrow right'])) {
-				if (ourUser.setxPosition(ourUser.getxPosition() + speed)) camera.position.x += speed;
-				if (ourUser.setzPosition(ourUser.getzPosition() + speed)) camera.position.z += speed;
+				moveVec = ourUser.getValidMoveVec( speed, 0, speed );
 			} else if ((keysPressed['a']) || (keysPressed['arrow left'])) {
-				if (ourUser.setxPosition(ourUser.getxPosition() - speed)) camera.position.x -= speed;
-				if (ourUser.setzPosition(ourUser.getzPosition() + speed)) camera.position.z += speed;
+				moveVec = ourUser.getValidMoveVec( -speed, 0, speed );
 			} else {
-				if (ourUser.setzPosition(ourUser.getzPosition() + speed)) camera.position.z += speed;
+				moveVec = ourUser.getValidMoveVec( 0, 0, speed );
 			}
 			break;
 		case 'd':
 		case 'arrow right':
-			if ((keysPressed['w']) || (keysPressed['arrow up'])) {
-				if (ourUser.setxPosition(ourUser.getxPosition() + speed)) camera.position.x += speed;
-				if (ourUser.setzPosition(ourUser.getzPosition() - speed)) camera.position.z -= speed;
-			} else if ((keysPressed['s']) || (keysPressed['arrow down'])) {
-				if (ourUser.setxPosition(ourUser.getxPosition() + speed)) camera.position.x += speed;
-				if (ourUser.setzPosition(ourUser.getzPosition() + speed)) camera.position.z += speed;
-			} else {
-				if (ourUser.setxPosition(ourUser.getxPosition() + speed)) camera.position.x += speed;
-			}
+			moveVec = ourUser.getValidMoveVec( speed, 0, 0 );
 			break;
 		case 'a':
 		case 'arrow left':
-			if ((keysPressed['w']) || (keysPressed['arrow up'])) {
-				if (ourUser.setxPosition(ourUser.getxPosition() - speed)) camera.position.x -= speed;
-				if (ourUser.setzPosition(ourUser.getzPosition() - speed)) camera.position.z -= speed;
-			} else if ((keysPressed['s']) || (keysPressed['arrow down'])) {
-				if (ourUser.setxPosition(ourUser.getxPosition() - speed)) camera.position.x -= speed;
-				if (ourUser.setzPosition(ourUser.getzPosition() + speed)) camera.position.z += speed;
-			} else {
-				if (ourUser.setxPosition(ourUser.getxPosition() - speed)) camera.position.x -= speed;
-			}
+			moveVec = ourUser.getValidMoveVec( -speed, 0, 0 );
 			break;
 		default:
 			break;
 	}
 
-	camera.position = ourUser.object.position;
-	controls.target.set(ourUser.object.position.x, ourUser.object.position.y, ourUser.object.position.z);
+	ourUser.move(moveVec);
+
+	// Makes the camera target object when using mouse to move the camera
+	controls.target.set(ourUser.getxPosition(), ourUser.getyPosition(), ourUser.getzPosition());
 
 	changePos(ourUser.getxPosition(), ourUser.getyPosition(), ourUser.getzPosition());
 }
