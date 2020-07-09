@@ -9,17 +9,22 @@ var material;
 var object;
 var myID;
 var requestID = undefined;
-
 var userCount = 0;
-const distance = 15;
+var listener;
+var allObjects = []; // Stores all 3D objects so that they can be removed later
 
+let wallLeft;
+let wallRight;
+let wallFront;
+
+const distance = 15;
 const maxX = 100;
 const maxY = 100; // This is probably not needed
 const maxZ = 100;
 const speed = 3;
+const wallHeight = 100;
 
-var listener;
-
+// Initialises the 3D environment, including adding our own avatar
 function init3D() {
 	scene = new THREE.Scene();
 	scene.background = new THREE.Color( 0xf0f0f0 );
@@ -35,7 +40,7 @@ function init3D() {
 
 	// RENDERER
 	renderer = new THREE.WebGLRenderer();
-	renderer.setSize(window.innerWidth - 5, window.innerHeight - 25);
+	renderer.setSize(window.innerWidth, window.innerHeight - 30);
 	renderer.domElement.id = "scene"; // Adds an ID to the canvas element
 	document.getElementById("3D").appendChild( renderer.domElement);
 
@@ -48,6 +53,7 @@ function init3D() {
 	);
 	floor.rotation.x += Math.PI / 2; //can rotate the floor/plane
 	scene.add( floor );
+	allObjects.push(floor);
 
 	addWalls();
 
@@ -57,6 +63,7 @@ function init3D() {
 	geometry = new THREE.BoxGeometry(10, 20, 10);
 	material = new THREE.MeshBasicMaterial( {color: 0x669966, wireframe: false});
 	object = new THREE.Mesh(geometry, material);
+	allObjects.push(object);
 
 	// ADD GLTFLOADER HERE
 
@@ -83,51 +90,51 @@ function init3D() {
 	update();
 }
 
-//Create the texture to display video on wall
-for (var x in remoteStreamList) {
-	var video = remoteStreamList[x];
-	var texture = new THREE.VideoTexture(video);
-	texture.minFilter = THREE.LinearFilter;
-	texture.magFilter = THREE.LinearFilter;
-	texture.format = THREE.RGBFormat;
-}
-
 function addWalls() {
-	if (remoteStreamList.length > 0) {
-		for (var x in remoteStreamList) {
-			var video = document.getElementById(remoteStreamList[x]);
-			var texture = new THREE.VideoTexture(video);
+	let texture = 0;
+
+	if (wallLeft && wallRight && wallFront) {
+		scene.remove(wallLeft);
+		scene.remove(wallRight);
+		scene.remove(wallFront);
+	}
+
+	if (screenShare.srcObject) {
+			texture = new THREE.VideoTexture(screenShare);
 			texture.minFilter = THREE.LinearFilter;
 			texture.magFilter = THREE.LinearFilter;
 			texture.format = THREE.RGBFormat;
-		}
-	}	else {
-		var texture = 0;
 	}
 
-	let wallHeight = 100;
-
-	var wallLeft = new THREE.Mesh(
+	wallLeft = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxY * 2, wallHeight, 1, 1),
-		new THREE.MeshBasicMaterial({color: 0xff0000, side: THREE.DoubleSide})
+		new THREE.MeshBasicMaterial( { color: 0xff0000, side: THREE.DoubleSide } )
 	);
 
-	wallLeft.rotation.y += Math.PI / 2; //can rotate the floor/plane
+	wallLeft.rotation.y += Math.PI / 2;
 	wallLeft.position.x = -maxX;
 	wallLeft.position.y += wallHeight / 2;
 
-	var wallRight = new THREE.Mesh(
+	wallRight = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxY * 2, wallHeight, 1, 1),
-		new THREE.MeshBasicMaterial({color: 0xff0000, side: THREE.DoubleSide})
+		new THREE.MeshBasicMaterial( { color: 0xff0000, side: THREE.DoubleSide } )
 	);
 
-	wallRight.rotation.y += Math.PI / 2; //can rotate the floor/plane
+	wallRight.rotation.y += Math.PI / 2;
 	wallRight.position.x = maxX;
 	wallRight.position.y += wallHeight / 2;
 
-	var wallFront = new THREE.Mesh(
-		new THREE.PlaneBufferGeometry(maxX * 2, wallHeight, 1, 1),
-		new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: texture}));
+	if (!texture) { // If there is no video assign a colour to the front wall
+		wallFront = new THREE.Mesh(
+			new THREE.PlaneBufferGeometry(maxX * 2, wallHeight, 1, 1),
+			new THREE.MeshBasicMaterial( { color: 0xff0000, side: THREE.DoubleSide } )
+		);
+	} else { // If there is a video place the video texture on the wall
+		wallFront = new THREE.Mesh(
+			new THREE.PlaneBufferGeometry(maxX * 2, wallHeight, 1, 1),
+			new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: texture } )
+		);
+	}
 
 	wallFront.position.z = -maxZ;
 	wallFront.position.y += wallHeight / 2;
@@ -135,9 +142,11 @@ function addWalls() {
 	scene.add( wallLeft );
 	scene.add( wallRight );
 	scene.add( wallFront );
+	allObjects.push( wallLeft );
+	allObjects.push( wallRight );
+	allObjects.push( wallFront );
 
 	renderer.render(scene, camera);
-
 }
 
 //function to add a user to the UsersMap
@@ -151,6 +160,7 @@ function removeUser(id) {
 	return UserMap.delete(id);
 }
 
+// Returns the user object corresponding to the given user ID
 function findUser(id) {
 	return UserMap.get(id);
 }
@@ -198,6 +208,7 @@ var makeNewObject = function(xPosition, yPosition, zPosition) {
 	object.position.y = yPosition;
 	object.position.z = zPosition;
 	scene.add(object);
+	allObjects.push(object);
 	return object;
 };
 
@@ -337,6 +348,11 @@ function nameChange(userer, newname) {
 }
 
 function leave3D() {
+
+	for (let i in allObjects) {
+		if (allObjects[i]) scene.remove(allObjects[i]);
+	}
+
 	document.removeEventListener("keydown", onDocumentKeyDown);
 	document.removeEventListener("keyup", onDocumentKeyUp);
 	if (document.getElementById("scene")) {
