@@ -307,10 +307,9 @@ function createPeerConnection(id) {
 
             connections[id].stream = null;
 
-            if (videoElement.children[0].children.length == 0) {
-              document.getElementById("open2").hidden = true;
+            if (videoElement.children[0].children.length == 0)
               renderer.setSize(window.innerWidth, window.innerHeight - 30);
-            }
+
             updateVideoList(id);
           }
         }

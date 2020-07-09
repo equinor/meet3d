@@ -60,7 +60,7 @@ function init3D() {
 
 	addWalls();
 
-	document.getElementById("open1").hidden = false;
+	document.getElementById("open").hidden = false;
 
 	//choose which object to make when the makeobjectfunction is called
 	geometry = new THREE.BoxGeometry(10, 20, 10);
@@ -188,7 +188,7 @@ function changeUserPosition(id, x, y, z) {
 
 function updateVideoList(id) {
 
-	if (id !== myID && !connections[id].stream) {
+	if (id == ourID || !connections[id].stream) {
 		return;
 	}
 
