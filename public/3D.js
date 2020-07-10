@@ -13,6 +13,7 @@ var allObjects = []; // Stores all 3D objects so that they can be removed later
 var videoList = []; // The list of remote videos to display
 var videoListLength = 0; // The number of videos to show at a time, not including our own
 var ourUser;
+var loader;
 
 let wallLeft;
 let wallRight;
@@ -25,11 +26,6 @@ const maxZ = 100;
 const speed = 3;
 const wallHeight = 100;
 const videoCount = 3;
-
-var listener
-var loader
-
-
 
 function init3D() {
 	scene = new THREE.Scene();
@@ -49,15 +45,11 @@ function init3D() {
 	scene.add( ambientLight );
 	scene.add( directionalLight );
 
-    
-
 	// RENDERER
 	renderer = new THREE.WebGLRenderer();
 	renderer.setSize(window.innerWidth, window.innerHeight - 30);
 	renderer.domElement.id = "scene"; // Adds an ID to the canvas element
 	document.getElementById("3D").appendChild( renderer.domElement);
-
-	
 
 	// FLOOR
 	let floortext = new THREE.TextureLoader().load( "objects/obj/floor.jpg" );
@@ -74,9 +66,8 @@ function init3D() {
 	loader = new THREE.GLTFLoader();
 
 	//addPlant
-
 	const plant = new THREE.Object3D();
-	loader.load('objects/obj/planten.glb', function(gltf) {				
+	loader.load('objects/obj/planten.glb', function(gltf) {
 		plant.add(gltf.scene);
 		plant.scale.x = 20; plant.scale.y = 20; plant.scale.z = 20;
 		plant.position.x= 0; plant.position.y = 7; plant.position.z = 10;
@@ -85,27 +76,18 @@ function init3D() {
 
 	//add table
 	const table = new THREE.Object3D();
-	loader.load('objects/obj/table.glb', function(gltf) {				
+	loader.load('objects/obj/table.glb', function(gltf) {
 		table.add(gltf.scene);
 		table.scale.x = 20; table.scale.y = 20; table.scale.z = 20;
-		table.rotation.y += Math.PI / 2;  
+		table.rotation.y += Math.PI / 2;
 		scene.add(table);
 	});
-	
+
 	addWalls()
 	allObjects.push(table);
 	allObjects.push(plant);
 
 	changeModeButton.hidden = false; // Allows the user to open the 3D environment
-
-/*
-	//choose which object to make when the makeobjectfunction is called
-	geometry = new THREE.BoxGeometry(10, 20, 10);
-	material = new THREE.MeshBasicMaterial( {color: 0x669966, wireframe: false});
-	object = new THREE.Mesh(geometry, material);
-	allObjects.push(object);
-*/
-	
 
 	// ORBITCONTROLS
 	controls = new THREE.OrbitControls( camera, renderer.domElement );
@@ -123,7 +105,6 @@ function init3D() {
 
 	ourUser = findUser(ourID);
 	ourUser.object.add(listener);
-	
 
 	camera.position = ourUser.object.position;
 	controls.target.set(ourUser.object.position.x, ourUser.object.position.y, ourUser.object.position.z);
@@ -247,6 +228,9 @@ function updateVideoList(id) {
 		videoList = []; // Reset the list of videos to display
 		videoListLength = 0;
 		for (const testID in UserMap) {
+			console.log(testID)
+			console.log(ourID)
+			console.log(connections)
 			if (testID == ourID || !connections[testID].stream || videoList.includes(testID)) {
 				continue; // Ignore our own user, those who do not have video and those already in the list
 			}
@@ -341,7 +325,7 @@ var makeNewObject = function(xPosition, yPosition, zPosition){
 	const obj = new THREE.Object3D();
 	console.log("makeNewObject...");
 	loader.load('objects/obj/pawn.glb', function(gltf) {
-		var object = gltf.scene;				
+		var object = gltf.scene;
 		//scene.add( gltf.scene );
 		obj.add(object);
 		obj.color = "blue";
@@ -350,21 +334,10 @@ var makeNewObject = function(xPosition, yPosition, zPosition){
 		obj.scale.z =7;
 		scene.add(obj);
 	});
-	
+
 	console.log("MakeNewObject finished");
 	return obj;
 };
-/*	
-var makeNewObject = function(xPosition, yPosition, zPosition) {
-	var object = new THREE.Mesh(geometry,material);
-	object.position.x = xPosition;
-	object.position.y = yPosition;
-	object.position.z = zPosition;
-	scene.add(object);
-	allObjects.push(object);
-	return object;
-}; 
-*/
 
 //A user class. The constructor calls the makenewobject function.
 //constructor adds a user to UserMap
@@ -512,6 +485,10 @@ function leave3D() {
 	if (document.getElementById("scene")) {
 		document.getElementById("scene").outerHTML = ''; // Deletes the scene canvas
 	}
+
+	//renderer.setSize(window.innerWidth, window.innerHeight - 30);
+
+	UserMap = {};
 	controls = null;
 	renderer = null;
 	camera = null;

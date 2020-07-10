@@ -450,6 +450,9 @@ function stopShareCamera(button) {
   button.onclick = function () { shareCamera(button) };
   button.value = "Add video";
 
+  localVideoTrack.stop();
+  localVideoTrack = null;
+
   let videoSrc = cameraLi.children[0].srcObject; // Get the stream
   let tracks = videoSrc.getTracks();
   tracks.forEach(track => track.stop()); // Stop the webcamera video track
