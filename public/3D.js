@@ -30,6 +30,7 @@ var loader;
 var dt
 var lastframe = Date.now()
 var mixer
+var group
 
 
 function init3D() {
@@ -58,7 +59,7 @@ function init3D() {
 	renderer.domElement.id = "scene"; // Adds an ID to the canvas element
 	document.getElementById("3D").appendChild( renderer.domElement);
 
-	
+	group = new THREE.AnimationObjectGroup();
 
 	// FLOOR
 	let floortext = new THREE.TextureLoader().load( "objects/obj/floor.jpg" );
@@ -252,7 +253,8 @@ function userLeft(id) {
 var makeNewObject = function(element, xPosition, yPosition, zPosition){
 	const obj = new THREE.Object3D();
 	loader.load('objects/'+element, function(gltf) {
-		mixer = new THREE.AnimationMixer( gltf.scene );
+		group.add(gltf.scene);
+		mixer = new THREE.AnimationMixer( group);
 		var action = mixer.clipAction( gltf.animations[ 0 ] );
 		action.play();
 
@@ -262,6 +264,7 @@ var makeNewObject = function(element, xPosition, yPosition, zPosition){
 		obj.scale.y =7;
 		obj.scale.z =7;
 		scene.add(obj);
+		
 	});
 	
 	return obj;
