@@ -134,7 +134,13 @@ function init3D() {
 }
 
 //list of files
-var filelist = ["Anglerfish/Anglerfish.glb","ArmoredCatfish/ArmoredCatfish.glb","Betta/Betta.glb", "BlackLionFish/BlackLionFish.glb", "Blobfish/Blobfish.glb", "obj/BlueGoldfish.glb", "obj/Clownfish.glb" ]
+var filelist = ["Anglerfish/Anglerfish.glb","ArmoredCatfish/ArmoredCatfish.glb","Betta/Betta.glb", "BlackLionFish/BlackLionFish.glb", "Blobfish/Blobfish.glb", "obj/BlueGoldfish.glb", "obj/Clownfish.glb",
+"Flatfish/Flatfish.glb", "FlowerHorn/FlowerHorn.glb", "GoblinShark/GoblinShark.glb", "Goldfish/Goldfish.glb",
+"Huphhead/HumphHead.glb", "Koi/Koi.glb", "Lionfish/Lionfish.glb", "MandarinFish/MandarinFish.glb",
+"MoorishIdol/MoorishIdol.glb","ParrotFish/ParrotFish.glb", "Piranha/Piranha.glb", "Puffer/Puffer.glb",
+"RedSnapper/RedSnapper.glb", "RoyalGramma/RoyalGramma.glb", "Shark/Shark.glb", "Sunfish/Sunfish.glb",
+"Swordfish/Swordfish.glb", "Tang/Tang.glb", "Tetra/Tetra.glb", "Tuna/Tuna.glb", "Turbot/Turbot.glb",
+"YellowTang/YellowTang", "ZebraClownFish/ZebraClownFish.glb"]
 
 function addWalls() {
 	let texture = 0;
