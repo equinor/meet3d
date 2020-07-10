@@ -1,14 +1,13 @@
-
-var renderer;
-var camera;
 var scene;
+var camera;
+var renderer;
 var controls;
 var geometry;
 var material;
-var object;
 var requestID = undefined;
 var userCount = 0;
 var listener;
+var loader;
 var allObjects = []; // Stores all 3D objects so that they can be removed later
 var videoList = []; // The list of remote videos to display
 var videoListLength = 0; // The number of videos to show at a time, not including our own
@@ -24,20 +23,20 @@ const maxY = 100; // This is probably not needed
 const maxZ = 100;
 const speed = 3;
 const wallHeight = 100;
+const objectScale = 7;
+var objectSize = new THREE.Vector3(0,0,0); // A Vector3 representing size of 3D-object
 const videoCount = 3;
 
-var listener
-var loader
-
-
+const objectWidth = 10; // Probably not needed
+const objectHeight = 20; // Probably not needed
 
 function init3D() {
 	scene = new THREE.Scene();
-	scene.background = new THREE.Color( 0xf0f0f0 );
+	scene.background = new THREE.Color(0xf0f0f0);
 
 	// CAMERA
 	camera = new THREE.PerspectiveCamera(100, (window.innerWidth / window.outerWidth), 0.1, 1000);
-	camera.position.x = 0; camera.position.y = 0; camera.position.z = 70; //camera positions
+	camera.position.z = 70;
 
 	//light
 	let light = new THREE.PointLight( 0xff0000, 1, 100 );
@@ -49,15 +48,11 @@ function init3D() {
 	scene.add( ambientLight );
 	scene.add( directionalLight );
 
-    
-
 	// RENDERER
 	renderer = new THREE.WebGLRenderer();
 	renderer.setSize(window.innerWidth, window.innerHeight - 30);
 	renderer.domElement.id = "scene"; // Adds an ID to the canvas element
-	document.getElementById("3D").appendChild( renderer.domElement);
-
-	
+	document.getElementById("3D").appendChild(renderer.domElement);
 
 	// FLOOR
 	let floortext = new THREE.TextureLoader().load( "objects/obj/floor.jpg" );
@@ -105,10 +100,9 @@ function init3D() {
 	object = new THREE.Mesh(geometry, material);
 	allObjects.push(object);
 */
-	
 
 	// ORBITCONTROLS
-	controls = new THREE.OrbitControls( camera, renderer.domElement );
+	controls = new THREE.OrbitControls(camera, renderer.domElement);
 	controls.enableKeys = false;
 	controls.enablePan = false;
 	controls.minDistance = 1;
@@ -117,16 +111,17 @@ function init3D() {
 	controls.minAzimuthAngle = 0; // Prevents left-right rotation of camera
 	controls.maxAzimuthAngle = 0; // Prevents left-right rotation of camera
 
-	new user(ourID, "test", 10, 10, 0).getId(); // Can use findUser(ourID) to get it
-
 	listener = new THREE.AudioListener();
+  
+	ourUser = new User(ourID, username.value, 10, 10, 0);
 
-	ourUser = findUser(ourID);
 	ourUser.object.add(listener);
-	
+	userCount++;
 
-	camera.position = ourUser.object.position;
-	controls.target.set(ourUser.object.position.x, ourUser.object.position.y, ourUser.object.position.z);
+	addText(ourUser);
+
+	controls.target.set(ourUser.getxPosition(), ourUser.getyPosition() + 0.5 * objectSize.y, ourUser.getzPosition());
+	controls.update();
 
 	update();
 }
@@ -190,13 +185,57 @@ function addWalls() {
 	renderer.render(scene, camera);
 }
 
-//function to add a user to the UsersMap
+// Add username as text on top of 3D-object
+function addText(user) {
+
+	var loader = new THREE.FontLoader();
+	loader.load('helvetiker_regular.typeface.json', function(font) {
+
+		let color, nameShowed;
+
+		if(user == ourUser) {
+			color = 0x00ff00;
+			nameShowed = 'Me (' + user.getName() + ')';
+		}
+		else {
+			color = 0x000000;
+			nameShowed = user.getName();
+		}
+
+		let textMaterial = new THREE.MeshBasicMaterial({
+			color: color,
+			transparent: true,
+			opacity: 1.0,
+			side: THREE.DoubleSide
+		});
+
+		const shapeSize = 2;
+
+		// Creates an array of Shapes representing nameShowed
+		let shapes = font.generateShapes(nameShowed, shapeSize/objectScale);
+
+		let textGeometry = new THREE.ShapeBufferGeometry(shapes);
+		
+		// Set center of text object equal to center of 3D-text-object
+		textGeometry.computeBoundingBox();
+		textGeometry.center();
+
+		// Determine position of text object realtive to 3D-object
+		textGeometry.translate(0, (objectSize.y + shapeSize) / objectScale, 0);
+
+		var text = new THREE.Mesh(textGeometry, textMaterial);
+
+		user.object.add(text);
+	});
+} // end of addText() function
+
+//function to add a User to the UserMap
 function addToUserMap(User) {
 	UserMap[User.getId()] = User;
 	return UserMap;
 }
 
-//return true if a user with the id passed in parameter was a part of the UserMap and removed, false otherwise
+//return true if a User with the id passed in parameter was a part of the UserMap and removed, false otherwise
 function removeUser(id) {
 	delete UserMap[id];
 }
@@ -212,6 +251,7 @@ var UserMap = {};
 function newUserJoined(id, name) {
 	console.log("Adding new user to the 3D environment: " + name);
 	let newUser = new user(id, name, 10, 10, distance * userCount); // This does not look great at the moment
+  addText(newUser);
 	addToUserMap(newUser);
 	userCount++;
 	updateVideoList(id);
@@ -345,78 +385,68 @@ var makeNewObject = function(xPosition, yPosition, zPosition){
 		//scene.add( gltf.scene );
 		obj.add(object);
 		obj.color = "blue";
-		obj.scale.x =7;
-		obj.scale.y =7;
-		obj.scale.z =7;
+		obj.scale.x = objectScale;
+		obj.scale.y = objectScale;
+		obj.scale.z = objectScale;
+
+		let boundingBox = new THREE.Box3().setFromObject(obj);
+		objectSize = boundingBox.getSize(); // Returns Vector3
+		console.log("objectsize: {" + objectSize.x + objectSize.y + objectSize.z + "}");
+
 		scene.add(obj);
 	});
-	
 	console.log("MakeNewObject finished");
 	return obj;
 };
-/*	
-var makeNewObject = function(xPosition, yPosition, zPosition) {
-	var object = new THREE.Mesh(geometry,material);
-	object.position.x = xPosition;
-	object.position.y = yPosition;
-	object.position.z = zPosition;
-	scene.add(object);
-	allObjects.push(object);
-	return object;
-}; 
-*/
 
-//A user class. The constructor calls the makenewobject function.
-//constructor adds a user to UserMap
-class user {
+//A User class. The constructor calls the makenewobject function.
+//constructor adds a User to UserMap
+class User {
 	constructor(id, name, xPosition, yPosition, zPosition) {
 		console.log("constructing user...");
 		this.name = name,
 		this.id = id,
-		this.object = makeNewObject(xPosition, yPosition, zPosition),
+		this.object = makeNewObject(xPosition, yPosition, zPosition);
 		addToUserMap(this)
 	};
-
-	getName() { return this.name };
-	getId() { return this.id };
+	getName() { return this.name; }
+	getId() { return this.id; }
 	getxPosition() { return this.object.position.x; }
 	getyPosition() { return this.object.position.y; }
 	getzPosition() { return this.object.position.z; }
+	getPosition() { return this.object.position; }
 
-	setxPosition(xPosition) {
-		if (xPosition < maxX && xPosition > -maxX) {
-			this.object.position.x = xPosition;
-			return true;
-		} else {
-			return false;
-		}
-	}
-
-	setyPosition(yPosition) {
-		if (yPosition < maxY && yPosition > -maxY) {
-			this.object.position.y = yPosition;
-			return true;
-		} else {
-			return false
-		}
-	}
-
-	setzPosition(zPosition) {
-		if (zPosition < maxZ && zPosition > -maxZ) {
-			this.object.position.z = zPosition;
-			return true;
-		} else {
-			return false;
-		}
-	}
-
+	setName(newname) { this.name = newname; }
+	setxPosition(xPosition) { this.object.position.x = xPosition; }
+	setyPosition(yPosition) { this.object.position.y = yPosition; }
+	setzPosition(zPosition) { this.object.position.z = zPosition; }
 	setPosition(xPosition, yPosition, zPosition) {
-		if (xPosition < maxX && xPosition > -maxX) this.object.position.x = xPosition;
-		if (yPosition < maxY && yPosition > -maxY) this.object.position.y = yPosition;
-		if (zPosition < maxZ && zPosition > -maxZ) this.object.position.z = zPosition;
+		this.setxPosition(xPosition);
+		this.setyPosition(yPosition);
+		this.setzPosition(zPosition);
 	}
+	getValidPosition(xPosition, yPosition, zPosition) {
+		let posVec = new THREE.Vector3(xPosition, yPosition, zPosition);
 
-	getMedia(){ return this.media };
+		posVec.x = Math.max( -(maxX - 0.5 * objectWidth), Math.min(xPosition, maxX - 0.5 * objectWidth) );
+		posVec.y = Math.max( -(maxY - 0.5 * objectHeight), Math.min(yPosition, maxY - 0.5 * objectHeight) );
+		posVec.z = Math.max( -(maxZ - 0.5 * objectWidth), Math.min(zPosition, maxZ - 0.5 * objectWidth) );
+
+		return posVec;
+	}
+  
+	// Return the Vector3 from current position to a valid new position
+	getValidMoveVec(velX, velY, velZ) {
+		let validPos = this.getValidPosition( this.getxPosition() + velX, this.getyPosition() + velY, this.getzPosition() + velZ );
+		return validPos.sub(this.getPosition());
+	}
+  
+	// Moves both the 3D-object and the camera
+	move(moveVec) {
+		this.setPosition(this.getxPosition() + moveVec.x, this.getyPosition() + moveVec.y, this.getzPosition() + moveVec.z);
+		camera.position.add(moveVec);
+	}
+	getMedia() { return this.media; }
 	setMedia(media) {
 		this.media = media;
 	}
@@ -425,62 +455,62 @@ class user {
 var keysPressed = {};
 function onDocumentKeyDown(event) {
 	var key = event.key;
+	var moveVec = new THREE.Vector3(0,0,0);
+
 	keysPressed[event.key] = true;
 	switch (key) {
 		case 'w':
-		case 'arrow up':
-			if ((keysPressed['d']) || (keysPressed['arrow right'])) {
-				if (ourUser.setxPosition(ourUser.getxPosition() + speed)) camera.position.x += speed;
-				if (ourUser.setzPosition(ourUser.getzPosition() - speed)) camera.position.z -= speed;
-			} else if ((keysPressed['a']) || (keysPressed['arrow left'])) {
-				if (ourUser.setxPosition(ourUser.getxPosition() - speed)) camera.position.x -= speed;
-				if (ourUser.setzPosition(ourUser.getzPosition() - speed)) camera.position.z -= speed;
-			} else {
-				if (ourUser.setzPosition(ourUser.getzPosition() - speed)) camera.position.z -= speed;
+			if (keysPressed['d']) {
+				moveVec = ourUser.getValidMoveVec( speed, 0, -speed );
+			}
+			else if (keysPressed['a']) {
+				moveVec = ourUser.getValidMoveVec( -speed, 0, -speed );
+			}
+			else {
+				moveVec = ourUser.getValidMoveVec( 0, 0, -speed );
 			}
 			break;
 		case 's':
-		case 'arrow down':
-			if ((keysPressed['d']) || (keysPressed['arrow right'])) {
-				if (ourUser.setxPosition(ourUser.getxPosition() + speed)) camera.position.x += speed;
-				if (ourUser.setzPosition(ourUser.getzPosition() + speed)) camera.position.z += speed;
-			} else if ((keysPressed['a']) || (keysPressed['arrow left'])) {
-				if (ourUser.setxPosition(ourUser.getxPosition() - speed)) camera.position.x -= speed;
-				if (ourUser.setzPosition(ourUser.getzPosition() + speed)) camera.position.z += speed;
-			} else {
-				if (ourUser.setzPosition(ourUser.getzPosition() + speed)) camera.position.z += speed;
+			if (keysPressed['d']) {
+				moveVec = ourUser.getValidMoveVec( speed, 0, speed );
+			}
+			else if (keysPressed['a']) {
+				moveVec = ourUser.getValidMoveVec( -speed, 0, speed );
+			}
+			else {
+				moveVec = ourUser.getValidMoveVec( 0, 0, speed );
 			}
 			break;
 		case 'd':
-		case 'arrow right':
-			if ((keysPressed['w']) || (keysPressed['arrow up'])) {
-				if (ourUser.setxPosition(ourUser.getxPosition() + speed)) camera.position.x += speed;
-				if (ourUser.setzPosition(ourUser.getzPosition() - speed)) camera.position.z -= speed;
-			} else if ((keysPressed['s']) || (keysPressed['arrow down'])) {
-				if (ourUser.setxPosition(ourUser.getxPosition() + speed)) camera.position.x += speed;
-				if (ourUser.setzPosition(ourUser.getzPosition() + speed)) camera.position.z += speed;
-			} else {
-				if (ourUser.setxPosition(ourUser.getxPosition() + speed)) camera.position.x += speed;
+			if (keysPressed['w']) {
+				moveVec = ourUser.getValidMoveVec( speed, 0, -speed );
+			}
+			else if (keysPressed['s']) {
+				moveVec = ourUser.getValidMoveVec( speed, 0, speed );
+			}
+			else {
+				moveVec = ourUser.getValidMoveVec( speed, 0, 0 );
 			}
 			break;
 		case 'a':
-		case 'arrow left':
-			if ((keysPressed['w']) || (keysPressed['arrow up'])) {
-				if (ourUser.setxPosition(ourUser.getxPosition() - speed)) camera.position.x -= speed;
-				if (ourUser.setzPosition(ourUser.getzPosition() - speed)) camera.position.z -= speed;
-			} else if ((keysPressed['s']) || (keysPressed['arrow down'])) {
-				if (ourUser.setxPosition(ourUser.getxPosition() - speed)) camera.position.x -= speed;
-				if (ourUser.setzPosition(ourUser.getzPosition() + speed)) camera.position.z += speed;
-			} else {
-				if (ourUser.setxPosition(ourUser.getxPosition() - speed)) camera.position.x -= speed;
+			if (keysPressed['w']) {
+				moveVec = ourUser.getValidMoveVec( -speed, 0, -speed );
+			}
+			else if (keysPressed['s']) {
+				moveVec = ourUser.getValidMoveVec( -speed, 0, speed );
+			}
+			else {
+				moveVec = ourUser.getValidMoveVec( -speed, 0, 0 );
 			}
 			break;
 		default:
 			break;
 	}
 
-	camera.position = ourUser.object.position;
-	controls.target.set(ourUser.object.position.x, ourUser.object.position.y, ourUser.object.position.z);
+	ourUser.move(moveVec);
+
+	// Makes the camera target object when using mouse to move the camera
+	controls.target.set(ourUser.getxPosition(), ourUser.getyPosition() + 0.5 * objectSize.y, ourUser.getzPosition());
 
 	changePos(ourUser.getxPosition(), ourUser.getyPosition(), ourUser.getzPosition());
 	updateVideoList(ourID);
@@ -496,11 +526,6 @@ function update() {
 	requestID = requestAnimationFrame(update);
 }
 
-//function to change name of user.
-function nameChange(userer, newname) {
-	userer.name = newname;
-}
-
 function leave3D() {
 
 	for (let i in allObjects) {
@@ -512,14 +537,12 @@ function leave3D() {
 	if (document.getElementById("scene")) {
 		document.getElementById("scene").outerHTML = ''; // Deletes the scene canvas
 	}
-	controls = null;
-	renderer = null;
-	camera = null;
 	scene = null;
+	camera = null;
+	renderer = null;
 	controls = null;
 	geometry = null;
 	material = null;
-	object = null;
 	userCount = 0;
 	window.cancelAnimationFrame(requestID); // Stops rendering the scene
 	requestID = undefined;
