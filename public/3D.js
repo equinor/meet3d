@@ -27,6 +27,9 @@ const wallHeight = 100;
 var listener;
 var loader;
 
+var dt
+var lastframe = Date.now()
+var mixer
 
 
 function init3D() {
@@ -128,6 +131,9 @@ function init3D() {
 
 	update();
 }
+
+//list of files
+var filelist = ["Anglerfish/Anglerfish.glb","ArmoredCatfish/ArmoredCatfish.glb","Betta/Betta.glb" ]
 
 function addWalls() {
 	let texture = 0;
@@ -243,21 +249,21 @@ function userLeft(id) {
 
 
 //function that makes an object and position it at input coordinates
-var makeNewObject = function(xPosition, yPosition, zPosition){
+var makeNewObject = function(element, xPosition, yPosition, zPosition){
 	const obj = new THREE.Object3D();
-	console.log("makeNewObject...");
-	loader.load('objects/Anglerfish/Anglerfish.glb', function(gltf) {
+	loader.load('objects/'+element, function(gltf) {
+		mixer = new THREE.AnimationMixer( gltf.scene );
+		var action = mixer.clipAction( gltf.animations[ 0 ] );
+		action.play();
+
 		var object = gltf.scene;				
-		//scene.add( gltf.scene );
 		obj.add(object);
-		obj.color = "blue";
 		obj.scale.x =7;
 		obj.scale.y =7;
 		obj.scale.z =7;
 		scene.add(obj);
 	});
 	
-	console.log("MakeNewObject finished");
 	return obj;
 };
 /*	
@@ -279,7 +285,7 @@ class user {
 		console.log("constructing user...");
 		this.name = name,
 		this.id = id,
-		this.object = makeNewObject(xPosition, yPosition, zPosition),
+		this.object = makeNewObject(filelist.pop(),xPosition, yPosition, zPosition),
 		addToUserMap(this)
 	};
 
@@ -326,12 +332,28 @@ class user {
 	setMedia(media) {
 		this.media = media;
 	}
+
+	setRotation(x, y, z){
+		this.object.rotation.x = x;
+		this.object.rotation.y = y;
+		this.object.rotation.z = z;
+		console.log(this.object.rotation);
+	}
+	getRotationX(){
+		return this.object.rotation.x;
+	}
+	getRotationY(){
+		return this.object.rotation.y;
+	}
+	getRotationZ(){
+		return this.object.rotation.z;
+	}
 };
 
 var keysPressed = {};
 function onDocumentKeyDown(event) {
 	var key = event.key;
-	let ourUser = findUser(myID);
+	let ourUser = findUser(myID)
 	keysPressed[event.key] = true;
 	switch (key) {
 		case 'w':
@@ -339,11 +361,14 @@ function onDocumentKeyDown(event) {
 			if ((keysPressed['d']) || (keysPressed['arrow right'])) {
 				if (ourUser.setxPosition(ourUser.getxPosition() + speed)) camera.position.x += speed;
 				if (ourUser.setzPosition(ourUser.getzPosition() - speed)) camera.position.z -= speed;
+				ourUser.setRotation(0,135 * Math.PI / 180,0);
 			} else if ((keysPressed['a']) || (keysPressed['arrow left'])) {
 				if (ourUser.setxPosition(ourUser.getxPosition() - speed)) camera.position.x -= speed;
 				if (ourUser.setzPosition(ourUser.getzPosition() - speed)) camera.position.z -= speed;
+				ourUser.setRotation(0,-135 * Math.PI / 180,0);
 			} else {
 				if (ourUser.setzPosition(ourUser.getzPosition() - speed)) camera.position.z -= speed;
+				ourUser.setRotation(0,180 * Math.PI / 180,0);
 			}
 			break;
 		case 's':
@@ -351,11 +376,14 @@ function onDocumentKeyDown(event) {
 			if ((keysPressed['d']) || (keysPressed['arrow right'])) {
 				if (ourUser.setxPosition(ourUser.getxPosition() + speed)) camera.position.x += speed;
 				if (ourUser.setzPosition(ourUser.getzPosition() + speed)) camera.position.z += speed;
+				ourUser.setRotation(0,45 * Math.PI / 180,0);
 			} else if ((keysPressed['a']) || (keysPressed['arrow left'])) {
 				if (ourUser.setxPosition(ourUser.getxPosition() - speed)) camera.position.x -= speed;
 				if (ourUser.setzPosition(ourUser.getzPosition() + speed)) camera.position.z += speed;
+				ourUser.setRotation(0,-45 * Math.PI / 180,0);
 			} else {
 				if (ourUser.setzPosition(ourUser.getzPosition() + speed)) camera.position.z += speed;
+				ourUser.setRotation(0,0,0);
 			}
 			break;
 		case 'd':
@@ -363,11 +391,14 @@ function onDocumentKeyDown(event) {
 			if ((keysPressed['w']) || (keysPressed['arrow up'])) {
 				if (ourUser.setxPosition(ourUser.getxPosition() + speed)) camera.position.x += speed;
 				if (ourUser.setzPosition(ourUser.getzPosition() - speed)) camera.position.z -= speed;
+				ourUser.setRotation(0,135 * Math.PI / 180,0);
 			} else if ((keysPressed['s']) || (keysPressed['arrow down'])) {
 				if (ourUser.setxPosition(ourUser.getxPosition() + speed)) camera.position.x += speed;
 				if (ourUser.setzPosition(ourUser.getzPosition() + speed)) camera.position.z += speed;
+				ourUser.setRotation(0,45 * Math.PI / 180,0);
 			} else {
 				if (ourUser.setxPosition(ourUser.getxPosition() + speed)) camera.position.x += speed;
+				ourUser.setRotation(0,90 * Math.PI / 180,0);
 			}
 			break;
 		case 'a':
@@ -375,17 +406,19 @@ function onDocumentKeyDown(event) {
 			if ((keysPressed['w']) || (keysPressed['arrow up'])) {
 				if (ourUser.setxPosition(ourUser.getxPosition() - speed)) camera.position.x -= speed;
 				if (ourUser.setzPosition(ourUser.getzPosition() - speed)) camera.position.z -= speed;
+				ourUser.setRotation(0,-135 * Math.PI / 180,0);
 			} else if ((keysPressed['s']) || (keysPressed['arrow down'])) {
 				if (ourUser.setxPosition(ourUser.getxPosition() - speed)) camera.position.x -= speed;
 				if (ourUser.setzPosition(ourUser.getzPosition() + speed)) camera.position.z += speed;
+				ourUser.setRotation(0,-45 * Math.PI / 180,0);
 			} else {
 				if (ourUser.setxPosition(ourUser.getxPosition() - speed)) camera.position.x -= speed;
+				ourUser.setRotation(0,-90 * Math.PI / 180,0);
 			}
 			break;
 		default:
 			break;
-	}
-
+};
 	camera.position = ourUser.object.position;
 	controls.target.set(ourUser.object.position.x, ourUser.object.position.y, ourUser.object.position.z);
 
@@ -399,8 +432,14 @@ function onDocumentKeyUp(event) {
 
 //function to update frame
 function update() {
-	renderer.render(scene, camera);
+	dt = (Date.now()-lastframe)/1000
+	if(mixer){
+    	mixer.update(dt)        
+	}
+	renderer.render( scene, camera );
+	lastframe=Date.now()
 	requestID = requestAnimationFrame(update);
+
 }
 
 //function to change name of user.
