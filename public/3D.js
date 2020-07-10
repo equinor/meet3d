@@ -24,19 +24,30 @@ const maxZ = 100;
 const speed = 3;
 const wallHeight = 100;
 
-// Initialises the 3D environment, including adding our own avatar
+var listener
+var loader
+
+
+
 function init3D() {
 	scene = new THREE.Scene();
 	scene.background = new THREE.Color( 0xf0f0f0 );
 
 	// CAMERA
 	camera = new THREE.PerspectiveCamera(100, (window.innerWidth / window.outerWidth), 0.1, 1000);
-	camera.position.x = 0;
-	camera.position.y = 0;
-	camera.position.z = 70;
+	camera.position.x = 0; camera.position.y = 0; camera.position.z = 70; //camera positions
 
-	var light = new THREE.PointLight( 0xff0000, 1, 100 );
-	light.position.set( 50, 50, 50 );
+	//light
+	let light = new THREE.PointLight( 0xff0000, 1, 100 );
+	let ambientLight = new THREE.AmbientLight( 0xcccccc ); //keep the ambient light. The objects look a lot better
+	let directionalLight = new THREE.DirectionalLight( 0xffffff );
+	directionalLight.position.set( 50, 50, 50 ).normalize();
+
+	scene.add( light );
+	scene.add( ambientLight );
+	scene.add( directionalLight );
+
+    
 
 	// RENDERER
 	renderer = new THREE.WebGLRenderer();
@@ -44,28 +55,55 @@ function init3D() {
 	renderer.domElement.id = "scene"; // Adds an ID to the canvas element
 	document.getElementById("3D").appendChild( renderer.domElement);
 
-	scene.add( light );
+	
 
 	// FLOOR
-	var floor = new THREE.Mesh(
+	let floortext = new THREE.TextureLoader().load( "objects/obj/floor.jpg" );
+
+	let floor = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, maxZ * 2, maxX * 2, maxZ * 2),
-		new THREE.MeshBasicMaterial({color: 0x0000ff, side: THREE.DoubleSide})
+		new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: floortext})
 	);
 	floor.rotation.x += Math.PI / 2; //can rotate the floor/plane
 	scene.add( floor );
 	allObjects.push(floor);
 
-	addWalls();
+	//load models
+	loader = new THREE.GLTFLoader();
+
+	//addPlant
+
+	const plant = new THREE.Object3D();
+	loader.load('objects/obj/planten.glb', function(gltf) {				
+		plant.add(gltf.scene);
+		plant.scale.x = 20; plant.scale.y = 20; plant.scale.z = 20;
+		plant.position.x= 0; plant.position.y = 7; plant.position.z = 10;
+		scene.add(plant);
+	});
+
+	//add table
+	const table = new THREE.Object3D();
+	loader.load('objects/obj/table.glb', function(gltf) {				
+		table.add(gltf.scene);
+		table.scale.x = 20; table.scale.y = 20; table.scale.z = 20;
+		table.rotation.y += Math.PI / 2;  
+		scene.add(table);
+	});
+	
+	addWalls()
+	allObjects.push(table);
+	allObjects.push(plant);
 
 	document.getElementById("open").hidden = false;
 
+/*
 	//choose which object to make when the makeobjectfunction is called
 	geometry = new THREE.BoxGeometry(10, 20, 10);
 	material = new THREE.MeshBasicMaterial( {color: 0x669966, wireframe: false});
 	object = new THREE.Mesh(geometry, material);
 	allObjects.push(object);
-
-	// ADD GLTFLOADER HERE
+*/
+	
 
 	// ORBITCONTROLS
 	controls = new THREE.OrbitControls( camera, renderer.domElement );
@@ -77,12 +115,13 @@ function init3D() {
 	controls.minAzimuthAngle = 0; // Prevents left-right rotation of camera
 	controls.maxAzimuthAngle = 0; // Prevents left-right rotation of camera
 
-	myID = new user(0, "test", 10, 10, 0).getId();
+	myID = new user(0, "test", 10, 20, 5).getId();
 
 	listener = new THREE.AudioListener();
 
 	ourUser = findUser(myID);
 	ourUser.object.add(listener);
+	
 
 	camera.position = ourUser.object.position;
 	controls.target.set(ourUser.object.position.x, ourUser.object.position.y, ourUser.object.position.z);
@@ -108,7 +147,7 @@ function addWalls() {
 
 	wallLeft = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxY * 2, wallHeight, 1, 1),
-		new THREE.MeshBasicMaterial( { color: 0xff0000, side: THREE.DoubleSide } )
+		new THREE.MeshBasicMaterial( { color: "cadetblue", side: THREE.DoubleSide } )
 	);
 
 	wallLeft.rotation.y += Math.PI / 2;
@@ -117,7 +156,7 @@ function addWalls() {
 
 	wallRight = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxY * 2, wallHeight, 1, 1),
-		new THREE.MeshBasicMaterial( { color: 0xff0000, side: THREE.DoubleSide } )
+		new THREE.MeshBasicMaterial( { color: "cadetblue", side: THREE.DoubleSide } )
 	);
 
 	wallRight.rotation.y += Math.PI / 2;
@@ -127,7 +166,7 @@ function addWalls() {
 	if (!texture) { // If there is no video assign a colour to the front wall
 		wallFront = new THREE.Mesh(
 			new THREE.PlaneBufferGeometry(maxX * 2, wallHeight, 1, 1),
-			new THREE.MeshBasicMaterial( { color: 0xff0000, side: THREE.DoubleSide } )
+			new THREE.MeshBasicMaterial( { color: "cadetblue", side: THREE.DoubleSide } )
 		);
 	} else { // If there is a video place the video texture on the wall
 		wallFront = new THREE.Mesh(
@@ -201,7 +240,26 @@ function userLeft(id) {
 	}
 }
 
+
 //function that makes an object and position it at input coordinates
+var makeNewObject = function(xPosition, yPosition, zPosition){
+	const obj = new THREE.Object3D();
+	console.log("makeNewObject...");
+	loader.load('objects/obj/pawn.glb', function(gltf) {
+		var object = gltf.scene;				
+		//scene.add( gltf.scene );
+		obj.add(object);
+		obj.color = "blue";
+		obj.scale.x =7;
+		obj.scale.y =7;
+		obj.scale.z =7;
+		scene.add(obj);
+	});
+	
+	console.log("MakeNewObject finished");
+	return obj;
+};
+/*	
 var makeNewObject = function(xPosition, yPosition, zPosition) {
 	var object = new THREE.Mesh(geometry,material);
 	object.position.x = xPosition;
@@ -210,12 +268,14 @@ var makeNewObject = function(xPosition, yPosition, zPosition) {
 	scene.add(object);
 	allObjects.push(object);
 	return object;
-};
+}; 
+*/
 
 //A user class. The constructor calls the makenewobject function.
 //constructor adds a user to UserMap
 class user {
 	constructor(id, name, xPosition, yPosition, zPosition) {
+		console.log("constructing user...");
 		this.name = name,
 		this.id = id,
 		this.object = makeNewObject(xPosition, yPosition, zPosition),
