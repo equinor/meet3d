@@ -1,8 +1,7 @@
 'use strict';
 
 var roomName = document.getElementById("roomName");
-var leaveRoom = document.getElementById("leaveButton");
-var startButton = document.getElementById("start");
+var startButton = document.getElementById("start/leave");
 var connectionList = document.getElementById("connectionList");
 var users = document.getElementById("users");
 var username = document.getElementById("username");
@@ -10,34 +9,32 @@ var chatReceive = document.getElementById("chatReceive");
 var chatBox = document.getElementById("chatBox");
 var chatSend = document.getElementById("chatSend");
 var chatDiv = document.getElementById("chatSection");
-var openButton = document.getElementById("open");
+var changeModeButton = document.getElementById("changeMode");
 var files = document.getElementById("files");
-var received = document.getElementById("received");
-var shareButton = document.getElementById("shareButton");
+var receivedFiles = document.getElementById("receivedFiles");
 var screenShare = document.getElementById("screenShare");
 var notification = document.getElementById("notification");
 var sceneDiv = document.getElementById("3D");
-var videoElement = document.getElementById("remoteVideo")
-var cameraButton = document.getElementById("cameraButton");
+var videoElement = document.getElementById("remoteVideo");
 
 username.addEventListener("keyup", function(event) {
     if (event.keyCode === 13) { // This is the 'enter' key-press
       event.preventDefault();
-      init();
+      init(); // Join the conference by pressing enter in the username input box
     }
   });
 
 roomName.addEventListener("keyup", function(event) {
     if (event.keyCode === 13) { // This is the 'enter' key-press
       event.preventDefault();
-      init();
+      init(); // Join the conference by pressing enter in the room name input box
     }
   });
 
 chatSend.addEventListener("keyup", function(event) {
     if (event.keyCode === 13) { // This is the 'enter' key-press
       event.preventDefault();
-      sendChat();
+      sendChat(); // Send chat message by pressing enter in the chat
     }
   });
 
@@ -47,12 +44,14 @@ var room; // This is the name of our conference room
 var socket; // This is the SocketIO connection to the signalling server
 var ourID; // This is our unique ID
 var connections = {}; // The key is the socket id, and the value is {name: username, stream: mediastream, connection: PeerConnection}
-const maxChatLength = 20; // The chat will only hold this many messages at a time
 var textFile = null; // This stores any downloaded file
-var sharing = false;
-var shareUser = null;
+var sharing = false; // Is someone sharing their screen
+var shareUser = null; // Which user is sharing their screen
 var screenCapture = null; // The stream containing the video capture of our screen
-var unreadMessages = 0;
+var unreadMessages = 0; // The number of messages we have received whilst not in 'chat mode'
+
+const maxChatLength = 20; // The chat will only hold this many messages at a time
+const signalServer = 'ws://localhost:3000'; // The signaling server
 
 const pcConfig = {
   'iceServers': [{
@@ -60,13 +59,13 @@ const pcConfig = {
   }]
 };
 
-// Set up audio and video regardless of what devices are present.
+// The constraints on what kind of media we are able to receive
 const sdpConstraints = {
   offerToReceiveAudio: true,
   offerToReceiveVideo: true
 };
 
-// Our local media constraints
+// Our local audio constraints
 const constraints = {
   audio: true,
   video: false
@@ -80,11 +79,13 @@ const screenShareConstraints = {
   audio: false
 };
 
+// Our local camera video constraints
 const cameraConstraints = {
   audio: false,
   video: {
     width: 250,
-    height: 200
+    height: 200,
+    resizeMode: "crop-and-scale"
   }
 };
 
@@ -107,7 +108,11 @@ function removeConnectionHTMLList(id) {
   }
 }
 
-// Handles receiving a message on a DataChannel
+/**
+ * Handles receiving a message on a DataChannel. The type of the JSON message
+ * determines what function to call with it. If it is not a JSON then it is a
+ * file which results in 'receiveFile' being called.
+ */
 function dataChannelReceive(id, data) {
 
   if (id === ourID) return;
@@ -240,16 +245,17 @@ function advertiseFile() {
   }
 }
 
-// https://stackoverflow.com/questions/15900485/correct-way-to-convert-size-in-bytes-to-kb-mb-gb-in-javascript
-// This code formats the given number of bytes into a more presentable string which is accurate
-// to 2 significant figures.
+/**
+ * This code was made by Alice Jim on StackOverflow: https://stackoverflow.com/a/18650828
+ * It formats the given number of bytes into a more presentable string which is accurate
+ * to 2 significant figures.
+ */
 function formatBytes(bytes, decimals = 2) {
     if (bytes === 0) return '0 Bytes';
 
     const k = 1024;
     const dm = decimals < 0 ? 0 : decimals;
     const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
-
     const i = Math.floor(Math.log(bytes) / Math.log(k));
 
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
@@ -346,22 +352,68 @@ function receiveFile(id, data) {
   document.getElementById("download").hidden = false;
   document.getElementById("download").innerHTML = connections[id].name + ': ' + document.getElementById("download").name;
 
-  received.style.display = "inline-block";
+  receivedFiles.style.display = "inline-block";
 }
 
-// Shares our screen with the other users, if noone is doing so already
-async function shareCamera() {
+// Adds a new video to the videos displayed on the right side of the screen
+function addVideoStream(id, stream) {
+  if (id !== ourID) connections[id].stream = stream; // Update the 'stream' attribute for the connection
+
+  let streamElement = document.createElement("video"); // Create an element to place the stream in
+  let streamElementLi = document.createElement("li"); // Create a list entry to store it in
+
+  if (id !== ourID) {
+    streamElementLi.hidden = true;
+    streamElement.autoplay = false;
+    streamElementLi.id = stream.id; // The ID of the list entry is the ID of the stream
+  } else {
+    streamElement.autoplay = true;
+    streamElementLi.id = "ourVideo";
+  }
+
+  streamElement.width = cameraConstraints.video.width;
+  streamElement.height = cameraConstraints.video.height;
+  streamElement.srcObject = stream;
+  streamElementLi.appendChild(streamElement);
+  videoElement.hidden = false;
+
+  if (id == ourID && videoElement.children[0].children.length > 0) {
+    videoElement.children[0].insertBefore(streamElementLi, videoElement.children[0].firstChild); // Display our video at the top
+  } else {
+    videoElement.children[0].appendChild(streamElementLi);
+  }
+
+  renderer.setSize(window.innerWidth - cameraConstraints.video.width, window.innerHeight - 30); // Make space for the videos on the screen
+  updateVideoList(id); // Update the list of what videos to show, in 3D.js
+}
+
+/**
+ * This function updates which videos are visible on the screen. The list of
+ * videos to display is 'videoList' in 3D.js.
+ */
+function updateVideoVisibility() {
+	for (let i = 0; i < videoListLength; i++) {
+    let id = videoList[i];
+    if (id == 0) continue;
+
+    document.getElementById(connections[id].stream.id).hidden = false;
+    document.getElementById(connections[id].stream.id).children[0].autoplay = true;
+  }
+}
+
+// Shares our camera stream with the other users, if noone is doing so already
+async function shareCamera(button) {
 
   if (shareUser) return; // Someone else is sharing their screen
 
   let cameraCapture;
 
   try {
-    cameraCapture = await navigator.mediaDevices.getUserMedia(cameraConstraints);
-    localVideoTrack = cameraCapture.getVideoTracks()[0];
+    cameraCapture = await navigator.mediaDevices.getUserMedia(cameraConstraints); // Requests the webcamera stream
+    localVideoTrack = cameraCapture.getVideoTracks()[0]; // Extract only the video track
   } catch(e) {
     if (e.name === "NotAllowedError") {
-      alert('Unfortunately, access to the microphone is necessary in order to use the program. ' +
+      alert('Unfortunately, access to the screen is necessary in order to use this feature. ' +
       'Permissions for this webpage can be updated in the settings for your browser, ' +
       'or by refreshing the page and trying again.');
     } else if (e.name === "NotFoundError") {
@@ -373,71 +425,53 @@ async function shareCamera() {
     return;
   }
 
-  let cameraStream = document.createElement("video");
-  let cameraStreamLi = document.createElement("li");
-  cameraStreamLi.id = "ourCamera";
-  cameraStream.autoplay = true;
-  cameraStream.srcObject = cameraCapture;
-  cameraStreamLi.appendChild(cameraStream);
-  videoElement.hidden = false;
+  addVideoStream(ourID, cameraCapture); // Adds the video to the side of the screen
 
-  if (videoElement.children[0].children.length > 0) {
-    videoElement.children[0].insertBefore(cameraStreamLi, videoElement.children[0].firstChild);
-  } else {
-    videoElement.children[0].appendChild(cameraStreamLi);
-  }
-
-  renderer.setSize(window.innerWidth - 320, window.innerHeight - 30);
-
-  cameraButton.value = "Stop Sharing Camera";
-  cameraButton.onclick = function () { stopShareCamera() };
+  button.value = "Stop Sharing Camera";
+  button.onclick = function () { stopShareCamera(button) };
 
   for (let id in connections) {
     connections[id].senderCam = connections[id].connection.addTrack(cameraCapture.getVideoTracks()[0], localStream); // Update our media stream
-    console.log(connections[id].senderCam)
   }
 }
 
-function stopShareCamera() {
+// This function stops us from sharing our webcamera video with other users, and ourselves
+function stopShareCamera(button) {
 
-  let cameraLi = document.getElementById("ourCamera");
-
+  let cameraLi = document.getElementById("ourVideo");
   if (!cameraLi) {
     return; // We are not sharing our camera anyways
   }
 
-  let videoSrc = cameraLi.children[0].srcObject;
-
   for (let id in connections) {
-    connections[id].connection.removeTrack(connections[id].senderCam); // Update our media stream
+    connections[id].connection.removeTrack(connections[id].senderCam); // Update our media stream for the other users
   }
 
-  cameraButton.onclick = function () { shareCamera() };
-  cameraButton.value = "Add video";
+  button.onclick = function () { shareCamera(button) };
+  button.value = "Add video";
 
+  let videoSrc = cameraLi.children[0].srcObject; // Get the stream
   let tracks = videoSrc.getTracks();
-
-  tracks.forEach(track => track.stop()); // Stop all relevant media tracks
+  tracks.forEach(track => track.stop()); // Stop the webcamera video track
   cameraLi.children[0].srcObject = null;
-
-  cameraLi.innerHTML = '';
+  cameraLi.innerHTML = ''; // Delete the video element
 
   videoElement.children[0].removeChild(cameraLi);
-
   if (videoElement.children[0].children.length == 0) {
+    // There are no videos to show, so resize the 3D scene
     renderer.setSize(window.innerWidth, window.innerHeight - 30);
   }
 }
 
 // Shares our screen with the other users, if noone is doing so already
-async function shareScreen() {
+async function shareScreen(button) {
 
   if (shareUser) return; // Someone else is sharing their screen
 
   try {
-    screenCapture = await navigator.mediaDevices.getDisplayMedia(screenShareConstraints);
+    screenCapture = await navigator.mediaDevices.getDisplayMedia(screenShareConstraints); // Ask for the screen capture
   } catch(e) {
-    if (e.name === "NotAllowedError") {
+    if (e.name === "NotAllowedError") { // We were not given permission to use the screen capture
       alert('Unfortunately, access to the microphone is necessary in order to use the program. ' +
       'Permissions for this webpage can be updated in the settings for your browser, ' +
       'or by refreshing the page and trying again.');
@@ -448,24 +482,24 @@ async function shareScreen() {
     return;
   }
 
-  shareButton.value = "Stop Sharing Screen";
-  shareButton.onclick = function () { stopShareScreen() };
-  shareUser = ourID;
+  button.value = "Stop Sharing Screen";
+  button.onclick = function () { stopShareScreen(button) };
+
+  shareUser = ourID; // We are the one sharing our screen
   screenShare.srcObject = screenCapture;
-  screenShare.autoplay = true;
   sharing = true;
   addWalls(); // Add the stream to the 3D environment
 
   let shareJSON = JSON.stringify({
     type: "share",
     sharing: true
-  })
+  });
 
   for (let id in connections) {
     connections[id].dataChannel.send(shareJSON); // Notify everyone that we want to share our screen
   }
 
-  setTimeout(function() { // Wait 1 second
+  setTimeout(function() { // Wait 1 second to allow people to process the previous message
     for (let id in connections) {
       connections[id].connection.addTrack(screenCapture.getVideoTracks()[0]); // Update our media stream
     }
@@ -473,21 +507,21 @@ async function shareScreen() {
 }
 
 // Stops us sharing our screen, including notifying others that we have done so
-function stopShareScreen() {
+function stopShareScreen(button) {
 
   if (!screenShare.srcObject || shareUser !== ourID) {
-    return; // We are not sharing our screen anyways
+    return; // We are not sharing our screen, so we do not need to close anything
   }
 
-  shareButton.onclick = function () { shareScreen() };
-  shareButton.value = "Share Screen";
+  button.onclick = function () { shareScreen() }; // Reset the share screen button
+  button.value = "Share Screen";
 
   let tracks = screenShare.srcObject.getTracks();
 
-  tracks.forEach(track => track.stop()); // Stop all relevant media tracks
+  tracks.forEach(track => track.stop()); // Stop the video track
   screenShare.srcObject = null;
   screenShare.hidden = true;
-  sharing = false;
+  sharing = false; // This indicates that noone is sharing their screen
   addWalls(); // Re-add the 3D walls without the video texture
 
   let shareJSON = JSON.stringify({
@@ -496,7 +530,7 @@ function stopShareScreen() {
   });
 
   for (let id in connections) {
-    connections[id].dataChannel.send(shareJSON);
+    connections[id].dataChannel.send(shareJSON); // Let all users know that we are no longer sharing our screen
   }
 }
 
@@ -513,13 +547,10 @@ function initChat() {
   openChat();
 
   files.style.display = "inline-block";
-
   users.style.display = "inline-block";
-  startButton.hidden = true;
-  leaveButton.hidden = false;
   connectionList.hidden = false;
   chatBox.style.display = "inline-block";
-  received.style.display = "none";
+  receivedFiles.style.display = "none";
   cameraButton.hidden = false;
 
   if ((sharing && shareUser == ourID) || !sharing) {
@@ -534,15 +565,15 @@ function openChat() {
   document.removeEventListener("keydown", onDocumentKeyDown);
 	document.removeEventListener("keyup", onDocumentKeyUp);
 
-  chatDiv.style.display = "inline-block";
+  chatDiv.style.display = "inline-block"; // Open the chat
+  sceneDiv.style.display = "none"; // Hide the 3D scene
 
-  sceneDiv.style.display = "none"; // Hide the 3D environment
-
-  unreadMessages = 0;
+  unreadMessages = 0; // We have now seen the received chat messages
   notification.innerHTML = "";
 
-  openButton.onclick = function() { open3D() };
-  openButton.value = "Open 3D";
+  changeModeButton.onclick = function() { open3D() };
+  changeModeButton.value = "Open 3D";
+
   document.body.style.backgroundColor = "white";
 }
 
@@ -552,11 +583,10 @@ function open3D() {
 	document.addEventListener("keyup", onDocumentKeyUp, false);
 
   chatDiv.style.display = "none"; // Hide the chat
+  sceneDiv.style.display = "inline-block"; // Open the 3D scene
 
-  sceneDiv.style.display = "inline-block";
-
-  openButton.onclick = function() { openChat() };
-  openButton.value = "Open Chat";
+  changeModeButton.onclick = function() { openChat() };
+  changeModeButton.value = "Open Chat";
 
   document.body.style.backgroundColor = "grey";
 }
@@ -572,47 +602,43 @@ function initSwapView() {
 // Switches between the chat and the 3D environment
 function swapViewOnC(event) {
   if (event.key == 'c') {
-    if (openButton.value == "Open 3D") {
+    if (changeModeButton.value == "Open 3D") {
       open3D();
-    } else if (openButton.value == "Open Chat") {
+    } else if (changeModeButton.value == "Open Chat") {
       openChat();
     } else {
-      console.log("Could not swap view: openButton.value = " + openButton.value);
+      console.log("Could not swap view: changeModeButton.value = " + changeModeButton.value);
     }
   }
 }
 
 // Leaves the conference, resets variable values and closes connections
-function leave() {
+function leave(button) {
 
   if (textFile !== null) {
     window.URL.revokeObjectURL(textFile); // Avoid memory leaks
   }
 
-  stopShareScreen();
-  stopShareCamera();
+  stopShareScreen(document.getElementById("shareButton"));
+  stopShareCamera(document.getElementById("cameraButton"));
 
-  files.hidden = true;
-  files.style.display = "none";
-  roomName.readOnly = false;
-  username.readOnly = false;
-  startButton.hidden = false;
-  leaveButton.hidden = true;
-  shareButton.hidden = true;
-  received.style.display = "none";
-  chatBox.hidden = true;
-  chatBox.style.display = "none";
-  users.hidden = true;
-  users.style.display = "none";
-  connectionList.innerHTML = '';
-  openButton.hidden = true;
-  videoElement.innerHTML = '<ul></ul>';
+  files.style.display = "none"; // Stop listing local files
+  roomName.readOnly = false; // Allows the user to change what room to join
+  username.readOnly = false; // Allows the user to change their username
+  shareButton.hidden = true; // We cannot share our screen once we leave the conference
+  receivedFiles.style.display = "none"; // Stop listing received files
+  chatBox.style.display = "none"; // Stop listing messages
+  users.style.display = "none"; // Stop listing users
+  connectionList.innerHTML = ''; // Empty the list of users
+  changeModeButton.hidden = true;
+  videoElement.innerHTML = '<ul></ul>'; // Removes all videos from the list on the right side of the screen
   cameraButton.hidden = true;
+
   for (let id in connections) {
     if (connections[id].stream)
-      connections[id].stream.getTracks().forEach(track => track.stop()); // Stop all remote media tracks
-    connections[id].connection.close();
-    connections[id].dataChannel.close();
+      connections[id].stream.getTracks().forEach(track => track.stop()); // Stop all remote media tracks, if there are any
+    connections[id].dataChannel.close(); // Close the DataChannel
+    connections[id].connection.close(); // Close the PeerConnection
   }
   connections = {};
 
@@ -626,4 +652,7 @@ function leave() {
     socket.emit('left');
     room = null;
   }
+
+  button.value = "Join";
+  button.onclick = function() { init(button) };
 }
