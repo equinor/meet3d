@@ -24,6 +24,10 @@ const maxZ = 100;
 const speed = 3;
 const wallHeight = 100;
 
+var listener;
+var loader;
+
+
 
 function init3D() {
 	scene = new THREE.Scene();
@@ -237,7 +241,26 @@ function userLeft(id) {
 	}
 }
 
+
 //function that makes an object and position it at input coordinates
+var makeNewObject = function(xPosition, yPosition, zPosition){
+	const obj = new THREE.Object3D();
+	console.log("makeNewObject...");
+	loader.load('objects/Anglerfish/Anglerfish.glb', function(gltf) {
+		var object = gltf.scene;				
+		//scene.add( gltf.scene );
+		obj.add(object);
+		obj.color = "blue";
+		obj.scale.x =7;
+		obj.scale.y =7;
+		obj.scale.z =7;
+		scene.add(obj);
+	});
+	
+	console.log("MakeNewObject finished");
+	return obj;
+};
+/*	
 var makeNewObject = function(xPosition, yPosition, zPosition) {
 	var object = new THREE.Mesh(geometry,material);
 	object.position.x = xPosition;
@@ -246,12 +269,14 @@ var makeNewObject = function(xPosition, yPosition, zPosition) {
 	scene.add(object);
 	allObjects.push(object);
 	return object;
-};
+}; 
+*/
 
 //A user class. The constructor calls the makenewobject function.
 //constructor adds a user to UserMap
 class user {
 	constructor(id, name, xPosition, yPosition, zPosition) {
+		console.log("constructing user...");
 		this.name = name,
 		this.id = id,
 		this.object = makeNewObject(xPosition, yPosition, zPosition),
