@@ -7,19 +7,26 @@ var geometry;
 var material;
 var myID;
 var requestID = undefined;
-
 var userCount = 0;
-const distance = 15;
+var listener;
+var loader;
+var allObjects = []; // Stores all 3D objects so that they can be removed later
 
+let wallLeft;
+let wallRight;
+let wallFront;
+
+const distance = 15;
 const maxX = 100;
 const maxY = 100; // This is probably not needed
 const maxZ = 100;
 const speed = 3;
+const wallHeight = 100;
+const objectScale = 7;
+var objectSize = new THREE.Vector3(0,0,0); // A Vector3 representing size of 3D-object
 
-const objectWidth = 10;
-const objectHeight = 20;
-
-var listener;
+const objectWidth = 10; // Probably not needed
+const objectHeight = 20; // Probably not needed
 
 function init3D() {
 	scene = new THREE.Scene();
@@ -29,35 +36,60 @@ function init3D() {
 	camera = new THREE.PerspectiveCamera(100, (window.innerWidth / window.outerWidth), 0.1, 1000);
 	camera.position.z = 70;
 
-	var light = new THREE.PointLight(0xff0000, 1, 100);
-	light.position.set(50, 50, 50);
+	//light
+	let light = new THREE.PointLight( 0xff0000, 1, 100 );
+	let ambientLight = new THREE.AmbientLight( 0xcccccc ); //keep the ambient light. The objects look a lot better
+	let directionalLight = new THREE.DirectionalLight( 0xffffff );
+	directionalLight.position.set( 50, 50, 50 ).normalize();
+
+	scene.add( light );
+	scene.add( ambientLight );
+	scene.add( directionalLight );
 
 	// RENDERER
 	renderer = new THREE.WebGLRenderer();
-	renderer.setSize(window.innerWidth - 5, window.innerHeight - 25);
+	renderer.setSize(window.innerWidth, window.innerHeight - 30);
 	renderer.domElement.id = "scene"; // Adds an ID to the canvas element
 	document.getElementById("3D").appendChild(renderer.domElement);
 
-	scene.add(light);
-
 	// FLOOR
-	var floor = new THREE.Mesh(
+	let floortext = new THREE.TextureLoader().load( "objects/obj/floor.jpg" );
+
+	let floor = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, maxZ * 2, maxX * 2, maxZ * 2),
-		new THREE.MeshBasicMaterial({ color: 0x0000ff, side: THREE.DoubleSide })
+		new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: floortext})
 	);
 	floor.rotation.x += Math.PI / 2; //can rotate the floor/plane
-	scene.add(floor);
+	scene.add( floor );
+	allObjects.push(floor);
 
-	addWalls();
+	//load models
+	loader = new THREE.GLTFLoader();
 
-	document.getElementById("open").hidden = false;
+	//addPlant
 
-	//choose which object to make when the makeobjectfunction is called
-	geometry = new THREE.BoxGeometry(objectWidth, objectHeight, objectWidth);
-	material = new THREE.MeshBasicMaterial({ color: 0x669966, wireframe: false });
-	object = new THREE.Mesh(geometry, material);
+	const plant = new THREE.Object3D();
+	loader.load('objects/obj/planten.glb', function(gltf) {				
+		plant.add(gltf.scene);
+		plant.scale.x = 20; plant.scale.y = 20; plant.scale.z = 20;
+		plant.position.x= 0; plant.position.y = 7; plant.position.z = 10;
+		scene.add(plant);
+	});
 
-	// ADD GLTFLOADER HERE
+	//add table
+	const table = new THREE.Object3D();
+	loader.load('objects/obj/table.glb', function(gltf) {				
+		table.add(gltf.scene);
+		table.scale.x = 20; table.scale.y = 20; table.scale.z = 20;
+		table.rotation.y += Math.PI / 2;  
+		scene.add(table);
+	});
+	
+	addWalls()
+	allObjects.push(table);
+	allObjects.push(plant);
+
+	document.getElementById("open").hidden = false;	
 
 	// ORBITCONTROLS
 	controls = new THREE.OrbitControls(camera, renderer.domElement);
@@ -69,74 +101,77 @@ function init3D() {
 	controls.minAzimuthAngle = 0; // Prevents left-right rotation of camera
 	controls.maxAzimuthAngle = 0; // Prevents left-right rotation of camera
 
-
 	listener = new THREE.AudioListener();
 
 	myID = 0; // FIXME Should probably have unique myID
 	ourUser = new User(myID, username.value, 10, 10, 0);
+
 	ourUser.object.add(listener);
 	userCount++;
 
 	addText(ourUser);
 
-	controls.target.set(ourUser.getxPosition(), ourUser.getyPosition(), ourUser.getzPosition());
+	controls.target.set(ourUser.getxPosition(), ourUser.getyPosition() + 0.5 * objectSize.y, ourUser.getzPosition());
 	controls.update();
 
 	update();
 }
 
-//Create the texture to display video on wall
-for (var x in remoteStreamList) {
-	var video = remoteStreamList[x];
-	var texture = new THREE.VideoTexture(video);
-	texture.minFilter = THREE.LinearFilter;
-	texture.magFilter = THREE.LinearFilter;
-	texture.format = THREE.RGBFormat;
-}
-
 function addWalls() {
-	if (remoteStreamList.length > 0) {
-		for (var x in remoteStreamList) {
-			var video = document.getElementById(remoteStreamList[x]);
-			var texture = new THREE.VideoTexture(video);
+	let texture = 0;
+
+	if (wallLeft && wallRight && wallFront) {
+		scene.remove(wallLeft);
+		scene.remove(wallRight);
+		scene.remove(wallFront);
+	}
+
+	if (screenShare.srcObject) {
+			texture = new THREE.VideoTexture(screenShare);
 			texture.minFilter = THREE.LinearFilter;
 			texture.magFilter = THREE.LinearFilter;
 			texture.format = THREE.RGBFormat;
-		}
-	}	else {
-		var texture = 0;
 	}
 
-	let wallHeight = 100;
-
-	var wallLeft = new THREE.Mesh(
+	wallLeft = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxY * 2, wallHeight, 1, 1),
-		new THREE.MeshBasicMaterial({ color: 0xff0000, side: THREE.DoubleSide })
+		new THREE.MeshBasicMaterial( { color: "cadetblue", side: THREE.DoubleSide } )
 	);
 
-	wallLeft.rotation.y += Math.PI / 2; //can rotate the floor/plane
+	wallLeft.rotation.y += Math.PI / 2;
 	wallLeft.position.x = -maxX;
 	wallLeft.position.y += wallHeight / 2;
 
-	var wallRight = new THREE.Mesh(
+	wallRight = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxY * 2, wallHeight, 1, 1),
-		new THREE.MeshBasicMaterial({ color: 0xff0000, side: THREE.DoubleSide })
+		new THREE.MeshBasicMaterial( { color: "cadetblue", side: THREE.DoubleSide } )
 	);
 
-	wallRight.rotation.y += Math.PI / 2; //can rotate the floor/plane
+	wallRight.rotation.y += Math.PI / 2;
 	wallRight.position.x = maxX;
 	wallRight.position.y += wallHeight / 2;
 
-	var wallFront = new THREE.Mesh(
-		new THREE.PlaneBufferGeometry(maxX * 2, wallHeight, 1, 1),
-		new THREE.MeshBasicMaterial({side: THREE.DoubleSide, map: texture}));
+	if (!texture) { // If there is no video assign a colour to the front wall
+		wallFront = new THREE.Mesh(
+			new THREE.PlaneBufferGeometry(maxX * 2, wallHeight, 1, 1),
+			new THREE.MeshBasicMaterial( { color: "cadetblue", side: THREE.DoubleSide } )
+		);
+	} else { // If there is a video place the video texture on the wall
+		wallFront = new THREE.Mesh(
+			new THREE.PlaneBufferGeometry(maxX * 2, wallHeight, 1, 1),
+			new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: texture } )
+		);
+	}
 
 	wallFront.position.z = -maxZ;
 	wallFront.position.y += wallHeight / 2;
 
-	scene.add(wallLeft);
-	scene.add(wallRight);
-	scene.add(wallFront);
+	scene.add( wallLeft );
+	scene.add( wallRight );
+	scene.add( wallFront );
+	allObjects.push( wallLeft );
+	allObjects.push( wallRight );
+	allObjects.push( wallFront );
 
 	renderer.render(scene, camera);
 }
@@ -168,19 +203,19 @@ function addText(user) {
 		const shapeSize = 2;
 
 		// Creates an array of Shapes representing nameShowed
-		let shapes = font.generateShapes(nameShowed, shapeSize);
+		let shapes = font.generateShapes(nameShowed, shapeSize/objectScale);
 
 		let textGeometry = new THREE.ShapeBufferGeometry(shapes);
 		
-		// Set center of text object equal to center of 3D-object
+		// Set center of text object equal to center of 3D-text-object
 		textGeometry.computeBoundingBox();
 		textGeometry.center();
-		
+
 		// Determine position of text object realtive to 3D-object
-		textGeometry.translate(0, 0.5 * objectHeight + shapeSize, 0.25 * objectWidth);
+		textGeometry.translate(0, (objectSize.y + shapeSize) / objectScale, 0);
 
 		var text = new THREE.Mesh(textGeometry, textMaterial);
-		
+
 		user.object.add(text);
 	});
 } // end of addText() function
@@ -196,6 +231,7 @@ function removeUser(id) {
 	return UserMap.delete(id);
 }
 
+// Returns the user object corresponding to the given user ID
 function findUser(id) {
 	return UserMap.get(id);
 }
@@ -238,20 +274,35 @@ function userLeft(id) {
 	}
 }
 
+
 //function that makes an object and position it at input coordinates
-var makeNewObject = function(xPosition, yPosition, zPosition) {
-	let object = new THREE.Mesh(geometry, material);
-	object.position.x = xPosition;
-	object.position.y = yPosition;
-	object.position.z = zPosition;
-	scene.add(object);
-	return object;
+var makeNewObject = function(xPosition, yPosition, zPosition){
+	const obj = new THREE.Object3D();
+	console.log("makeNewObject...");
+	loader.load('objects/obj/pawn.glb', function(gltf) {
+		var object = gltf.scene;				
+		//scene.add( gltf.scene );
+		obj.add(object);
+		obj.color = "blue";
+		obj.scale.x = objectScale;
+		obj.scale.y = objectScale;
+		obj.scale.z = objectScale;
+
+		let boundingBox = new THREE.Box3().setFromObject(obj);
+		objectSize = boundingBox.getSize(); // Returns Vector3
+		console.log("objectsize: {" + objectSize.x + objectSize.y + objectSize.z + "}");
+
+		scene.add(obj);
+	});
+	console.log("MakeNewObject finished");
+	return obj;
 };
 
 //A User class. The constructor calls the makenewobject function.
 //constructor adds a User to UserMap
 class User {
 	constructor(id, name, xPosition, yPosition, zPosition) {
+		console.log("constructing user...");
 		this.name = name,
 		this.id = id,
 		this.object = makeNewObject(xPosition, yPosition, zPosition);
@@ -357,7 +408,7 @@ function onDocumentKeyDown(event) {
 	ourUser.move(moveVec);
 
 	// Makes the camera target object when using mouse to move the camera
-	controls.target.set(ourUser.getxPosition(), ourUser.getyPosition(), ourUser.getzPosition());
+	controls.target.set(ourUser.getxPosition(), ourUser.getyPosition() + 0.5 * objectSize.y, ourUser.getzPosition());
 
 	changePos(ourUser.getxPosition(), ourUser.getyPosition(), ourUser.getzPosition());
 }
@@ -374,6 +425,11 @@ function update() {
 }
 
 function leave3D() {
+
+	for (let i in allObjects) {
+		if (allObjects[i]) scene.remove(allObjects[i]);
+	}
+
 	document.removeEventListener("keydown", onDocumentKeyDown);
 	document.removeEventListener("keyup", onDocumentKeyUp);
 	if (document.getElementById("scene")) {

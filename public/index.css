@@ -88,3 +88,37 @@ files {
   margin-left: 50px;
   background-color: #ff6666;
 }
+
+videos {
+  position: absolute;
+  top: 0%;
+  position: absolute;
+  right: 0%;
+}
+
+videos ul {
+  list-style-type: none;
+  padding-left: 0px;
+  display: inline-block;
+  vertical-align: super;
+  position: absolute;
+  right: 0px;
+  position: absolute;
+  top: 0%;
+}
+
+videos ul li {
+  list-style-type: none;
+  padding-bottom: 0px;
+  padding-top: 0px;
+}
+
+buttons {
+  display: inline-block;
+}
+
+canvas {
+  position: absolute;
+  left: 0%;
+  bottom: 0%;
+}

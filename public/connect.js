@@ -1,11 +1,11 @@
 function init() {
 
-  if (username.value === '') {
+  if (username.value === '') { // No username given
     alert('Please enter a username');
     return;
   }
 
-  if (roomName.value === '') {
+  if (roomName.value === '') { // No room name given
     alert('Please enter a room name');
     return;
   }
@@ -50,7 +50,7 @@ function init() {
     ourID = connectionInfo.id;
 
     init3D(); // Renders the 3D environment
-    initSwapView();
+    initSwapView(); // Lets the user quickly switch between chat mode and 3D mode
   });
 
   // A user moved in the 3D space
@@ -64,6 +64,7 @@ function init() {
     console.log("User " + connections[id].name + " left");
     removeConnectionHTMLList(id);
     userLeft(id) // Removes the user from the 3D environment
+    if (connections[id].stream) document.getElementById(connections[id].stream.id).outerHTML = '';
     if (connections[id].connection) connections[id].connection.close();
     if (connections[id].dataChannel) connections[id].dataChannel.close();
     delete connections[id];
@@ -91,7 +92,7 @@ function init() {
     newUserJoined(id, name); // Add new user to 3D environment
   });
 
-  // We have received a PeerConnection offer
+  // We have received an updated PeerConnection offer
   socket.on('newOffer', function(message) {
     let id = message.id;
     let offerDescription = message.offer;
@@ -126,7 +127,7 @@ function init() {
     appendConnectionHTMLList(id);
   });
 
-  // We have received a PeerConnection offer
+  // We have received an answer to our updated PeerConnection offer
   socket.on('newAnswer', function(message) {
 
     let id = message.id;
@@ -183,6 +184,9 @@ function sendOffer(id) {
   createDataChannel(id);
 
   connections[id].connection.addStream(localStream);
+  if (localVideoTrack) {
+    connections[id].senderCam = connections[id].connection.addTrack(localVideoTrack, localStream);
+  }
 
   connections[id].connection.createOffer().then(function(description) {
     connections[id].connection.setLocalDescription(description);
@@ -263,29 +267,57 @@ function createPeerConnection(id) {
     pc.ontrack = function (event) {
       console.log('Remote stream added.');
 
+      console.log(event)
+
       let newStream = new MediaStream([event.track]) // Create a new stream containing the received track
 
       if (event.track.kind == "audio") {
-        userGotMedia(id, newStream); // Adds track to 3D environment
+        userGotMedia(id, newStream); // Adds audio track to 3D environment
       }
 
       if (event.track.kind == "video") {
-        if (sharing && id == shareUser) {
-          screenShare.srcObject = newStream; // Screen capture video
+        if (sharing && id == shareUser) { // Screen capture video
+          screenShare.srcObject = newStream;
 
-          if (document.getElementById(newStream.id)){
-            return
-          }
+          if (document.getElementById(newStream.id)) return; // Ignore if there already is screen sharing
+
+          screenShare.srcObject = null;
+          screenShare.autoplay = true;
+          screenShare.srcObject = newStream;
+          addWalls(); // Add the video track to the 3D environment
+          
+        } else { // Web camera video
+
+          if (!event.streams[0]) return; // Web camera videos should always be in a stream
+
+          connections[id].stream = event.streams[0];
 
           let remoteStream = document.createElement("video");
-          remoteStream.id = newStream.id;
-          remoteStreamList.push(remoteStream.id);
+          let remoteStreamLi = document.createElement("li");
+          remoteStreamLi.id = event.streams[0].id;
           remoteStream.autoplay = true;
-          remoteStream.srcObject = newStream;
-          document.getElementById("video").appendChild(remoteStream);
-          addWalls();
-        } else {
-          // Web camera video
+          remoteStream.srcObject = event.streams[0];
+          remoteStreamLi.appendChild(remoteStream);
+          videoElement.hidden = false;
+          renderer.setSize(window.innerWidth - 320, window.innerHeight - 30);
+          videoElement.children[0].appendChild(remoteStreamLi);
+        }
+      }
+
+      if (event.streams[0]) {
+        event.streams[0].onremovetrack = function (event) { // A track has been removed
+          console.log(connections[id].name + ' removed a track from their stream.')
+          if (event.track.kind == "video") {
+
+            let cameraLi = document.getElementById(connections[id].stream.id);
+            cameraLi.children[0].srcObject = null;
+            screenShare.hidden = true;
+            cameraLi.innerHTML = '';
+            videoElement.children[0].removeChild(cameraLi);
+
+            if (videoElement.children[0].children.length == 0)
+              renderer.setSize(window.innerWidth, window.innerHeight - 30);
+          }
         }
       }
     };
