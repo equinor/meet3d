@@ -1,5 +1,3 @@
-const signalServer = 'ws://localhost:3000';
-
 /**
  * This function is run in order to join a conference. It establishes contact
  * with the signal server which helps create PeerConnection and DataChannel
@@ -22,10 +20,10 @@ function init(button) {
   button.onclick = function() { leave(button) };
 
   room = roomName.value;
-  username.readOnly = true;
-  roomName.readOnly = true;
-  initChat();
-  socket = io(signalServer); // We will change this to a server in the future
+  username.readOnly = true; // Do not allow the user to edit their name, but show it
+  roomName.readOnly = true; // Do not allow the user to edit the room name, but show it
+  initChat(); // Show the chat
+  socket = io(signalServer); // Connect to the signaling server
 
   // We created and joined a room
   socket.on('created', function(connectionInfo) {
@@ -98,7 +96,7 @@ function init(button) {
     connections[id] = {};
     connections[id].name = name;
 
-    sendAnswer(id, offerDescription);
+    sendAnswer(id, offerDescription); // Reply to the offer with our details
     appendConnectionHTMLList(id); // Add their username to the list of connections on the webpage
     newUserJoined(id, name); // Add new user to 3D environment
   });

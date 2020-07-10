@@ -44,12 +44,14 @@ var room; // This is the name of our conference room
 var socket; // This is the SocketIO connection to the signalling server
 var ourID; // This is our unique ID
 var connections = {}; // The key is the socket id, and the value is {name: username, stream: mediastream, connection: PeerConnection}
-const maxChatLength = 20; // The chat will only hold this many messages at a time
 var textFile = null; // This stores any downloaded file
 var sharing = false; // Is someone sharing their screen
 var shareUser = null; // Which user is sharing their screen
 var screenCapture = null; // The stream containing the video capture of our screen
 var unreadMessages = 0; // The number of messages we have received whilst not in 'chat mode'
+
+const maxChatLength = 20; // The chat will only hold this many messages at a time
+const signalServer = 'ws://localhost:3000'; // The signaling server
 
 const pcConfig = {
   'iceServers': [{
@@ -83,7 +85,7 @@ const cameraConstraints = {
   video: {
     width: 250,
     height: 200,
-    resizeMode: "none"/*"crop-and-scale"*/
+    resizeMode: "crop-and-scale"
   }
 };
 
@@ -362,14 +364,15 @@ function addVideoStream(id, stream) {
 
   if (id !== ourID) {
     streamElementLi.hidden = true;
+    streamElement.autoplay = false;
     streamElementLi.id = stream.id; // The ID of the list entry is the ID of the stream
   } else {
+    streamElement.autoplay = true;
     streamElementLi.id = "ourVideo";
   }
 
-  streamElement.autoplay = true;
-  streamElement.width = "250";
-  streamElement.height = "200";
+  streamElement.width = cameraConstraints.video.width;
+  streamElement.height = cameraConstraints.video.height;
   streamElement.srcObject = stream;
   streamElementLi.appendChild(streamElement);
   videoElement.hidden = false;
@@ -392,7 +395,9 @@ function updateVideoVisibility() {
 	for (let i = 0; i < videoListLength; i++) {
     let id = videoList[i];
     if (id == 0) continue;
+
     document.getElementById(connections[id].stream.id).hidden = false;
+    document.getElementById(connections[id].stream.id).children[0].autoplay = true;
   }
 }
 
