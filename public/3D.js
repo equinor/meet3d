@@ -250,7 +250,7 @@ var UserMap = {};
 
 function newUserJoined(id, name) {
 	console.log("Adding new user to the 3D environment: " + name);
-	let newUser = new user(id, name, 10, 10, distance * userCount); // This does not look great at the moment
+	let newUser = new User(id, name, 10, 10, distance * userCount); // This does not look great at the moment
   addText(newUser);
 	addToUserMap(newUser);
 	userCount++;
