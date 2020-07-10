@@ -280,8 +280,6 @@ function createPeerConnection(id) {
     pc.ontrack = function (event) {
       console.log('Remote stream added.');
 
-      console.log(event)
-
       let newStream = new MediaStream([event.track]) // Create a new stream containing the received track
 
       if (event.track.kind == "audio") {
@@ -376,7 +374,7 @@ function createDataChannel(id) {
   tempConnection.addEventListener("open", () => {
     connections[id].dataChannel = tempConnection
     console.log("Datachannel established to " + connections[id].name);
-    changePos(findUser(myID).getxPosition(), findUser(myID).getyPosition(), findUser(myID).getzPosition());
+    changePos(findUser(ourID).getxPosition(), findUser(ourID).getyPosition(), findUser(ourID).getzPosition());
 
     if (sharing && shareUser == ourID) {
       let shareJSON = JSON.stringify({
