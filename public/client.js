@@ -13,7 +13,7 @@ var changeModeButton = document.getElementById("changeMode");
 var files = document.getElementById("files");
 var receivedFiles = document.getElementById("receivedFiles");
 var screenShare = document.getElementById("screenShare");
-var notification = document.getElementById("notification"); 
+var notification = document.getElementById("notification");
 var sceneDiv = document.getElementById("3D");
 var videoElement = document.getElementById("remoteVideo");
 
@@ -82,7 +82,8 @@ const cameraConstraints = {
   audio: false,
   video: {
     width: 250,
-    height: 200
+    height: 200,
+    resizeMode: "none"/*"crop-and-scale"*/
   }
 };
 
@@ -367,6 +368,8 @@ function addVideoStream(id, stream) {
   }
 
   streamElement.autoplay = true;
+  streamElement.width = "250";
+  streamElement.height = "200";
   streamElement.srcObject = stream;
   streamElementLi.appendChild(streamElement);
   videoElement.hidden = false;
@@ -377,7 +380,7 @@ function addVideoStream(id, stream) {
     videoElement.children[0].appendChild(streamElementLi);
   }
 
-  renderer.setSize(window.innerWidth - 320, window.innerHeight - 30); // Make space for the videos on the screen
+  renderer.setSize(window.innerWidth - cameraConstraints.video.width, window.innerHeight - 30); // Make space for the videos on the screen
   updateVideoList(id); // Update the list of what videos to show, in 3D.js
 }
 
@@ -439,7 +442,7 @@ function stopShareCamera(button) {
     connections[id].connection.removeTrack(connections[id].senderCam); // Update our media stream for the other users
   }
 
-  button.onclick = function () { shareCamera() };
+  button.onclick = function () { shareCamera(button) };
   button.value = "Add video";
 
   let videoSrc = cameraLi.children[0].srcObject; // Get the stream
