@@ -134,7 +134,7 @@ function init3D() {
 }
 
 //list of files
-var filelist = ["Anglerfish/Anglerfish.glb","ArmoredCatfish/ArmoredCatfish.glb","Betta/Betta.glb" ]
+var filelist = ["Anglerfish/Anglerfish.glb","ArmoredCatfish/ArmoredCatfish.glb","Betta/Betta.glb", "BlackLionFish/BlackLionFish.glb", "Blobfish/Blobfish.glb", "obj/BlueGoldfish.glb", "obj/Clownfish.glb" ]
 
 function addWalls() {
 	let texture = 0;
