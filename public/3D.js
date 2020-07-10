@@ -228,9 +228,6 @@ function updateVideoList(id) {
 		videoList = []; // Reset the list of videos to display
 		videoListLength = 0;
 		for (const testID in UserMap) {
-			console.log(testID)
-			console.log(ourID)
-			console.log(connections)
 			if (testID == ourID || !connections[testID].stream || videoList.includes(testID)) {
 				continue; // Ignore our own user, those who do not have video and those already in the list
 			}
@@ -321,12 +318,11 @@ function userLeft(id) {
 
 
 //function that makes an object and position it at input coordinates
-var makeNewObject = function(xPosition, yPosition, zPosition){
+var makeNewObject = function(xPosition, yPosition, zPosition) {
 	const obj = new THREE.Object3D();
 	console.log("makeNewObject...");
 	loader.load('objects/obj/pawn.glb', function(gltf) {
 		var object = gltf.scene;
-		//scene.add( gltf.scene );
 		obj.add(object);
 		obj.color = "blue";
 		obj.scale.x =7;
@@ -334,6 +330,8 @@ var makeNewObject = function(xPosition, yPosition, zPosition){
 		obj.scale.z =7;
 		scene.add(obj);
 	});
+
+	allObjects.push(obj);
 
 	console.log("MakeNewObject finished");
 	return obj;
@@ -352,9 +350,9 @@ class user {
 
 	getName() { return this.name };
 	getId() { return this.id };
-	getxPosition() { return this.object.position.x; }
-	getyPosition() { return this.object.position.y; }
-	getzPosition() { return this.object.position.z; }
+	getxPosition() { return this.object.position.x; };
+	getyPosition() { return this.object.position.y; };
+	getzPosition() { return this.object.position.z; };
 
 	setxPosition(xPosition) {
 		if (xPosition < maxX && xPosition > -maxX) {
@@ -363,7 +361,7 @@ class user {
 		} else {
 			return false;
 		}
-	}
+	};
 
 	setyPosition(yPosition) {
 		if (yPosition < maxY && yPosition > -maxY) {
@@ -372,7 +370,7 @@ class user {
 		} else {
 			return false
 		}
-	}
+	};
 
 	setzPosition(zPosition) {
 		if (zPosition < maxZ && zPosition > -maxZ) {
@@ -381,13 +379,13 @@ class user {
 		} else {
 			return false;
 		}
-	}
+	};
 
 	setPosition(xPosition, yPosition, zPosition) {
 		if (xPosition < maxX && xPosition > -maxX) this.object.position.x = xPosition;
 		if (yPosition < maxY && yPosition > -maxY) this.object.position.y = yPosition;
 		if (zPosition < maxZ && zPosition > -maxZ) this.object.position.z = zPosition;
-	}
+	};
 
 	getMedia(){ return this.media };
 	setMedia(media) {
@@ -485,8 +483,6 @@ function leave3D() {
 	if (document.getElementById("scene")) {
 		document.getElementById("scene").outerHTML = ''; // Deletes the scene canvas
 	}
-
-	//renderer.setSize(window.innerWidth, window.innerHeight - 30);
 
 	UserMap = {};
 	controls = null;
