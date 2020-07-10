@@ -1,12 +1,10 @@
-
-var renderer;
-var camera;
 var scene;
+var camera;
+var renderer;
 var controls;
 
 var geometry;
 var material;
-//var object;
 var myID;
 var requestID = undefined;
 
@@ -77,6 +75,7 @@ function init3D() {
 	myID = 0; // FIXME Should probably have unique myID
 	ourUser = new User(myID, username.value, 10, 10, 0);
 	ourUser.object.add(listener);
+	userCount++;
 
 	addText(ourUser);
 
@@ -210,6 +209,7 @@ function newUserJoined(id, name) {
 	addText(newUser);
 	addToUserMap(newUser);
 	userCount++;
+	console.log("Usercount now: " + userCount);
 }
 
 function changeUserPosition(id, x, y, z) {
@@ -307,32 +307,48 @@ function onDocumentKeyDown(event) {
 	keysPressed[event.key] = true;
 	switch (key) {
 		case 'w':
-		case 'arrow up':
-			if ((keysPressed['d']) || (keysPressed['arrow right'])) {
+			if (keysPressed['d']) {
 				moveVec = ourUser.getValidMoveVec( speed, 0, -speed );
-			} else if ((keysPressed['a']) || (keysPressed['arrow left'])) {
+			}
+			else if (keysPressed['a']) {
 				moveVec = ourUser.getValidMoveVec( -speed, 0, -speed );
-			} else {
+			}
+			else {
 				moveVec = ourUser.getValidMoveVec( 0, 0, -speed );
 			}
 			break;
 		case 's':
-		case 'arrow down':
-			if ((keysPressed['d']) || (keysPressed['arrow right'])) {
+			if (keysPressed['d']) {
 				moveVec = ourUser.getValidMoveVec( speed, 0, speed );
-			} else if ((keysPressed['a']) || (keysPressed['arrow left'])) {
+			}
+			else if (keysPressed['a']) {
 				moveVec = ourUser.getValidMoveVec( -speed, 0, speed );
-			} else {
+			}
+			else {
 				moveVec = ourUser.getValidMoveVec( 0, 0, speed );
 			}
 			break;
 		case 'd':
-		case 'arrow right':
-			moveVec = ourUser.getValidMoveVec( speed, 0, 0 );
+			if (keysPressed['w']) {
+				moveVec = ourUser.getValidMoveVec( speed, 0, -speed );
+			}
+			else if (keysPressed['s']) {
+				moveVec = ourUser.getValidMoveVec( speed, 0, speed );
+			}
+			else {
+				moveVec = ourUser.getValidMoveVec( speed, 0, 0 );
+			}
 			break;
 		case 'a':
-		case 'arrow left':
-			moveVec = ourUser.getValidMoveVec( -speed, 0, 0 );
+			if (keysPressed['w']) {
+				moveVec = ourUser.getValidMoveVec( -speed, 0, -speed );
+			}
+			else if (keysPressed['s']) {
+				moveVec = ourUser.getValidMoveVec( -speed, 0, speed );
+			}
+			else {
+				moveVec = ourUser.getValidMoveVec( -speed, 0, 0 );
+			}
 			break;
 		default:
 			break;
@@ -363,10 +379,9 @@ function leave3D() {
 	if (document.getElementById("scene")) {
 		document.getElementById("scene").outerHTML = ''; // Deletes the scene canvas
 	}
-	controls = null;
-	renderer = null;
-	camera = null;
 	scene = null;
+	camera = null;
+	renderer = null;
 	controls = null;
 	geometry = null;
 	material = null;
