@@ -3,15 +3,16 @@ var renderer;
 var camera;
 var scene;
 var controls;
-
 var geometry;
 var material;
 var object;
-var myID;
 var requestID = undefined;
 var userCount = 0;
 var listener;
 var allObjects = []; // Stores all 3D objects so that they can be removed later
+var videoList = []; // The list of remote videos to display
+var videoListLength = 0; // The number of videos to show at a time, not including our own
+var ourUser;
 
 let wallLeft;
 let wallRight;
@@ -23,6 +24,7 @@ const maxY = 100; // This is probably not needed
 const maxZ = 100;
 const speed = 3;
 const wallHeight = 100;
+const videoCount = 3;
 
 var listener
 var loader
@@ -94,7 +96,7 @@ function init3D() {
 	allObjects.push(table);
 	allObjects.push(plant);
 
-	document.getElementById("open").hidden = false;
+	changeModeButton.hidden = false; // Allows the user to open the 3D environment
 
 /*
 	//choose which object to make when the makeobjectfunction is called
@@ -115,11 +117,11 @@ function init3D() {
 	controls.minAzimuthAngle = 0; // Prevents left-right rotation of camera
 	controls.maxAzimuthAngle = 0; // Prevents left-right rotation of camera
 
-	myID = new user(0, "test", 10, 20, 5).getId();
+	new user(ourID, "test", 10, 10, 0).getId(); // Can use findUser(ourID) to get it
 
 	listener = new THREE.AudioListener();
 
-	ourUser = findUser(myID);
+	ourUser = findUser(ourID);
 	ourUser.object.add(listener);
 	
 
@@ -132,13 +134,13 @@ function init3D() {
 function addWalls() {
 	let texture = 0;
 
-	if (wallLeft && wallRight && wallFront) {
+	if (wallLeft && wallRight && wallFront) { // If the walls already exist, remove them
 		scene.remove(wallLeft);
 		scene.remove(wallRight);
 		scene.remove(wallFront);
 	}
 
-	if (screenShare.srcObject) {
+	if (screenShare.srcObject) { // If someone is sharing their screen, display it
 			texture = new THREE.VideoTexture(screenShare);
 			texture.minFilter = THREE.LinearFilter;
 			texture.magFilter = THREE.LinearFilter;
@@ -190,32 +192,125 @@ function addWalls() {
 
 //function to add a user to the UsersMap
 function addToUserMap(User) {
-	UserMap.set(User.getId(), User);
+	UserMap[User.getId()] = User;
 	return UserMap;
 }
 
 //return true if a user with the id passed in parameter was a part of the UserMap and removed, false otherwise
 function removeUser(id) {
-	return UserMap.delete(id);
+	delete UserMap[id];
 }
 
 // Returns the user object corresponding to the given user ID
 function findUser(id) {
-	return UserMap.get(id);
+	return UserMap[id];
 }
 
 //map to store the Users
-var UserMap = new Map();
+var UserMap = {};
 
 function newUserJoined(id, name) {
-	console.log("Adding new user to the environment: " + name);
+	console.log("Adding new user to the 3D environment: " + name);
 	let newUser = new user(id, name, 10, 10, distance * userCount); // This does not look great at the moment
 	addToUserMap(newUser);
 	userCount++;
+	updateVideoList(id);
 }
 
 function changeUserPosition(id, x, y, z) {
 	findUser(id).setPosition(x, y, z);
+	if (connections[id].stream) {
+		updateVideoList(id);
+	}
+}
+
+/**
+ * This function updates the list of videos to display on the screen. Only the
+ * 'videoCount' number of videos closest to the user are displayed. This is
+ * done using a basic insertion sort algorithm.
+ */
+function updateVideoList(id) {
+
+	if (connections[id] && !connections[id].stream) {
+		return; // Ignore users who do not share video
+	}
+
+	if (videoList.includes(id) || id == ourID) { // In this case we need to update the entire list using all positions
+		for (let i = 0; i < videoListLength; i++) {
+	    let id = videoList[i];
+			if (id && connections[id] && connections[id].stream) {
+				document.getElementById(connections[id].stream.id).hidden = true; // Hide currently shown videos
+				document.getElementById(connections[id].stream.id).children[0].autoplay = false;
+			}
+	  }
+
+		videoList = []; // Reset the list of videos to display
+		videoListLength = 0;
+		for (const testID in UserMap) {
+			if (testID == ourID || !connections[testID].stream || videoList.includes(testID)) {
+				continue; // Ignore our own user, those who do not have video and those already in the list
+			}
+
+			let shiftedID = shiftVideoList(testID); // Try to add 'testID' to the list
+
+			if (shiftedID !== 0) { // Someone was shifted out of the list, which means 'testID' was added
+				if (videoListLength < videoCount) { // If there is more room, add them in at the end
+					videoList[videoListLength] = shiftedID;
+					videoListLength++;
+				}
+			} else { // Noone was removed from the list, which means 'testID' was not added
+				if (videoListLength < videoCount) {
+					videoList[videoListLength] = testID;
+					videoListLength++;
+				}
+			}
+		}
+	} else if (videoListLength < videoCount) { // The list is not full so just add the user
+		let shifted = shiftVideoList(id);
+		if (shifted) {
+			videoList[videoListLength] = shifted; // Re-add the user that was shifted out
+		} else {
+			videoList[videoListLength] = id; // Add the current ID at the end
+		}
+		videoListLength++;
+	} else { // Try to fit the user into the list, and if it succeeds then hide the user that was shifted out
+		let shiftedID = shiftVideoList(id);
+		if (shiftedID !== 0) { // Someone was shifted out of the list, so we hide them
+			document.getElementById(connections[shiftedID].stream.id).hidden = true;
+			document.getElementById(connections[shiftedID].stream.id).autoplay = false;
+		}
+	}
+	updateVideoVisibility(); // Updates the HTML so that only the users in the list are shown
+}
+
+/**
+ * Inserts an ID into the videoList, shifting the later elements along. If any
+ * element gets shifted out of the array then their ID is returned, and 0 otherwise
+ */
+function shiftVideoList(id) {
+
+	let thisDistance = getDistance(id);
+	let shiftedID = 0;
+	for (let i = 0; i < videoListLength; i++) {
+
+		if (shiftedID) { // If an ID has been inserted, shift the later entries along
+			let tempID = shiftedID
+			shiftedID = videoList[i];
+			videoList[i] = tempID;
+		}	else if (getDistance(videoList[i]) >= thisDistance) {
+			// If the user 'id' is closer than the current entry then replace the entry and shift it along
+			shiftedID = videoList[i];
+			videoList[i] = id;
+		}
+	}
+	return shiftedID; // Return the shifted ID or 0 otherwise
+}
+
+function getDistance(id) {
+	let otherUser = findUser(id);
+	return Math.abs(otherUser.getxPosition() - ourUser.getxPosition()) +
+		Math.abs(otherUser.getyPosition() - ourUser.getyPosition()) +
+		Math.abs(otherUser.getzPosition() - ourUser.getzPosition());
 }
 
 function userGotMedia(id, mediaStream) {
@@ -282,25 +377,25 @@ class user {
 		addToUserMap(this)
 	};
 
-	getName(){ return this.name };
-	getId(){ return this.id };
-	getxPosition(){ return this.object.position.x; }
-	getyPosition(){ return this.object.position.y; }
-	getzPosition(){ return this.object.position.z; }
+	getName() { return this.name };
+	getId() { return this.id };
+	getxPosition() { return this.object.position.x; }
+	getyPosition() { return this.object.position.y; }
+	getzPosition() { return this.object.position.z; }
 
 	setxPosition(xPosition) {
 		if (xPosition < maxX && xPosition > -maxX) {
 			this.object.position.x = xPosition;
-			return true
+			return true;
 		} else {
-			return false
+			return false;
 		}
 	}
 
 	setyPosition(yPosition) {
 		if (yPosition < maxY && yPosition > -maxY) {
 			this.object.position.y = yPosition;
-			return true
+			return true;
 		} else {
 			return false
 		}
@@ -309,9 +404,9 @@ class user {
 	setzPosition(zPosition) {
 		if (zPosition < maxZ && zPosition > -maxZ) {
 			this.object.position.z = zPosition;
-			return true
+			return true;
 		} else {
-			return false
+			return false;
 		}
 	}
 
@@ -330,7 +425,6 @@ class user {
 var keysPressed = {};
 function onDocumentKeyDown(event) {
 	var key = event.key;
-	let ourUser = findUser(myID);
 	keysPressed[event.key] = true;
 	switch (key) {
 		case 'w':
@@ -389,12 +483,12 @@ function onDocumentKeyDown(event) {
 	controls.target.set(ourUser.object.position.x, ourUser.object.position.y, ourUser.object.position.z);
 
 	changePos(ourUser.getxPosition(), ourUser.getyPosition(), ourUser.getzPosition());
+	updateVideoList(ourID);
 }
 
 function onDocumentKeyUp(event) {
 	delete keysPressed[event.key];
 }
-
 
 //function to update frame
 function update() {
@@ -426,7 +520,6 @@ function leave3D() {
 	geometry = null;
 	material = null;
 	object = null;
-	myID = null;
 	userCount = 0;
 	window.cancelAnimationFrame(requestID); // Stops rendering the scene
 	requestID = undefined;

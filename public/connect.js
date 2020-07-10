@@ -1,4 +1,10 @@
-function init() {
+/**
+ * This function is run in order to join a conference. It establishes contact
+ * with the signal server which helps create PeerConnection and DataChannel
+ * connections with the other users in the conference. It also first gets the
+ * audio stream from the user microphone which is added to the PeerConnections.
+ */
+function init(button) {
 
   if (username.value === '') { // No username given
     alert('Please enter a username');
@@ -10,11 +16,14 @@ function init() {
     return;
   }
 
+  button.value = "Leave";
+  button.onclick = function() { leave(button) };
+
   room = roomName.value;
-  username.readOnly = true;
-  roomName.readOnly = true;
-  initChat();
-  socket = io('ws://localhost:3000'); // We will change this to a server in the future
+  username.readOnly = true; // Do not allow the user to edit their name, but show it
+  roomName.readOnly = true; // Do not allow the user to edit the room name, but show it
+  initChat(); // Show the chat
+  socket = io(signalServer); // Connect to the signaling server
 
   // We created and joined a room
   socket.on('created', function(connectionInfo) {
@@ -87,7 +96,7 @@ function init() {
     connections[id] = {};
     connections[id].name = name;
 
-    sendAnswer(id, offerDescription);
+    sendAnswer(id, offerDescription); // Reply to the offer with our details
     appendConnectionHTMLList(id); // Add their username to the list of connections on the webpage
     newUserJoined(id, name); // Add new user to 3D environment
   });
@@ -101,7 +110,7 @@ function init() {
 
     if (connections[id].signalingState == "stable") return;
 
-    console.log('>>>>>> Sending new answer to connection to user ' + connections[id].name);
+    console.log('Sending new answer to connection to user ' + connections[id].name);
 
     connections[id].connection.setRemoteDescription(new RTCSessionDescription(offerDescription));
     connections[id].connection.createAnswer().then(function(description) {
@@ -178,7 +187,7 @@ function init() {
 
 // Sends an offer to a new user with our local PeerConnection description
 function sendOffer(id) {
-  console.log('>>>>>> Creating peer connection to user ' + connections[id].name);
+  console.log('Creating peer connection to user ' + connections[id].name);
   connections[id].connection = createPeerConnection(id);
 
   createDataChannel(id);
@@ -240,6 +249,10 @@ function gotLocalStream(stream) {
   }
 }
 
+/**
+ * Creates a PeerConnection to the user with ID 'id', and sets the listeners
+ * for the connection.
+ */
 function createPeerConnection(id) {
   let pc;
 
@@ -285,22 +298,12 @@ function createPeerConnection(id) {
           screenShare.autoplay = true;
           screenShare.srcObject = newStream;
           addWalls(); // Add the video track to the 3D environment
-          
+
         } else { // Web camera video
 
           if (!event.streams[0]) return; // Web camera videos should always be in a stream
 
-          connections[id].stream = event.streams[0];
-
-          let remoteStream = document.createElement("video");
-          let remoteStreamLi = document.createElement("li");
-          remoteStreamLi.id = event.streams[0].id;
-          remoteStream.autoplay = true;
-          remoteStream.srcObject = event.streams[0];
-          remoteStreamLi.appendChild(remoteStream);
-          videoElement.hidden = false;
-          renderer.setSize(window.innerWidth - 320, window.innerHeight - 30);
-          videoElement.children[0].appendChild(remoteStreamLi);
+          addVideoStream(id, event.streams[0]);
         }
       }
 
@@ -315,8 +318,12 @@ function createPeerConnection(id) {
             cameraLi.innerHTML = '';
             videoElement.children[0].removeChild(cameraLi);
 
+            connections[id].stream = null;
+
             if (videoElement.children[0].children.length == 0)
               renderer.setSize(window.innerWidth, window.innerHeight - 30);
+
+            updateVideoList(id);
           }
         }
       }
@@ -356,7 +363,7 @@ function createPeerConnection(id) {
     console.log('>>>>>> Created RTCPeerConnection');
 
   } catch (e) {
-    console.log('Failed to create PeerConnection, exception: ' + e.message);
+    console.log('Failed to create PeerConnection. Exception: ' + e.message);
     alert('Cannot create RTCPeerConnection.');
     return;
   }
