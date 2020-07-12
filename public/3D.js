@@ -92,44 +92,26 @@ function addWalls() {
 
 //load the .gltf file passed in argument, store the 3D object and in corresponding animation in listAvatars, add the object to the scene outside the field of view
 function makeNewObjects(ressource){
-	console.log("creating object: " + ressource + " ...");
+	console.log("creating object: " + ressource);
 	var avatar = {};
-	avatar['model'] = new THREE.Object3D(); //spookey
+	avatar['model'] = new THREE.Object3D();
 	loader.load(ressource, function(gltf) { //this could probably be vastly improved
 		avatar.model.add(gltf.scene);
 		avatar.model.scale.x = 7;
 		avatar.model.scale.y = 7;
 		avatar.model.scale.z = 7;
-		/*avatar.model.position.x = 0;
-		avatar.model.position.y = 0; //deep under the scene
-		avatar.model.position.z = 0;*/
-		
-		//avatar.model.position.x = 10;
-		//avatar.model.position.y = 10;
-		//avatar.model.position.z = (distance * userCount);
-
-		//scene.add(avatar.model);
-		var animation = gltf.animations[0];
-		var mixer = new THREE.AnimationMixer(avatar.model);
-		var action = mixer.clipAction(animation);
-		//avatar['model'] = model;
-		avatar['animation'] = animation;
-		avatar['mixer'] = mixer;
-		avatar['swim'] = action;
-		//console.log(avatar);
+		avatar['clips'] = gltf.animations;
+		avatar['mixer'] = new THREE.AnimationMixer(gltf.scene);
+		avatar['swim'] = avatar.mixer.clipAction(gltf.animations[0]);
+		avatar.swim.play();
 	});
-	console.log(avatar.model);
 	listAvatars.push(avatar);
-	console.log("listAvatar :");
 	console.log(listAvatars);
-	console.log("creating object: " + ressource + " finished");
 	return avatar;
 }
 
 function newUserJoined(id, name){
-	console.log("Adding new user to the 3D environment: " + name + " ...");
-	console.log("listAvatars : ");
-	console.log(listAvatars);
+	console.log("Adding new user to the 3D environment: " + name);
 	var user = {};
 	user['id'] = id;
 	user['name'] = name;
@@ -138,23 +120,12 @@ function newUserJoined(id, name){
 	user.avatar.model.position.y = 10;
 	user.avatar.model.position.z = (distance * userCount);
 	scene.add(user.avatar.model);
-	console.log("user : ");
-	console.log(user);
 	addToUserMap(user);
-	console.log("UserMap : ");
-	console.log(UserMap);
-	//changeUserPosition(user.id, 0, 0, 0);
-	console.log(user);
-	console.log(UserMap);
 	return user;
 }
 
 function addToUserMap(User) {
-	console.log("addToUserMap(");
-	console.log(User);
-	console.log(") ...");
 	UserMap[User.id] = User;
-	console.log(UserMap);
 	return UserMap;
 }
 
@@ -170,54 +141,36 @@ function removeFromUserMap(id) {
 
 // Returns the user object corresponding to the given user ID if found, false otherwise
 function findUser(id) {
-	console.log("findUser(" + id + ")...");
 	if(UserMap[id]){
-		console.log("findUser(" + id + ") : ");
-		console.log(UserMap[id]);
 		return UserMap[id];
 	}
-	console.log("findUser(" + id + ") : false");
 	return false;
 }
 
 function changeUserPosition(id, x, y, z) {
-	console.log("changeUserPosition(" + id + ", " + x + ", " + y + ", " + z + ") ...");
 	findUser(id).avatar.model.position.x = x;
 	findUser(id).avatar.model.position.y = y;
 	findUser(id).avatar.model.position.z = z;
-	console.log("changeUserPosition(" + id + ", " + x + ", " + y + ", " + z + ") done!");
 }
 
 function changeUserRotation(id, x, y, z) {
-	console.log("changeUserRotation(" + id + ", " + x + ", " + y + ", " + z + ") ...");
 	findUser(id).avatar.model.rotation.x = x;
 	findUser(id).avatar.model.rotation.y = y;
 	findUser(id).avatar.model.rotation.z = z;
-	console.log("changeUserRotation(" + id + ", " + x + ", " + y + ", " + z + ") done!");
 }
 
 //put the object passed in argument outside of the field of view of the scene and add it to listAvatar
 function removeAvatar(avatar){
-	console.log("removeAvatar ...");
-	console.log(avatar);
-	/*avatar.model.position.x = 0;
-	avatar.model.position.y = 0; //deep under the scene
-	avatar.model.position.z = 0;*/
 	listAvatars.push(avatar);
 	scene.remove(avatar.model);
-	console.log(listAvatars);
-	console.log("removeAvatar finished!");
 }
 
 function userLeft(id) {
-	console.log("userLeft(" + id + ") ...");
 	removeAvatar(findUser(id).avatar);
 	if (removeFromUserMap(id)) {
 		userCount--;
-		console.log("userLeft(" + id + "finished successfully!");
 		return true;
 	}
-	console.log("userLeft(" + id + "finished unsuccessfully!");
 	return false;
 }
 
@@ -236,32 +189,9 @@ function userGotMedia(id, mediaStream) {
 	};
 }
 
-//try to move ourUser to the position passed in argument, return true if the move is valid, false otherwise
-//function move(x, y, z){
-	/*var result = false;
-	if (ourUser.avatar.model.position.x < maxX && ourUser.avatar.model.position.x > -maxX) {
-		ourUser.avatar.model.position.x = x;
-		result = true;
-	}
-	if (ourUser.avatar.model.position.y < maxY && ourUser.avatar.model.position.y > -maxY) {
-		ourUser.avatar.model.position.y = y;
-		result = true;
-	}
-	if (ourUser.avatar.model.position.z < maxZ && ourUser.avatar.model.position.z > -maxZ) {
-		ourUser.avatar.model.position.z = z;
-		result = true;
-	}
-	return result;*/
-	//ourUser.avatar.model.position.x = x;
-	//ourUser.avatar.model.position.y = y;
-	//ourUser.avatar.model.position.z = z;
-//}
-
 //return the coordinates of the user whose id is passed in argument but false is no user with this id could be found
 function getUserPosition(id){ //spookey
 	var user = findUser(id);
-	console.log("getUserPosition(" + id + ") ...");
-	console.log(user);
 	if(user == false){
 		return false;
 	}
@@ -269,7 +199,6 @@ function getUserPosition(id){ //spookey
 	result["x"] = user.avatar.model.position.x;
 	result["y"] = user.avatar.model.position.y;
 	result["z"] = user.avatar.model.position.z;
-	console.log(result);
 	return result;
 }
 
@@ -278,7 +207,6 @@ function onDocumentKeyDown(event) {
 	var key = event.key;
 	keysPressed[event.key] = true;
 	var currentPosition = getUserPosition(myID);
-	console.log("Position BEFORE moving : " + currentPosition);
 	switch (key) {
 		case 'w':
 		case 'arrow up':
@@ -356,7 +284,6 @@ function onDocumentKeyDown(event) {
 			break;
 	}
 	currentPosition = getUserPosition(myID);
-	console.log("Position AFTER moving : " + currentPosition);
 
 	camera.position = currentPosition;
 	controls.target.set(currentPosition.x, currentPosition.y, currentPosition.z);
@@ -438,7 +365,7 @@ function init3D() {
 	addWalls()
 	allObjects.push(table);
 	allObjects.push(plant);
-	
+
 	document.getElementById("open").hidden = false;
 
 	// ORBITCONTROLS
@@ -451,25 +378,45 @@ function init3D() {
 	controls.minAzimuthAngle = 0; // Prevents left-right rotation of camera
 	controls.maxAzimuthAngle = 0; // Prevents left-right rotation of camera
 
-	// FISHTOWN
-	makeNewObjects('objects/obj/BlueGoldfish.glb');
-	makeNewObjects('objects/obj/BlueGoldfish.glb');
-	makeNewObjects('objects/obj/BlueGoldfish.glb');
-	makeNewObjects('objects/obj/BlueGoldfish.glb');
-	makeNewObjects('objects/obj/BlueGoldfish.glb');
+	// Users' models
+	makeNewObjects('objects/Anglerfish/Anglerfish.glb');
+	makeNewObjects('objects/ArmoredCatfish/ArmoredCatfish.glb');
+	makeNewObjects('objects/Betta/Betta.glb');
+	makeNewObjects('objects/BlackLionFish/BlackLionFish.glb');
+	makeNewObjects('objects/Blobfish/Blobfish.glb');
+	makeNewObjects('objects/BlueGoldfish/BlueGoldfish.glb');
+	makeNewObjects('objects/BlueTang/BlueTang.glb');
+	makeNewObjects('objects/ButterflyFish/ButterflyFish.glb');
+	makeNewObjects('objects/CardinalFish/CardinalFish.glb');
+	makeNewObjects('objects/Clownfish/Clownfish.glb');
+	makeNewObjects('objects/CoralGrouper/CoralGrouper.glb');
+	makeNewObjects('objects/Cowfish/Cowfish.glb');
+	makeNewObjects('objects/Flatfish/Flatfish.glb');
+	makeNewObjects('objects/FlowerHorn/FlowerHorn.glb');
+	makeNewObjects('objects/GoblinShark/GoblinShark.glb');
+	makeNewObjects('objects/Goldfish/Goldfish.glb');
+	makeNewObjects('objects/Humphead/Humphead.glb');
+	makeNewObjects('objects/Koi/Koi.glb');
+	makeNewObjects('objects/Lionfish/Lionfish.glb');
+	makeNewObjects('objects/MandarinFish/MandarinFish.glb');
+	makeNewObjects('objects/MoorishIdol/MoorishIdol.glb');
+	makeNewObjects('objects/ParrotFish/ParrotFish.glb');
+	makeNewObjects('objects/Piranha/Piranha.glb');
+	makeNewObjects('objects/Puffer/Puffer.glb');
+	makeNewObjects('objects/RedSnapper/RedSnapper.glb');
+	makeNewObjects('objects/RoyalGramma/RoyalGramma.glb');
+	makeNewObjects('objects/Shark/Shark.glb');
+	makeNewObjects('objects/Sunfish/Sunfish.glb');
+	makeNewObjects('objects/Swordfish/Swordfish.glb');
+	makeNewObjects('objects/Tang/Tang.glb');
+	makeNewObjects('objects/Tetra/Tetra.glb');
+	makeNewObjects('objects/Tuna/Tuna.glb');
+	makeNewObjects('objects/Turbot/Turbot.glb');
+	makeNewObjects('objects/YellowTang/YellowTang.glb');
+	makeNewObjects('objects/ZebraClownFish/ZebraClownFish.glb');
 
 	myID = newUserJoined(0, "test").id;
 	ourUser = findUser(myID);
-
-	//for test purposes
-	user2 = newUserJoined(1, "test2");
-	user3 = newUserJoined(2, "test3");
-	user4 = newUserJoined(3, "test4");
-	user5 = newUserJoined(4, "test5");
-	userLeft(3);
-	userLeft(4);
-	user4 = newUserJoined(3, "test4");
-
 
 	listener = new THREE.AudioListener();
 
