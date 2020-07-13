@@ -23,7 +23,11 @@ function init(button) {
   username.readOnly = true; // Do not allow the user to edit their name, but show it
   roomName.readOnly = true; // Do not allow the user to edit the room name, but show it
   initChat(); // Show the chat
+
+  console.log(signalServer)
   socket = io(signalServer); // Connect to the signaling server
+  console.log("hei")
+  console.log(socket)
 
   // We created and joined a room
   socket.on('created', function(connectionInfo) {
@@ -156,18 +160,20 @@ function init(button) {
     let answerDescription = message.candidateData;
     if (id === ourID) return;
 
+    /*
     let candidate = new RTCIceCandidate({
       sdpMLineIndex: answerDescription.label,
       candidate: answerDescription.candidate
     });
+    */
+    let candidate = new RTCIceCandidate(answerDescription);
     connections[id].connection.addIceCandidate(candidate);
   });
 
   // Gets the audio stream from our microphone
-  navigator.mediaDevices.getUserMedia({
-    audio: true,
-    video: false
-  }).then(gotLocalStream).catch(function(e) {
+  navigator.mediaDevices.getUserMedia(constraints)
+  .then(gotLocalStream) // Success
+  .catch(function(e) { // Failure
     if (e.name === "NotAllowedError") {
       alert('Unfortunately, access to the microphone is necessary in order to use the program. ' +
       'Permissions for this webpage can be updated in the settings for your browser, ' +
@@ -181,8 +187,12 @@ function init(button) {
   });
 
   if (location.hostname !== 'localhost') { // If we are not hosting locally
-    requestTurn('https://computeengineondemand.appspot.com/turn?username=41784574&key=4080218913');
+    requestTurn('meet3d.norwayeast.cloudapp.azure.com');
   }
+
+  console.log(location)
+
+  console.log("heisan")
 }
 
 // Sends an offer to a new user with our local PeerConnection description
@@ -268,9 +278,12 @@ function createPeerConnection(id) {
           id: id,
           info: {
             type: 'candidate',
+            /*
             label: event.candidate.sdpMLineIndex,
             id: event.candidate.sdpMid,
             candidate: event.candidate.candidate
+            */
+            candidate: event.candidate
           }
         });
       } else {

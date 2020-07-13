@@ -54,9 +54,23 @@ const maxChatLength = 20; // The chat will only hold this many messages at a tim
 const signalServer = 'ws://localhost:3000'; // The signaling server
 
 const pcConfig = {
+  /*
   'iceServers': [{
     'urls': 'stun:stun.l.google.com:19302'
   }]
+  */
+
+  iceServers: [
+    {
+      urls: 'turn:51.120.91.82:19403',
+      username: 'default_turn_user',
+      credentials: 'lime_mercury_hammerkop'
+    },
+    {
+      'urls': 'stun:stun.l.google.com:19302'
+    }
+  ]
+
 };
 
 // The constraints on what kind of media we are able to receive
@@ -645,8 +659,10 @@ function leave(button) {
   }
   connections = {};
 
-  localStream.getTracks().forEach(track => track.stop()); // Stop all local media tracks
-  localStream = null;
+  if (localStream) {
+    localStream.getTracks().forEach(track => track.stop()); // Stop all local media tracks
+    localStream = null;
+  }
 
   leave3D(); // Closes the 3D environment
   stop();

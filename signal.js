@@ -6,7 +6,7 @@ const maxUsers = 10; // TODO: determine a good value for this
 var rooms = {}
 var users = {}
 
-const io = require('socket.io')(3000);
+const io = require('socket.io')(3000, { cookie: false });
 
 io.sockets.on('connection', function(socket) {
 
@@ -46,6 +46,8 @@ io.sockets.on('connection', function(socket) {
 
   socket.on('join', function(startInfo) {
 
+    console.log(startInfo)
+
     let room = startInfo.room;
     let name = startInfo.name;
 
@@ -61,7 +63,7 @@ io.sockets.on('connection', function(socket) {
       socket.join(room); // Add this user to the room
       socket.emit('created', {room: room, id: socket.id});
 
-    } else if (numClients > 0 && numClients < maxUsers) { // Room joined
+    } else if (numClients > 0 && numClients < maxUsers) { // Existing room joined
 
       rooms[room].push(socket) // Add the client ID to the list of clients in the room
       users[socket.id] = new User(room, socket) // Add the User object to the list of users

@@ -95,9 +95,6 @@ function init3D() {
 	controls.enablePan = false;
 	controls.minDistance = 1;
 	controls.maxDistance = 100;
-	controls.maxPolarAngle = Math.PI * 0.5; // Does not let you clip through the floor
-	controls.minAzimuthAngle = 0; // Prevents left-right rotation of camera
-	controls.maxAzimuthAngle = 0; // Prevents left-right rotation of camera
 
 	new user(ourID, "test", 10, 10, 0).getId(); // Can use findUser(ourID) to get it
 
