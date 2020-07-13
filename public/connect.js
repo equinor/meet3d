@@ -1,3 +1,41 @@
+var socket; // This is the SocketIO connection to the signalling server
+
+const signalServer = 'ws://localhost:3000'; // The signaling server
+
+const pcConfig = {
+  iceServers: [
+    {
+      urls: 'turn:51.120.91.82:3478',
+      username: 'default_turn_user',
+      credential: 'lime_mercury_hammerkop'
+    }
+  ]
+};
+
+// Our local audio constraints
+const constraints = {
+  audio: true,
+  video: false
+};
+
+// Our share screen constraints
+const screenShareConstraints = {
+  video: {
+    cursor: "always"
+  },
+  audio: false
+};
+
+// Our local camera video constraints
+const cameraConstraints = {
+  audio: false,
+  video: {
+    width: 250,
+    height: 200,
+    resizeMode: "crop-and-scale"
+  }
+};
+
 /**
  * This function is run in order to join a conference. It establishes contact
  * with the signal server which helps create PeerConnection and DataChannel
@@ -160,7 +198,6 @@ function init(button) {
     let answerDescription = message.candidateData;
     if (id === ourID) return;
 
-
     let candidate = new RTCIceCandidate({
       sdpMLineIndex: answerDescription.label,
       candidate: answerDescription.candidate
@@ -183,10 +220,6 @@ function init(button) {
       leave();
     }
   });
-
-  //if (location.hostname !== 'localhost') { // If we are not hosting locally
-    requestTurn('meet3d.norwayeast.cloudapp.azure.com');
-  //}
 }
 
 // Sends an offer to a new user with our local PeerConnection description
@@ -197,7 +230,7 @@ function sendOffer(id) {
   createDataChannel(id);
 
   connections[id].connection.addStream(localStream);
-  if (localVideoTrack) {
+  if (localVideoTrack) { // If we are sharing video, add it to the stream
     connections[id].senderCam = connections[id].connection.addTrack(localVideoTrack, localStream);
   }
 
@@ -376,21 +409,11 @@ function createPeerConnection(id) {
 function createDataChannel(id) {
   let tempConnection = connections[id].connection.createDataChannel("Chat");
   tempConnection.addEventListener("open", () => {
-    connections[id].dataChannel = tempConnection
+    connections[id].dataChannel = tempConnection;
     console.log("Datachannel established to " + connections[id].name);
     changePos(findUser(ourID).getxPosition(), findUser(ourID).getyPosition(), findUser(ourID).getzPosition());
 
-    if (sharing && shareUser == ourID) {
-      let shareJSON = JSON.stringify({
-        type: "share",
-        sharing: true
-      });
-      connections[id].dataChannel.send(shareJSON);
-
-      setTimeout(function() { // Wait 2 second
-        connections[id].connection.addTrack(screenCapture.getVideoTracks()[0]);
-      }, 2000);
-    }
+    addScreenCapture(id);
   });
 
   tempConnection.addEventListener("close", () => {
@@ -405,7 +428,6 @@ function createDataChannel(id) {
 // Transmit local ICE candidates
 function handleIceCandidate(event) {
   if (event.candidate) {
-
     socket.emit('candidate', {
       type: 'candidate',
       label: event.candidate.sdpMLineIndex,
@@ -417,27 +439,6 @@ function handleIceCandidate(event) {
   }
 }
 
-// Tries to find a TURN server
-function requestTurn(turnURL) {
-  for (let i in pcConfig.iceServers) {
-    if (pcConfig.iceServers[i].urls.substr(0, 5) === 'turn:') {
-      return;
-    }
-  }
-
-  console.log('Getting TURN server from ', turnURL);
-  // No TURN server. Get one from computeengineondemand.appspot.com:
-  let xhr = new XMLHttpRequest();
-  xhr.onreadystatechange = function() {
-    if (xhr.readyState === 4 && xhr.status === 200) { // If there are no errors returned fromt the HTTP request
-      let turnServer = JSON.parse(xhr.responseText); // Make the received String into JSON
-      console.log('Got TURN server: ', turnServer);
-      pcConfig.iceServers.push({ // Add new TURN server to our config
-        'urls': 'turn:' + turnServer.username + '@' + turnServer.turn,
-                'credential': turnServer.password
-      });
-    }
-  };
-  xhr.open('GET', turnURL, true);
-  xhr.send();
+function leaveRoom() {
+  socket.emit('left');
 }

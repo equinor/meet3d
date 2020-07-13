@@ -38,10 +38,7 @@ chatSend.addEventListener("keyup", function(event) {
     }
   });
 
-var localAudioStream; // This is our local audio stream
 var localVideoTrack; // This is our local video stream
-var room; // This is the name of our conference room
-var socket; // This is the SocketIO connection to the signalling server
 var ourID; // This is our unique ID
 var connections = {}; // The key is the socket id, and the value is {name: username, stream: mediastream, connection: PeerConnection}
 var textFile = null; // This stores any downloaded file
@@ -51,54 +48,6 @@ var screenCapture = null; // The stream containing the video capture of our scre
 var unreadMessages = 0; // The number of messages we have received whilst not in 'chat mode'
 
 const maxChatLength = 20; // The chat will only hold this many messages at a time
-const signalServer = 'ws://localhost:3000'; // The signaling server
-
-const pcConfig = {
-  /*
-  'iceServers': [{
-    'urls': 'stun:stun.l.google.com:19302'
-  }]
-  */
-
-  iceServers: [
-    {
-      urls: 'turn:51.120.91.82:19403',
-      username: 'default_turn_user',
-      credential: 'lime_mercury_hammerkop'
-    }
-  ]
-
-};
-
-// The constraints on what kind of media we are able to receive
-const sdpConstraints = {
-  offerToReceiveAudio: true,
-  offerToReceiveVideo: true
-};
-
-// Our local audio constraints
-const constraints = {
-  audio: true,
-  video: false
-};
-
-// Our share screen constraints
-const screenShareConstraints = {
-  video: {
-    cursor: "always"
-  },
-  audio: false
-};
-
-// Our local camera video constraints
-const cameraConstraints = {
-  audio: false,
-  video: {
-    width: 250,
-    height: 200,
-    resizeMode: "crop-and-scale"
-  }
-};
 
 // Adds a username to the list of connections on the HTML page
 function appendConnectionHTMLList(id) {
@@ -504,20 +453,41 @@ async function shareScreen(button) {
   sharing = true;
   addWalls(); // Add the stream to the 3D environment
 
-  let shareJSON = JSON.stringify({
-    type: "share",
-    sharing: true
-  });
+  addScreenCapture(null);
+}
 
-  for (let id in connections) {
-    connections[id].dataChannel.send(shareJSON); // Notify everyone that we want to share our screen
-  }
+/**
+ * Adds our screen capture stream to the PeerConnection with the user with ID
+ * 'id', or to all connections if 'id' is null.
+ */
+function addScreenCapture(id) {
+  if (sharing && shareUser == ourID) {
 
-  setTimeout(function() { // Wait 1 second to allow people to process the previous message
-    for (let id in connections) {
-      connections[id].connection.addTrack(screenCapture.getVideoTracks()[0]); // Update our media stream
+    let shareJSON = JSON.stringify({
+      type: "share",
+      sharing: true
+    });
+
+    if (id) {
+
+      connections[id].dataChannel.send(shareJSON); // Notify everyone that we want to share our screen
+      setTimeout(function() { // Wait 1 second to allow people to process the previous message
+        connections[id].connection.addTrack(screenCapture.getVideoTracks()[0]); // Update our media stream
+      }, 2000);
+
+    } else {
+
+      for (let i in connections) {
+        connections[i].dataChannel.send(shareJSON); // Notify everyone that we want to share our screen
+      }
+      setTimeout(function() { // Wait 1 second to allow people to process the previous message
+        for (let i in connections) {
+          connections[i].connection.addTrack(screenCapture.getVideoTracks()[0]); // Update our media stream
+        }
+      }, 1000);
+
     }
-  }, 1000);
+  }
 }
 
 // Stops us sharing our screen, including notifying others that we have done so
@@ -663,11 +633,7 @@ function leave(button) {
 
   leave3D(); // Closes the 3D environment
   stop();
-
-  if (room) {
-    socket.emit('left');
-    room = null;
-  }
+  leaveRoom();
 
   button.value = "Join";
   button.onclick = function() { init(button) };
