@@ -12,60 +12,22 @@ const pcConfig = {
   ]
 };
 
-// Our local audio constraints
-const constraints = {
-  audio: true,
-  video: false
-};
-
-// Our share screen constraints
-const screenShareConstraints = {
-  video: {
-    cursor: "always"
-  },
-  audio: false
-};
-
-// Our local camera video constraints
-const cameraConstraints = {
-  audio: false,
-  video: {
-    width: 250,
-    height: 200,
-    resizeMode: "crop-and-scale"
-  }
-};
-
 /**
  * This function is run in order to join a conference. It establishes contact
  * with the signal server which helps create PeerConnection and DataChannel
- * connections with the other users in the conference. It also first gets the
- * audio stream from the user microphone which is added to the PeerConnections.
+ * connections with the other users in the conference.
  */
-function init(button) {
-
-  if (username.value === '') { // No username given
-    alert('Please enter a username');
-    return;
-  }
-
-  if (roomName.value === '') { // No room name given
-    alert('Please enter a room name');
-    return;
-  }
-
-  button.value = "Leave";
-  button.onclick = function() { leave(button) };
-
-  room = roomName.value;
-  username.readOnly = true; // Do not allow the user to edit their name, but show it
-  roomName.readOnly = true; // Do not allow the user to edit the room name, but show it
-  initChat(); // Show the chat
-
-  console.log(signalServer)
+function initSignaling(room, name) {
   socket = io(signalServer); // Connect to the signaling server
-  console.log("hei")
-  console.log(socket)
+
+  let startInfo = {
+    room: room, // The room we want to join
+    name: name // Our username
+  };
+
+  socket.emit('join', startInfo);
+
+  console.log('Attempting to join ', room);
 
   // We created and joined a room
   socket.on('created', function(connectionInfo) {
@@ -133,38 +95,15 @@ function init(button) {
     let name = message.name;
     let offerDescription = message.offer;
 
-    if (id === ourID) return;
+    if (id === ourID || (connections[id] && connections[id].signalingState == "stable")) return;
 
-    connections[id] = {};
-    connections[id].name = name;
-
+    if (!connections[id]) {
+      connections[id] = {};
+      connections[id].name = name;
+      appendConnectionHTMLList(id); // Add their username to the list of connections on the webpage
+      newUserJoined(id, name); // Add new user to 3D environment
+    }
     sendAnswer(id, offerDescription); // Reply to the offer with our details
-    appendConnectionHTMLList(id); // Add their username to the list of connections on the webpage
-    newUserJoined(id, name); // Add new user to 3D environment
-  });
-
-  // We have received an updated PeerConnection offer
-  socket.on('newOffer', function(message) {
-    let id = message.id;
-    let offerDescription = message.offer;
-
-    if (id === ourID) return;
-
-    if (connections[id].signalingState == "stable") return;
-
-    console.log('Sending new answer to connection to user ' + connections[id].name);
-
-    connections[id].connection.setRemoteDescription(new RTCSessionDescription(offerDescription));
-    connections[id].connection.createAnswer().then(function(description) {
-      connections[id].connection.setLocalDescription(description);
-      socket.emit('newAnswer', {
-        id: id,
-        answer: description
-      });
-    }, function (e) {
-      console.log("Failed to create answer: " + e);
-      return;
-    });
   });
 
   // We have received an answer to our PeerConnection offer
@@ -172,66 +111,38 @@ function init(button) {
     let id = message.id;
     let answerDescription = message.answer;
 
-    if (id === ourID) return;
+    if (id === ourID || connections[id].signalingState == "stable") return;
 
     connections[id].connection.setRemoteDescription(new RTCSessionDescription(answerDescription));
-    appendConnectionHTMLList(id);
-  });
 
-  // We have received an answer to our updated PeerConnection offer
-  socket.on('newAnswer', function(message) {
-
-    let id = message.id;
-    let answerDescription = message.answer;
-
-    if (id === ourID) return;
-
-    if (connections[id].signalingState == "stable") return;
-
-    connections[id].connection.setRemoteDescription(new RTCSessionDescription(answerDescription));
+    if (!connections[id].dataChannel) appendConnectionHTMLList(id);
   });
 
   // We have received an ICE candidate from a user we are connecting to
   socket.on('candidate', function(message) {
 
     let id = message.id;
-    let answerDescription = message.candidateData;
+    let candidates = message.candidateData;
     if (id === ourID) return;
 
+    console.log(candidates);
+
     let candidate = new RTCIceCandidate({
-      sdpMLineIndex: answerDescription.label,
-      candidate: answerDescription.candidate
+      sdpMLineIndex: candidates.label,
+      candidate: candidates.candidate
     });
     connections[id].connection.addIceCandidate(candidate);
-  });
-
-  // Gets the audio stream from our microphone
-  navigator.mediaDevices.getUserMedia(constraints)
-  .then(gotLocalStream) // Success
-  .catch(function(e) { // Failure
-    if (e.name === "NotAllowedError") {
-      alert('Unfortunately, access to the microphone is necessary in order to use the program. ' +
-      'Permissions for this webpage can be updated in the settings for your browser, ' +
-      'or by refreshing the page and trying again.');
-      leave();
-    } else {
-      console.log(e);
-      alert('Unable to access local media: ' + e.name);
-      leave();
-    }
   });
 }
 
 // Sends an offer to a new user with our local PeerConnection description
 function sendOffer(id) {
   console.log('Creating peer connection to user ' + connections[id].name);
-  connections[id].connection = createPeerConnection(id);
 
-  createDataChannel(id);
-
-  connections[id].connection.addStream(localStream);
-  if (localVideoTrack) { // If we are sharing video, add it to the stream
-    connections[id].senderCam = connections[id].connection.addTrack(localVideoTrack, localStream);
+  if (!connections[id].connection) {
+    connections[id].connection = createPeerConnection(id);
+    createDataChannel(id);
+    addLocalTracksToConnection(id);
   }
 
   connections[id].connection.createOffer().then(function(description) {
@@ -252,11 +163,13 @@ function sendOffer(id) {
 function sendAnswer(id, offerDescription) {
   if (connections[id].signalingState == "stable") return;
 
-  console.log('>>>>>> Creating RTCPeerConnection to user ' + connections[id].name);
-  connections[id].connection = createPeerConnection(id);
-  connections[id].connection.addStream(localStream);
+  console.log('Creating RTCPeerConnection to user ' + connections[id].name);
+  if (!connections[id].connection) {
+    connections[id].connection = createPeerConnection(id);
+    addLocalTracksToConnection(id);
+  }
 
-  console.log('>>>>>> Sending answer to connection to user ' + connections[id].name);
+  console.log('Sending answer to connection to user ' + connections[id].name);
 
   connections[id].connection.setRemoteDescription(new RTCSessionDescription(offerDescription));
   connections[id].connection.createAnswer().then(function(description) {
@@ -269,21 +182,6 @@ function sendAnswer(id, offerDescription) {
     console.log("Failed to create answer: " + e);
     return;
   });
-}
-
-// Called when we have got a local media stream
-function gotLocalStream(stream) {
-  console.log('Adding local stream.');
-  localStream = stream;
-
-  if (room !== '') { // Check that the room does not already exist
-    let startInfo = {
-      room: room, // The room we want to join
-      name: username.value // Our username
-    };
-    socket.emit('join', startInfo);
-    console.log('Attempting to join ', room);
-  }
 }
 
 /**
@@ -300,6 +198,7 @@ function createPeerConnection(id) {
 
     pc = new RTCPeerConnection(pcConfig);
     pc.onicecandidate = function (event) {
+      console.log(event);
       if (event.candidate) {
         socket.emit('candidate', {
           id: id,
@@ -385,7 +284,7 @@ function createPeerConnection(id) {
 
       connections[id].connection.createOffer().then(function(description) {
         connections[id].connection.setLocalDescription(description);
-        socket.emit('newOffer', {
+        socket.emit('offer', {
           id: id,
           offer: description
         });
@@ -394,14 +293,12 @@ function createPeerConnection(id) {
         return;
       });
     };
-
-    console.log('>>>>>> Created RTCPeerConnection');
-
   } catch (e) {
     console.log('Failed to create PeerConnection. Exception: ' + e.message);
     alert('Cannot create RTCPeerConnection.');
     return;
   }
+  console.log('Created RTCPeerConnection');
   return pc;
 }
 

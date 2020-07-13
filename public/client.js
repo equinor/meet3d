@@ -16,6 +16,7 @@ var screenShare = document.getElementById("screenShare");
 var notification = document.getElementById("notification");
 var sceneDiv = document.getElementById("3D");
 var videoElement = document.getElementById("remoteVideo");
+var buttons = document.getElementById("buttons");
 
 username.addEventListener("keyup", function(event) {
     if (event.keyCode === 13) { // This is the 'enter' key-press
@@ -38,6 +39,7 @@ chatSend.addEventListener("keyup", function(event) {
     }
   });
 
+var localStream = null;
 var localVideoTrack; // This is our local video stream
 var ourID; // This is our unique ID
 var connections = {}; // The key is the socket id, and the value is {name: username, stream: mediastream, connection: PeerConnection}
@@ -48,6 +50,180 @@ var screenCapture = null; // The stream containing the video capture of our scre
 var unreadMessages = 0; // The number of messages we have received whilst not in 'chat mode'
 
 const maxChatLength = 20; // The chat will only hold this many messages at a time
+
+// Our local audio constraints
+const audioConstraints = {
+  audio: true,
+  video: false
+};
+
+// Our share screen constraints
+const screenShareConstraints = {
+  video: {
+    cursor: "always"
+  },
+  audio: false
+};
+
+// Our local camera video constraints
+const cameraConstraints = {
+  audio: false,
+  video: {
+    width: 250,
+    height: 200,
+    resizeMode: "crop-and-scale"
+  }
+};
+
+function init(button) {
+  if (username.value === '') { // No username given
+    alert('Please enter a username');
+    return;
+  }
+
+  if (roomName.value === '') { // No room name given
+    alert('Please enter a room name');
+    return;
+  }
+
+  button.value = "Leave";
+  button.onclick = function() { leave(button) };
+
+  username.readOnly = true; // Do not allow the user to edit their name, but show it
+  roomName.readOnly = true; // Do not allow the user to edit the room name, but show it
+
+  initChat(); // Show the chat
+  initSignaling(roomName.value, username.value); // Connect to the conference room
+}
+
+async function getLocalTrack(constraint) {
+  try {
+    let stream = await navigator.mediaDevices.getUserMedia(constraint); // Requests the webcamera stream
+
+    if (constraint.video && !constraint.audio) {
+      return stream.getVideoTracks()[0];
+    } else if (!constraint.video && constraint.audio) {
+      return stream.getAudioTracks()[0];
+    } else {
+      return stream;
+    }
+  } catch(e) {
+    if (e.name === "NotAllowedError") {
+      alert('Unfortunately, access to your device is necessary in order to use this feature. ' +
+      'Permissions for this webpage can be updated in the settings for your browser, ' +
+      'or by refreshing the page and trying again.');
+    } else if (e.name === "NotFoundError") {
+      alert('No relevant device was detected.')
+    } else {
+      console.log(e);
+      alert('Unable to access local media: ' + e.name);
+    }
+    return null;
+  }
+}
+
+async function addLocalTrack(constraint) {
+  let media = await getLocalTrack(constraint);
+
+  console.log(media);
+
+  if (!media) return null;
+
+  if (!localStream) {
+    localStream = new MediaStream([media]);
+  } else {
+    localStream.addTrack(media);
+  }
+
+  let trackID = null;
+  for (let id in connections) {
+    if (media.kind == "video") {
+      connections[id].video = connections[id].connection.addTrack(cameraCapture.getVideoTracks()[0], localStream); // Update our media stream
+    } else {
+      connections[id].audio = connections[id].connection.addTrack(cameraCapture.getVideoTracks()[0], localStream); // Update our media stream
+    }
+  }
+
+  return media;
+}
+
+function addLocalTracksToConnection(id) {
+  if (!localStream) {
+    return;
+  }
+  for (let i in localStream.getTracks()) {
+    let track = localStream.getTracks()[i];
+    if (track.kind == "video") {
+      connections[id].video = connections[id].connection.addTrack(track, localStream);
+    } else if (track.kind == "audio") {
+      connections[id].audio = connections[id].connection.addTrack(track, localStream);
+    }
+  }
+}
+
+async function shareAudio(button) {
+  let audioTrack = await addLocalTrack(audioConstraints);
+
+  if (!audioTrack) {
+    return;
+  }
+
+  button.value = "Stop Sharing Audio";
+  button.onclick = function () { stopShareAudio(button) };
+}
+
+function stopShareAudio(button) {
+  for (let id in connections) {
+    connections[id].connection.removeTrack(connections[id].audio); // Update our media stream for the other users
+  }
+
+  button.onclick = function () { shareAudio(button) };
+  button.value = "Add audio";
+
+  localStream.getVideoTracks()[0].localAudioTrack.stop();
+}
+
+// Shares our camera stream with the other users
+async function shareCamera(button) {
+  let cameraCapture = await addLocalTrack(cameraConstraints);
+
+  if (!cameraCapture) return;
+
+  addVideoStream(ourID, cameraCapture); // Adds the video to the side of the screen
+
+  button.value = "Stop Sharing Camera";
+  button.onclick = function () { stopShareCamera(button) };
+}
+
+// This function stops us from sharing our webcamera video with other users, and ourselves
+function stopShareCamera(button) {
+
+  let cameraLi = document.getElementById("ourVideo");
+  if (!cameraLi) {
+    return; // We are not sharing our camera anyways
+  }
+
+  for (let id in connections) {
+    connections[id].connection.removeTrack(connections[id].video); // Update our media stream for the other users
+  }
+
+  button.onclick = function () { shareCamera(button) };
+  button.value = "Add video";
+
+  localStream.getVideoTracks()[0].localVideoTrack.stop();
+
+  let videoSrc = cameraLi.children[0].srcObject; // Get the stream
+  let tracks = videoSrc.getTracks();
+  tracks.forEach(track => track.stop()); // Stop the webcamera video track
+  cameraLi.children[0].srcObject = null;
+  cameraLi.innerHTML = ''; // Delete the video element
+
+  videoElement.children[0].removeChild(cameraLi);
+  if (videoElement.children[0].children.length == 0) {
+    // There are no videos to show, so resize the 3D scene
+    renderer.setSize(window.innerWidth, window.innerHeight - 30);
+  }
+}
 
 // Adds a username to the list of connections on the HTML page
 function appendConnectionHTMLList(id) {
@@ -361,71 +537,6 @@ function updateVideoVisibility() {
   }
 }
 
-// Shares our camera stream with the other users, if noone is doing so already
-async function shareCamera(button) {
-
-  if (shareUser) return; // Someone else is sharing their screen
-
-  let cameraCapture;
-
-  try {
-    cameraCapture = await navigator.mediaDevices.getUserMedia(cameraConstraints); // Requests the webcamera stream
-    localVideoTrack = cameraCapture.getVideoTracks()[0]; // Extract only the video track
-  } catch(e) {
-    if (e.name === "NotAllowedError") {
-      alert('Unfortunately, access to the screen is necessary in order to use this feature. ' +
-      'Permissions for this webpage can be updated in the settings for your browser, ' +
-      'or by refreshing the page and trying again.');
-    } else if (e.name === "NotFoundError") {
-      alert('No camera was detected.')
-    } else {
-      console.log(e);
-      alert('Unable to access local media: ' + e.name);
-    }
-    return;
-  }
-
-  addVideoStream(ourID, cameraCapture); // Adds the video to the side of the screen
-
-  button.value = "Stop Sharing Camera";
-  button.onclick = function () { stopShareCamera(button) };
-
-  for (let id in connections) {
-    connections[id].senderCam = connections[id].connection.addTrack(cameraCapture.getVideoTracks()[0], localStream); // Update our media stream
-  }
-}
-
-// This function stops us from sharing our webcamera video with other users, and ourselves
-function stopShareCamera(button) {
-
-  let cameraLi = document.getElementById("ourVideo");
-  if (!cameraLi) {
-    return; // We are not sharing our camera anyways
-  }
-
-  for (let id in connections) {
-    connections[id].connection.removeTrack(connections[id].senderCam); // Update our media stream for the other users
-  }
-
-  button.onclick = function () { shareCamera(button) };
-  button.value = "Add video";
-
-  localVideoTrack.stop();
-  localVideoTrack = null;
-
-  let videoSrc = cameraLi.children[0].srcObject; // Get the stream
-  let tracks = videoSrc.getTracks();
-  tracks.forEach(track => track.stop()); // Stop the webcamera video track
-  cameraLi.children[0].srcObject = null;
-  cameraLi.innerHTML = ''; // Delete the video element
-
-  videoElement.children[0].removeChild(cameraLi);
-  if (videoElement.children[0].children.length == 0) {
-    // There are no videos to show, so resize the 3D scene
-    renderer.setSize(window.innerWidth, window.innerHeight - 30);
-  }
-}
-
 // Shares our screen with the other users, if noone is doing so already
 async function shareScreen(button) {
 
@@ -535,7 +646,7 @@ function initChat() {
   connectionList.hidden = false;
   chatBox.style.display = "inline-block";
   receivedFiles.style.display = "none";
-  cameraButton.hidden = false;
+  buttons.hidden = false;
 
   if ((sharing && shareUser == ourID) || !sharing) {
     shareButton.hidden = false;
@@ -616,7 +727,7 @@ function leave(button) {
   connectionList.innerHTML = ''; // Empty the list of users
   changeModeButton.hidden = true;
   videoElement.innerHTML = '<ul></ul>'; // Removes all videos from the list on the right side of the screen
-  cameraButton.hidden = true;
+  buttons.hidden = true;
 
   for (let id in connections) {
     if (connections[id].stream)

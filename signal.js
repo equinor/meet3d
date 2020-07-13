@@ -46,8 +46,6 @@ io.sockets.on('connection', function(socket) {
 
   socket.on('join', function(startInfo) {
 
-    console.log(startInfo)
-
     let room = startInfo.room;
     let name = startInfo.name;
 
