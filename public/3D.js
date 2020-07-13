@@ -60,6 +60,7 @@ function init3D() {
 
 	// RENDERER
 	renderer = new THREE.WebGLRenderer();
+	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize(window.innerWidth, window.innerHeight - 30);
 	renderer.domElement.id = "scene"; // Adds an ID to the canvas element
 	document.getElementById("3D").appendChild(renderer.domElement);
@@ -81,8 +82,9 @@ function init3D() {
 	
 	controls = new THREE.PointerLockControls( camera, document.body );
 	
-	controls.addEventListener( 'click', function () {
+	/*controls.addEventListener( 'click', function () {
 		//lock mouse on screen
+		console.log("locking mouse on screen");
 		controls.lock();
 	}, false );
 
@@ -96,7 +98,7 @@ function init3D() {
 	
 		menu.style.display = 'block';
 	
-	} );
+	} );*/
 
 	scene.add(controls.getObject());
 
@@ -454,6 +456,9 @@ class User {
 function onDocumentKeyDown(event) {
 	switch (event.keyCode) {
 		case 38://up
+			console.log("locking mouse");
+			controls.lock();
+			break;
 		case 87: //w
 			moveForward = true;
 			break;
@@ -464,6 +469,9 @@ function onDocumentKeyDown(event) {
 			break;
 
 		case 40: // down
+			console.log("unlocking mouse");
+			controls.unlock();
+			break;
 		case 83: // s
 			moveBackward = true;
 			break;
@@ -515,14 +523,12 @@ function onWindowResize() {
 function update() {
 	requestID = requestAnimationFrame(update);
 	if (controls.isLocked===true){
-		console.log("Dette skjer");
 		var time = performance.now();
 		var delta = ( time - prevTime ) / 1000;
 
-		velocity.x -= velocity.x * 10.0 * delta;
-		velocity.z -= velocity.z * 10.0 * delta;
-
-		velocity.y -= 9.8 * 100.0 * delta; // 100.0 = mass
+		velocity.x -= velocity.x * 100 * delta;
+		//velocity.z -= velocity.z * delta;
+		velocity.z = 0.01;
 
 		direction.z = Number( moveForward ) - Number( moveBackward );
 		direction.x = Number( moveRight ) - Number( moveLeft );
@@ -531,11 +537,16 @@ function update() {
 		if ( moveForward || moveBackward ) velocity.z -= direction.z * 400.0 * delta;
 		if ( moveLeft || moveRight ) velocity.x -= direction.x * 400.0 * delta;
 
+		console.log("delta: " + delta);
+		console.log("velocity: {x: " + velocity.x + ", y: " + velocity.y + ", z: " + velocity.z + "}");
 		controls.moveRight( - velocity.x * delta );
 		controls.moveForward( - velocity.z * delta );
 
 		controls.getObject().position.y += ( velocity.y * delta ); // new behavior
+
+		prevTime = time;
 	}
+	
 	renderer.render(scene, camera);
 }
 
