@@ -1,7 +1,7 @@
 var scene;
 var camera;
 var renderer;
-var controls;
+
 var geometry;
 var material;
 var requestID = undefined;
@@ -12,11 +12,20 @@ var allObjects = []; // Stores all 3D objects so that they can be removed later
 var videoList = []; // The list of remote videos to display
 var videoListLength = 0; // The number of videos to show at a time, not including our own
 var ourUser;
-var controls1;
+var controls;
 
 let wallLeft;
 let wallRight;
 let wallFront;
+
+var moveForward = false;
+var moveBackward = false;
+var moveLeft = false;
+var moveRight = false;
+
+var prevTime = performance.now();
+var velocity = new THREE.Vector3();
+var direction = new THREE.Vector3();
 
 const distance = 15;
 const maxX = 100;
@@ -70,24 +79,26 @@ function init3D() {
 	loader = new THREE.GLTFLoader();
 
 	
-	controls1 = new THREE.PointerLockControls( camera, document.body );
+	controls = new THREE.PointerLockControls( camera, document.body );
 	
-	controls1.addEventListener( 'click', function () {
+	controls.addEventListener( 'click', function () {
 		//lock mouse on screen
-		controls1.lock();
+		controls.lock();
 	}, false );
 
-	controls1.addEventListener( 'lock', function () {
+	controls.addEventListener( 'lock', function () {
 
 		menu.style.display = 'none';
 	
 	} );
 	
-	controls1.addEventListener( 'unlock', function () {
+	controls.addEventListener( 'unlock', function () {
 	
 		menu.style.display = 'block';
 	
 	} );
+
+	scene.add(controls.getObject());
 
 
 	//addPlant
@@ -109,6 +120,12 @@ function init3D() {
 		scene.add(table);
 	});
 	
+	window.addEventListener( 'resize', onWindowResize, false );
+	document.addEventListener( 'keydown', onDocumentKeyDown, false );
+	document.addEventListener( 'keyup', onDocumentKeyUp, false );
+
+
+
 	addWalls()
 	allObjects.push(table);
 	allObjects.push(plant);
@@ -124,7 +141,7 @@ function init3D() {
 */
 
 	// ORBITCONTROLS
-	controls = new THREE.OrbitControls(camera, renderer.domElement);
+	/*controls = new THREE.OrbitControls(camera, renderer.domElement);
 	controls.enableKeys = false;
 	controls.enablePan = false;
 	controls.minDistance = 1;
@@ -132,18 +149,11 @@ function init3D() {
 	controls.maxPolarAngle = Math.PI * 0.5; // Does not let you clip through the floor
 	controls.minAzimuthAngle = 0; // Prevents left-right rotation of camera
 	controls.maxAzimuthAngle = 0; // Prevents left-right rotation of camera
-
+*/
 	listener = new THREE.AudioListener();
   
-	ourUser = new User(ourID, username.value, 10, 10, 0);
-
-	ourUser.object.add(listener);
+	controls.getObject().add(listener)
 	userCount++;
-
-	addText(ourUser);
-
-	controls.target.set(ourUser.getxPosition(), ourUser.getyPosition() + 0.5 * objectSize.y, ourUser.getzPosition());
-	controls.update();
 
 	update();
 }
@@ -273,18 +283,13 @@ var UserMap = {};
 function newUserJoined(id, name) {
 	console.log("Adding new user to the 3D environment: " + name);
 	let newUser = new User(id, name, 10, 10, distance * userCount); // This does not look great at the moment
-  addText(newUser);
+ 	addText(newUser);
 	addToUserMap(newUser);
 	userCount++;
 	updateVideoList(id);
 }
 
-function changeUserPosition(id, x, y, z) {
-	findUser(id).setPosition(x, y, z);
-	if (connections[id].stream) {
-		updateVideoList(id);
-	}
-}
+
 
 /**
  * This function updates the list of videos to display on the screen. Only the
@@ -431,122 +436,109 @@ class User {
 		this.object = makeNewObject(xPosition, yPosition, zPosition);
 		addToUserMap(this)
 	};
-	getName() { return this.name; }
-	getId() { return this.id; }
 	getxPosition() { return this.object.position.x; }
 	getyPosition() { return this.object.position.y; }
 	getzPosition() { return this.object.position.z; }
 	getPosition() { return this.object.position; }
-
+	getName() { return this.name; }
+	getId() { return this.id; }
+	
 	setName(newname) { this.name = newname; }
-	setxPosition(xPosition) { this.object.position.x = xPosition; }
-	setyPosition(yPosition) { this.object.position.y = yPosition; }
-	setzPosition(zPosition) { this.object.position.z = zPosition; }
-	setPosition(xPosition, yPosition, zPosition) {
-		this.setxPosition(xPosition);
-		this.setyPosition(yPosition);
-		this.setzPosition(zPosition);
-	}
-	getValidPosition(xPosition, yPosition, zPosition) {
-		let posVec = new THREE.Vector3(xPosition, yPosition, zPosition);
-
-		posVec.x = Math.max( -(maxX - 0.5 * objectWidth), Math.min(xPosition, maxX - 0.5 * objectWidth) );
-		posVec.y = Math.max( -(maxY - 0.5 * objectHeight), Math.min(yPosition, maxY - 0.5 * objectHeight) );
-		posVec.z = Math.max( -(maxZ - 0.5 * objectWidth), Math.min(zPosition, maxZ - 0.5 * objectWidth) );
-
-		return posVec;
-	}
-  
-	// Return the Vector3 from current position to a valid new position
-	getValidMoveVec(velX, velY, velZ) {
-		let validPos = this.getValidPosition( this.getxPosition() + velX, this.getyPosition() + velY, this.getzPosition() + velZ );
-		return validPos.sub(this.getPosition());
-	}
-  
-	// Moves both the 3D-object and the camera
-	move(moveVec) {
-		this.setPosition(this.getxPosition() + moveVec.x, this.getyPosition() + moveVec.y, this.getzPosition() + moveVec.z);
-		camera.position.add(moveVec);
-	}
+	
 	getMedia() { return this.media; }
 	setMedia(media) {
 		this.media = media;
 	}
 };
 
-var keysPressed = {};
 function onDocumentKeyDown(event) {
-	var key = event.key;
-	var moveVec = new THREE.Vector3(0,0,0);
+	switch (event.keyCode) {
+		case 38://up
+		case 87: //w
+			moveForward = true;
+			break;
+			
+		case 37: // left
+		case 65: // a
+			moveLeft = true;
+			break;
 
-	keysPressed[event.key] = true;
-	switch (key) {
-		case 'w':
-			if (keysPressed['d']) {
-				moveVec = ourUser.getValidMoveVec( speed, 0, -speed );
-			}
-			else if (keysPressed['a']) {
-				moveVec = ourUser.getValidMoveVec( -speed, 0, -speed );
-			}
-			else {
-				moveVec = ourUser.getValidMoveVec( 0, 0, -speed );
-			}
+		case 40: // down
+		case 83: // s
+			moveBackward = true;
 			break;
-		case 's':
-			if (keysPressed['d']) {
-				moveVec = ourUser.getValidMoveVec( speed, 0, speed );
-			}
-			else if (keysPressed['a']) {
-				moveVec = ourUser.getValidMoveVec( -speed, 0, speed );
-			}
-			else {
-				moveVec = ourUser.getValidMoveVec( 0, 0, speed );
-			}
+
+		case 39: // right
+		case 68: // d
+			moveRight = true;
 			break;
-		case 'd':
-			if (keysPressed['w']) {
-				moveVec = ourUser.getValidMoveVec( speed, 0, -speed );
-			}
-			else if (keysPressed['s']) {
-				moveVec = ourUser.getValidMoveVec( speed, 0, speed );
-			}
-			else {
-				moveVec = ourUser.getValidMoveVec( speed, 0, 0 );
-			}
+	
+	}
+}
+function onDocumentKeyUp(event){
+	switch ( event.keyCode ) {
+
+		case 38: // up
+		case 87: // w
+			moveForward = false;
 			break;
-		case 'a':
-			if (keysPressed['w']) {
-				moveVec = ourUser.getValidMoveVec( -speed, 0, -speed );
-			}
-			else if (keysPressed['s']) {
-				moveVec = ourUser.getValidMoveVec( -speed, 0, speed );
-			}
-			else {
-				moveVec = ourUser.getValidMoveVec( -speed, 0, 0 );
-			}
+
+		case 37: // left
+		case 65: // a
+			moveLeft = false;
 			break;
-		default:
+
+		case 40: // down
+		case 83: // s
+			moveBackward = false;
+			break;
+
+		case 39: // right
+		case 68: // d
+			moveRight = false;
 			break;
 	}
+}
+	
 
-	ourUser.move(moveVec);
+function onWindowResize() {
 
-	// Makes the camera target object when using mouse to move the camera
-	controls.target.set(ourUser.getxPosition(), ourUser.getyPosition() + 0.5 * objectSize.y, ourUser.getzPosition());
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
 
-	changePos(ourUser.getxPosition(), ourUser.getyPosition(), ourUser.getzPosition());
-	updateVideoList(ourID);
+	renderer.setSize( window.innerWidth, window.innerHeight );
+
 }
 
-function onDocumentKeyUp(event) {
-	delete keysPressed[event.key];
-}
 
 //function to update frame
 function update() {
-	renderer.render(scene, camera);
 	requestID = requestAnimationFrame(update);
+	if (controls.isLocked===true){
+		console.log("Dette skjer");
+		var time = performance.now();
+		var delta = ( time - prevTime ) / 1000;
+
+		velocity.x -= velocity.x * 10.0 * delta;
+		velocity.z -= velocity.z * 10.0 * delta;
+
+		velocity.y -= 9.8 * 100.0 * delta; // 100.0 = mass
+
+		direction.z = Number( moveForward ) - Number( moveBackward );
+		direction.x = Number( moveRight ) - Number( moveLeft );
+		direction.normalize(); // this ensures consistent movements in all directions
+
+		if ( moveForward || moveBackward ) velocity.z -= direction.z * 400.0 * delta;
+		if ( moveLeft || moveRight ) velocity.x -= direction.x * 400.0 * delta;
+
+		controls.moveRight( - velocity.x * delta );
+		controls.moveForward( - velocity.z * delta );
+
+		controls.getObject().position.y += ( velocity.y * delta ); // new behavior
+	}
+	renderer.render(scene, camera);
 }
+
 
 function leave3D() {
 
