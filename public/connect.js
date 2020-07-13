@@ -160,13 +160,11 @@ function init(button) {
     let answerDescription = message.candidateData;
     if (id === ourID) return;
 
-    /*
+
     let candidate = new RTCIceCandidate({
       sdpMLineIndex: answerDescription.label,
       candidate: answerDescription.candidate
     });
-    */
-    let candidate = new RTCIceCandidate(answerDescription);
     connections[id].connection.addIceCandidate(candidate);
   });
 
@@ -186,13 +184,9 @@ function init(button) {
     }
   });
 
-  if (location.hostname !== 'localhost') { // If we are not hosting locally
+  //if (location.hostname !== 'localhost') { // If we are not hosting locally
     requestTurn('meet3d.norwayeast.cloudapp.azure.com');
-  }
-
-  console.log(location)
-
-  console.log("heisan")
+  //}
 }
 
 // Sends an offer to a new user with our local PeerConnection description
@@ -271,19 +265,16 @@ function createPeerConnection(id) {
       connections[id] = {};
     }
 
-    pc = new RTCPeerConnection(null);
+    pc = new RTCPeerConnection(pcConfig);
     pc.onicecandidate = function (event) {
       if (event.candidate) {
         socket.emit('candidate', {
           id: id,
           info: {
             type: 'candidate',
-            /*
             label: event.candidate.sdpMLineIndex,
             id: event.candidate.sdpMid,
             candidate: event.candidate.candidate
-            */
-            candidate: event.candidate
           }
         });
       } else {

@@ -64,10 +64,7 @@ const pcConfig = {
     {
       urls: 'turn:51.120.91.82:19403',
       username: 'default_turn_user',
-      credentials: 'lime_mercury_hammerkop'
-    },
-    {
-      'urls': 'stun:stun.l.google.com:19302'
+      credential: 'lime_mercury_hammerkop'
     }
   ]
 
