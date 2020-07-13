@@ -12,6 +12,7 @@ var allObjects = []; // Stores all 3D objects so that they can be removed later
 var videoList = []; // The list of remote videos to display
 var videoListLength = 0; // The number of videos to show at a time, not including our own
 var ourUser;
+var controls1;
 
 let wallLeft;
 let wallRight;
@@ -67,6 +68,27 @@ function init3D() {
 
 	//load models
 	loader = new THREE.GLTFLoader();
+
+	
+	controls1 = new THREE.PointerLockControls( camera, document.body );
+	
+	controls1.addEventListener( 'click', function () {
+		//lock mouse on screen
+		controls1.lock();
+	}, false );
+
+	controls1.addEventListener( 'lock', function () {
+
+		menu.style.display = 'none';
+	
+	} );
+	
+	controls1.addEventListener( 'unlock', function () {
+	
+		menu.style.display = 'block';
+	
+	} );
+
 
 	//addPlant
 

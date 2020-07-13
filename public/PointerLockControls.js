@@ -2,13 +2,13 @@
  * @author mrdoob / http://mrdoob.com/
  * @author Mugen87 / https://github.com/Mugen87
  */
-
+/*
 import {
 	Euler,
 	EventDispatcher,
 	Vector3
 } from "../../../build/three.module.js";
-
+*/
 var PointerLockControls = function ( camera, domElement ) {
 
 	if ( domElement === undefined ) {
@@ -162,8 +162,9 @@ var PointerLockControls = function ( camera, domElement ) {
 	this.connect();
 
 };
-
+/*
 PointerLockControls.prototype = Object.create( EventDispatcher.prototype );
 PointerLockControls.prototype.constructor = PointerLockControls;
 
 export { PointerLockControls };
+*/
