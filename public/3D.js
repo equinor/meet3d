@@ -189,7 +189,7 @@ function addWalls() {
 }
 
 // Add username as text on top of 3D-object
-function addText(user) { //FIXME Move to member function of class User
+function addText(user) {
 
 	var loader = new THREE.FontLoader();
 	loader.load('helvetiker_regular.typeface.json', function(font) {
@@ -499,12 +499,12 @@ function update() {
 			console.log("changing user pos");
 			changePos(camera.position.x, 0, camera.position.z);
 			prevPosTime = time;
-			if(UserMap.size > 0) { //FIXME UserMap.size is currently undefined
-				for(let [k, v] of UserMap) {
-					console.log("Trying to move text: ")
-					//v.getObjectByName(text).rotateY( Math.PI * 0.1 );
-					v.getObjectByName(text).lookAt(camera.position.x, 0, camera.position.z);
-				}
+			
+			//FIXME This currently doesn't work
+			for(let key in UserMap) {
+				//console.log("Trying to move text: ")
+				//v.getObjectByName(text).rotateY( Math.PI * 0.1 );
+				UserMap[key].getObjectByName(text).lookAt(camera.position.x, 0, camera.position.z);
 			}
 		}
 
