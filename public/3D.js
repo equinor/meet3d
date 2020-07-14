@@ -122,8 +122,6 @@ function init3D() {
   
 	controls.getObject().add(listener)
 	
-	//UserMap[ourID] = controls.getObject();
-	
 	userCount++;
 
 	update();
@@ -325,7 +323,7 @@ function updateVideoList(id) {
  */
 function shiftVideoList(id) {
 
-	let thisDistance = getDistance(id);
+	let thisDistance = getDistanceSquared(id);
 	let shiftedID = 0;
 	for (let i = 0; i < videoListLength; i++) {
 
@@ -333,7 +331,7 @@ function shiftVideoList(id) {
 			let tempID = shiftedID
 			shiftedID = videoList[i];
 			videoList[i] = tempID;
-		}	else if (getDistance(videoList[i]) >= thisDistance) {
+		}	else if (getDistanceSquared(videoList[i]) >= thisDistance) {
 			// If the user 'id' is closer than the current entry then replace the entry and shift it along
 			shiftedID = videoList[i];
 			videoList[i] = id;
@@ -342,11 +340,11 @@ function shiftVideoList(id) {
 	return shiftedID; // Return the shifted ID or 0 otherwise
 }
 
-function getDistance(id) {
+function getDistanceSquared(id) {
 	let otherUser = findUser(id);
-	return Math.abs(otherUser.getxPosition() - camera.position.x) +
-		Math.abs(otherUser.getyPosition() - camera.position.y) +
-		Math.abs(otherUser.getzPosition() - camera.position.z);
+	return Math.abs(otherUser.getxPosition() - camera.position.x)**2 +
+		Math.abs(otherUser.getyPosition() - camera.position.y)**2 +
+		Math.abs(otherUser.getzPosition() - camera.position.z)**2;
 }
 
 function userGotMedia(id, mediaStream) {
@@ -496,14 +494,11 @@ function update() {
 		var delta = ( time - prevUpdateTime ) / 1000;
 
 		if ( time - prevPosTime > 100 ) {
-			console.log("changing user pos");
 			changePos(camera.position.x, 0, camera.position.z);
 			prevPosTime = time;
 
 			//FIXME This currently doesn't work
 			for(let key in UserMap) {
-				console.log("Trying to move text: ")
-				//v.getObjectByName(text).rotateY( Math.PI * 0.1 );
 				UserMap[key].object.getObjectByName("text").lookAt(camera.position.x, 0, camera.position.z);
 			}
 		}
