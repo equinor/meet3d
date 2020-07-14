@@ -1,6 +1,8 @@
 var renderer;
 var camera;
 var scene;
+var camera;
+var renderer;
 var controls;
 var geometry;
 var material;
@@ -8,6 +10,7 @@ var object;
 var requestID = undefined;
 var userCount = 0;
 var listener;
+var loader;
 var allObjects = []; // Stores all 3D objects so that they can be removed later
 var videoList = []; // The list of remote videos to display
 var videoListLength = 0; // The number of videos to show at a time, not including our own
@@ -190,7 +193,7 @@ function userGotMedia(id, mediaStream) {
 }
 
 //return the coordinates of the user whose id is passed in argument but false is no user with this id could be found
-function getUserPosition(id){ //spookey
+function getUserPosition(id){
 	var user = findUser(id);
 	if(user == false){
 		return false;
@@ -439,10 +442,9 @@ function leave3D() {
 	if (document.getElementById("scene")) {
 		document.getElementById("scene").outerHTML = ''; // Deletes the scene canvas
 	}
-	controls = null;
-	renderer = null;
-	camera = null;
 	scene = null;
+	camera = null;
+	renderer = null;
 	controls = null;
 	geometry = null;
 	material = null;
