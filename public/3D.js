@@ -11,7 +11,7 @@ var loader;
 var allObjects = []; // Stores all 3D objects so that they can be removed later
 var videoList = []; // The list of remote videos to display
 var videoListLength = 0; // The number of videos to show at a time, not including our own
-var ourUser;
+
 var controls;
 
 let wallLeft;
@@ -39,6 +39,9 @@ const videoCount = 3;
 
 const objectWidth = 10; // Probably not needed
 const objectHeight = 20; // Probably not needed
+
+//map to store the Users
+var UserMap = {};
 
 function init3D() {
 	scene = new THREE.Scene();
@@ -118,6 +121,8 @@ function init3D() {
   
 	controls.getObject().add(listener)
 	
+	UserMap[ourID] = controls.getObject();
+	
 	userCount++;
 
 	update();
@@ -190,18 +195,13 @@ function addText(user) {
 
 		let color, nameShowed;
 
-		if(user == ourUser) {
-			color = 0x00ff00;
-			nameShowed = 'Me (' + user.getName() + ')';
-		}
-		else {
-			color = 0x000000;
-			nameShowed = user.getName();
-		}
+		color = "red";
+		nameShowed = user.getName();
+		
 
 		let textMaterial = new THREE.MeshBasicMaterial({
 			color: color,
-			transparent: true,
+			transparent: false,
 			opacity: 1.0,
 			side: THREE.DoubleSide
 		});
@@ -242,8 +242,6 @@ function findUser(id) {
 	return UserMap[id];
 }
 
-//map to store the Users
-var UserMap = {};
 
 function newUserJoined(id, name) {
 	console.log("Adding new user to the 3D environment: " + name);
@@ -345,9 +343,9 @@ function shiftVideoList(id) {
 
 function getDistance(id) {
 	let otherUser = findUser(id);
-	return Math.abs(otherUser.getxPosition() - ourUser.getxPosition()) +
-		Math.abs(otherUser.getyPosition() - ourUser.getyPosition()) +
-		Math.abs(otherUser.getzPosition() - ourUser.getzPosition());
+	return Math.abs(otherUser.getxPosition() - camera.position.x) +
+		Math.abs(otherUser.getyPosition() - camera.position.y) +
+		Math.abs(otherUser.getzPosition() - camera.position.z);
 }
 
 function userGotMedia(id, mediaStream) {
@@ -454,7 +452,7 @@ function onDocumentKeyDown(event) {
 
 		case 39: // right
 		case 68: // d
-			moveRight = trxsue;
+			moveRight = true;
 			break;
 	
 	}
