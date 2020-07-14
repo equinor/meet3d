@@ -7,11 +7,14 @@ spec:
     - name: latest
       build:
         from: latest
+    - name: testing
+      build:
+        from: testing
     - name: master
       build:
         from: master
   components:
-    - name: signaling
+    - name: signaling-server
       dockerfileName: signaling.Dockerfile
       ports:
         - name: socketio
