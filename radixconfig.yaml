@@ -17,7 +17,7 @@ spec:
         - name: socketio
           port: 3000
       publicPort: socketio
-    - name: static
+    - name: web-server
       dockerfileName: static.Dockerfile
       ports:
         - name: http
@@ -25,4 +25,4 @@ spec:
       publicPort: http
   dnsAppAlias:
     environment: latest
-    component: socketio
+    component: web-server
