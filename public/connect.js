@@ -38,7 +38,7 @@ function initSignaling(room, name) {
     console.log('Created room ' + connectionInfo.room);
     ourID = connectionInfo.id;
 
-    init3D(); // Renders the 3D environment
+    init3D(name); // Renders the 3D environment
     initSwapView();
   });
 
@@ -66,7 +66,7 @@ function initSignaling(room, name) {
     console.log('We joined: ' + connectionInfo.room);
     ourID = connectionInfo.id;
 
-    init3D(); // Renders the 3D environment
+    init3D(name); // Renders the 3D environment
     initSwapView(); // Lets the user quickly switch between chat mode and 3D mode
   });
 

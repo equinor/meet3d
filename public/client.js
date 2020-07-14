@@ -258,8 +258,6 @@ async function shareScreen(button) {
     return;
   }
 
-  console.log(button)
-
   button.value = "Stop Sharing Screen";
   button.onclick = function () { stopShareScreen(button) };
 
@@ -688,7 +686,7 @@ function updateVideoVisibility() {
   let vidList = getVideoList();
 	for (let i = 0; i < vidList.length; i++) {
     let id = vidList[i];
-    if (id == 0) continue;
+    if (id == 0 || !connections[id].stream.id) continue;
 
     document.getElementById(connections[id].stream.id).hidden = false;
     document.getElementById(connections[id].stream.id).children[0].autoplay = true;
