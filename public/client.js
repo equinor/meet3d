@@ -51,7 +51,7 @@ var screenCapture = null; // The stream containing the video capture of our scre
 var unreadMessages = 0; // The number of messages we have received whilst not in 'chat mode'
 
 const maxChatLength = 20; // The chat will only hold this many messages at a time
-const signalServer = 'signaling-server-meet3d-testing.radix.equinor.com:3000'; // The signaling server
+const signalServer = 'signaling-server-meet3d-testing.radix.equinor.com'; // The signaling server
 
 const pcConfig = {
   'iceServers': [{
