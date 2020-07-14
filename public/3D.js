@@ -118,6 +118,7 @@ function init3D() {
 	listener = new THREE.AudioListener();
   
 	controls.getObject().add(listener)
+	
 	userCount++;
 
 	update();
@@ -413,6 +414,14 @@ class User {
 	getName() { return this.name; }
 	getId() { return this.id; }
 	
+	setxPosition(xPosition) { this.object.position.x = xPosition; }
+	setyPosition(yPosition) { this.object.position.y = yPosition; }
+	setzPosition(zPosition) { this.object.position.z = zPosition; }
+	setPosition(xPosition, yPosition, zPosition) {
+		this.setxPosition(xPosition);
+		this.setyPosition(yPosition);
+		this.setzPosition(zPosition);
+	}
 	setName(newname) { this.name = newname; }
 	
 	getMedia() { return this.media; }
@@ -451,6 +460,7 @@ function onDocumentKeyDown(event) {
 	
 	}
 }
+
 function onDocumentKeyUp(event){
 	switch ( event.keyCode ) {
 
@@ -494,9 +504,9 @@ function update() {
 		var time = performance.now();
 		var delta = ( time - prevUpdateTime ) / 1000;
 
-		if ( time - prevPosTime > 500 ) {
+		if ( time - prevPosTime > 100 ) {
 			console.log("changing user pos");
-			changePos(camera.x, camera.y, camera.z);
+			changePos(camera.position.x, 0, camera.position.z);
 			prevPosTime = time;
 		}
 
