@@ -23,7 +23,8 @@ var moveBackward = false;
 var moveLeft = false;
 var moveRight = false;
 
-var prevTime = performance.now();
+var prevUpdateTime = performance.now();
+var prevPosTime = performance.now();
 var velocity = new THREE.Vector3();
 var direction = new THREE.Vector3();
 
@@ -486,26 +487,30 @@ function update() {
 	requestID = requestAnimationFrame(update);
 	if (controls.isLocked===true){
 		var time = performance.now();
-		var delta = ( time - prevTime ) / 1000;
+		var delta = ( time - prevUpdateTime ) / 1000;
 
-		velocity.x -= velocity.x * 5.0 * delta;
-		velocity.z -= velocity.z * 5.0 * delta;
+		if ( time - prevPosTime > 500 ) {
+			console.log("changing user pos");
+			changePos(camera.x, camera.y, camera.z);
+			prevPosTime = time;
+		}
+
+		velocity.x -= velocity.x * 10.0 * delta;
+		velocity.z -= velocity.z * 10.0 * delta;
 
 		direction.z = Number( moveForward ) - Number( moveBackward );
 		direction.x = Number( moveRight ) - Number( moveLeft );
 		direction.normalize(); // this ensures consistent movements in all directions
 
-		if ( moveForward || moveBackward ) velocity.z -= direction.z * 200.0 * delta;
-		if ( moveLeft || moveRight ) velocity.x -= direction.x * 200.0 * delta;
+		if ( moveForward || moveBackward ) velocity.z -= direction.z * 400.0 * delta;
+		if ( moveLeft || moveRight ) velocity.x -= direction.x * 400.0 * delta;
 
-		console.log("delta: " + delta);
-		console.log("velocity: {x: " + velocity.x + ", y: " + velocity.y + ", z: " + velocity.z + "}");
 		controls.moveRight( - velocity.x * delta );
 		controls.moveForward( - velocity.z * delta );
 
 		//controls.getObject().position.y += ( velocity.y * delta ); // new behavior
 
-		prevTime = time;
+		prevUpdateTime = time;
 	}
 	
 	renderer.render(scene, camera);
