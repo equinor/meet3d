@@ -81,24 +81,6 @@ function init3D() {
 
 	
 	controls = new THREE.PointerLockControls( camera, document.body );
-	
-	/*controls.addEventListener( 'click', function () {
-		//lock mouse on screen
-		console.log("locking mouse on screen");
-		controls.lock();
-	}, false );
-
-	controls.addEventListener( 'lock', function () {
-
-		menu.style.display = 'none';
-	
-	} );
-	
-	controls.addEventListener( 'unlock', function () {
-	
-		menu.style.display = 'block';
-	
-	} );*/
 
 	scene.add(controls.getObject());
 
@@ -126,32 +108,12 @@ function init3D() {
 	document.addEventListener( 'keydown', onDocumentKeyDown, false );
 	document.addEventListener( 'keyup', onDocumentKeyUp, false );
 
-
-
 	addWalls()
 	allObjects.push(table);
 	allObjects.push(plant);
 
 	changeModeButton.hidden = false; // Allows the user to open the 3D environment
 
-/*
-	//choose which object to make when the makeobjectfunction is called
-	geometry = new THREE.BoxGeometry(10, 20, 10);
-	material = new THREE.MeshBasicMaterial( {color: 0x669966, wireframe: false});
-	object = new THREE.Mesh(geometry, material);
-	allObjects.push(object);
-*/
-
-	// ORBITCONTROLS
-	/*controls = new THREE.OrbitControls(camera, renderer.domElement);
-	controls.enableKeys = false;
-	controls.enablePan = false;
-	controls.minDistance = 1;
-	controls.maxDistance = 100;
-	controls.maxPolarAngle = Math.PI * 0.5; // Does not let you clip through the floor
-	controls.minAzimuthAngle = 0; // Prevents left-right rotation of camera
-	controls.maxAzimuthAngle = 0; // Prevents left-right rotation of camera
-*/
 	listener = new THREE.AudioListener();
   
 	controls.getObject().add(listener)
@@ -550,8 +512,8 @@ function update() {
 		direction.x = Number( moveRight ) - Number( moveLeft );
 		direction.normalize(); // this ensures consistent movements in all directions
 
-		if ( moveForward || moveBackward ) velocity.z -= direction.z * 400.0 * delta;
-		if ( moveLeft || moveRight ) velocity.x -= direction.x * 400.0 * delta;
+		if ( moveForward || moveBackward ) velocity.z -= direction.z * 200.0 * delta;
+		if ( moveLeft || moveRight ) velocity.x -= direction.x * 200.0 * delta;
 
 		console.log("delta: " + delta);
 		console.log("velocity: {x: " + velocity.x + ", y: " + velocity.y + ", z: " + velocity.z + "}");

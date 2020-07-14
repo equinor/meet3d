@@ -376,7 +376,7 @@ function createDataChannel(id) {
   tempConnection.addEventListener("open", () => {
     connections[id].dataChannel = tempConnection
     console.log("Datachannel established to " + connections[id].name);
-    changePos(findUser(myID).getxPosition(), findUser(myID).getyPosition(), findUser(myID).getzPosition());
+    changePos(findUser(ourID).getxPosition(), findUser(ourID).getyPosition(), findUser(ourID).getzPosition());
 
     if (sharing && shareUser == ourID) {
       let shareJSON = JSON.stringify({
