@@ -369,7 +369,7 @@ function init3D() {
 	allObjects.push(table);
 	allObjects.push(plant);
 
-	document.getElementById("open").hidden = false;
+	document.getElementById("changeMode").hidden = false;
 
 	// ORBITCONTROLS
 	controls = new THREE.OrbitControls( camera, renderer.domElement );
