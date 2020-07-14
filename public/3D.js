@@ -122,7 +122,7 @@ function init3D() {
   
 	controls.getObject().add(listener)
 	
-	UserMap[ourID] = controls.getObject();
+	//UserMap[ourID] = controls.getObject();
 	
 	userCount++;
 
@@ -222,6 +222,7 @@ function addText(user) {
 		textGeometry.translate(0, (objectSize.y + shapeSize) / objectScale, 0);
 
 		var text = new THREE.Mesh(textGeometry, textMaterial);
+		text.name = "text";
 		user.object.add(text);
 	});
 } // end of addText() function
@@ -424,30 +425,32 @@ class User {
 
 function onDocumentKeyDown(event) {
 	switch (event.keyCode) {
-		case 38://up
-			console.log("locking mouse");
-			controls.lock();
-			break;
+		
 		case 87: //w
 			moveForward = true;
 			break;
-			
-		case 37: // left
+
 		case 65: // a
 			moveLeft = true;
 			break;
-
-		case 40: // down
-			console.log("unlocking mouse");
-			controls.unlock();
-			break;
+		
 		case 83: // s
 			moveBackward = true;
 			break;
 
-		case 39: // right
 		case 68: // d
 			moveRight = true;
+			break;
+
+		case 38://up
+			console.log("locking mouse");
+			controls.lock();
+			document.removeEventListener("keyup", swapViewOnC);
+			break;
+		
+		case 40: // down
+			console.log("unlocking mouse");
+			controls.unlock();
 			break;
 	}
 }
@@ -455,22 +458,18 @@ function onDocumentKeyDown(event) {
 function onDocumentKeyUp(event){
 	switch ( event.keyCode ) {
 
-		case 38: // up
 		case 87: // w
 			moveForward = false;
 			break;
 
-		case 37: // left
 		case 65: // a
 			moveLeft = false;
 			break;
 
-		case 40: // down
 		case 83: // s
 			moveBackward = false;
 			break;
 
-		case 39: // right
 		case 68: // d
 			moveRight = false;
 			break;
@@ -492,6 +491,7 @@ function onWindowResize() {
 function update() {
 	requestID = requestAnimationFrame(update);
 	if (controls.isLocked===true){
+		document.removeEventListener("keyup", swapViewOnC); // this is not looking too great at the moment
 		var time = performance.now();
 		var delta = ( time - prevUpdateTime ) / 1000;
 
@@ -499,12 +499,12 @@ function update() {
 			console.log("changing user pos");
 			changePos(camera.position.x, 0, camera.position.z);
 			prevPosTime = time;
-			
+
 			//FIXME This currently doesn't work
 			for(let key in UserMap) {
-				//console.log("Trying to move text: ")
+				console.log("Trying to move text: ")
 				//v.getObjectByName(text).rotateY( Math.PI * 0.1 );
-				UserMap[key].getObjectByName(text).lookAt(camera.position.x, 0, camera.position.z);
+				UserMap[key].object.getObjectByName("text").lookAt(camera.position.x, 0, camera.position.z);
 			}
 		}
 
@@ -522,6 +522,9 @@ function update() {
 		controls.moveForward( - velocity.z * delta );
 
 		prevUpdateTime = time;
+	}
+	else {
+		document.addEventListener("keyup", swapViewOnC);
 	}
 	
 	renderer.render(scene, camera);
