@@ -75,7 +75,7 @@ const cameraConstraints = {
   }
 };
 
-function init(button) {
+async function init(button) {
   if (username.value === '') { // No username given
     alert('Please enter a username');
     return;
@@ -86,9 +86,13 @@ function init(button) {
     return;
   }
 
+  let audio = await shareAudio(document.getElementById("microphoneButton")); // We need audio to start
+  if (!audio) {
+    return;
+  }
+
   button.value = "Leave";
   button.onclick = function() { leave(button) };
-
   username.readOnly = true; // Do not allow the user to edit their name, but show it
   roomName.readOnly = true; // Do not allow the user to edit the room name, but show it
 
@@ -165,11 +169,13 @@ async function shareAudio(button) {
   let audioTrack = await addLocalTrack(audioConstraints);
 
   if (!audioTrack) {
-    return;
+    return false;
   }
 
   button.value = "Stop Sharing Audio";
   button.onclick = function () { stopShareAudio(button) };
+
+  return true;
 }
 
 function stopShareAudio(button) {
@@ -492,8 +498,15 @@ function receiveFile(id, data) {
 }
 
 // Adds a new video to the videos displayed on the right side of the screen
-function addVideoStream(id, stream) {
-  if (id !== ourID) connections[id].stream = stream; // Update the 'stream' attribute for the connection
+function addVideoStream(id, track) {
+
+  let stream;
+  if (id !== ourID) {
+    stream = new MediaStream([track]);
+    connections[id].stream = stream; // Update the 'stream' attribute for the connection
+  } else {
+    stream = localStream;
+  }
 
   let streamElement = document.createElement("video"); // Create an element to place the stream in
   let streamElementLi = document.createElement("li"); // Create a list entry to store it in

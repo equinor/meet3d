@@ -27,13 +27,17 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('disconnect', function() {
-    if (users[socket.id])
+    if (users[socket.id]) {
       io.sockets.in(users[socket.id].room).emit('left', socket.id);
+      socket.leave(users[socket.id].room);
+    }
   });
 
   socket.on('left', function() {
-    if (users[socket.id])
+    if (users[socket.id]) {
       io.sockets.in(users[socket.id].room).emit('left', socket.id);
+      socket.leave(users[socket.id].room);
+    }
   })
 
   socket.on('newOffer', function(data) {

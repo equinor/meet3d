@@ -2,6 +2,7 @@ var socket; // This is the SocketIO connection to the signalling server
 
 const signalServer = 'ws://localhost:3000'; // The signaling server
 
+
 const pcConfig = {
   iceServers: [
     {
@@ -103,6 +104,7 @@ function initSignaling(room, name) {
       appendConnectionHTMLList(id); // Add their username to the list of connections on the webpage
       newUserJoined(id, name); // Add new user to 3D environment
     }
+    console.log("Received offer from " + connections[id].name)
     sendAnswer(id, offerDescription); // Reply to the offer with our details
   });
 
@@ -111,7 +113,13 @@ function initSignaling(room, name) {
     let id = message.id;
     let answerDescription = message.answer;
 
+    console.log("Received answer from " + connections[id].name)
+
     if (id === ourID || connections[id].signalingState == "stable") return;
+
+    console.log("test")
+
+    console.log(answerDescription)
 
     connections[id].connection.setRemoteDescription(new RTCSessionDescription(answerDescription));
 
@@ -125,7 +133,7 @@ function initSignaling(room, name) {
     let candidates = message.candidateData;
     if (id === ourID) return;
 
-    console.log(candidates);
+    console.log("Receiving candidates")
 
     let candidate = new RTCIceCandidate({
       sdpMLineIndex: candidates.label,
@@ -145,7 +153,10 @@ function sendOffer(id) {
     addLocalTracksToConnection(id);
   }
 
+  console.log('Sending offer to user ' + connections[id].name);
+
   connections[id].connection.createOffer().then(function(description) {
+    console.log(description)
     connections[id].connection.setLocalDescription(description);
     socket.emit('offer', {
       id: id,
@@ -198,7 +209,6 @@ function createPeerConnection(id) {
 
     pc = new RTCPeerConnection(pcConfig);
     pc.onicecandidate = function (event) {
-      console.log(event);
       if (event.candidate) {
         socket.emit('candidate', {
           id: id,
@@ -216,15 +226,13 @@ function createPeerConnection(id) {
     pc.ontrack = function (event) {
       console.log('Remote stream added.');
 
-      let newStream = new MediaStream([event.track]) // Create a new stream containing the received track
-
       if (event.track.kind == "audio") {
-        userGotMedia(id, newStream); // Adds audio track to 3D environment
+        userGotMedia(id, new MediaStream([event.track])); // Adds audio track to 3D environment
       }
 
       if (event.track.kind == "video") {
-        if (sharing && id == shareUser) { // Screen capture video
-          screenShare.srcObject = newStream;
+        if (!event.streams[0]) { // Screen capture video
+          screenShare.srcObject = new MediaStream([event.track]); // Create a new stream containing the received track
 
           if (document.getElementById(newStream.id)) return; // Ignore if there already is screen sharing
 
@@ -235,9 +243,8 @@ function createPeerConnection(id) {
 
         } else { // Web camera video
 
-          if (!event.streams[0]) return; // Web camera videos should always be in a stream
-
-          addVideoStream(id, event.streams[0]);
+          // Web camera videos should always be in a stream
+          addVideoStream(id, event.track);
         }
       }
 
@@ -338,4 +345,5 @@ function handleIceCandidate(event) {
 
 function leaveRoom() {
   socket.emit('left');
+  socket.disconnect(true);
 }
