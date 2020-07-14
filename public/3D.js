@@ -195,13 +195,13 @@ function addText(user) {
 
 		let color, nameShowed;
 
-		color = "red";
+		color = 0x000000;
 		nameShowed = user.getName();
 		
 
 		let textMaterial = new THREE.MeshBasicMaterial({
 			color: color,
-			transparent: false,
+			transparent: true,
 			opacity: 1.0,
 			side: THREE.DoubleSide
 		});
