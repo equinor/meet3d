@@ -1,7 +1,9 @@
 var socket; // This is the SocketIO connection to the signalling server
-
 const signalServer = 'ws://localhost:3000'; // The signaling server
 
+// These two variables are present on both client.js and connect.js
+// var ourID; // This is our unique ID
+// var connections; // The key is the socket id, and the value is {name: username, stream: mediastream, connection: PeerConnection}
 
 const pcConfig = {
   iceServers: [
@@ -76,18 +78,8 @@ function initSignaling(room, name) {
   // A user left the conference
   socket.on('left', function(id) {
     console.log("User " + connections[id].name + " left");
-    removeConnectionHTMLList(id);
-    userLeft(id) // Removes the user from the 3D environment
-    if (connections[id].stream) document.getElementById(connections[id].stream.id).outerHTML = '';
-    if (connections[id].connection) connections[id].connection.close();
-    if (connections[id].dataChannel) connections[id].dataChannel.close();
-    delete connections[id];
-
-    if (id == shareUser) {
-      shareUser = null;
-      screenShare.hidden = true;
-      shareButton.hidden = false;
-    }
+    userLeft3D(id); // Removes the user from the 3D environment
+    userLeft(id);
   });
 
   // We have received a PeerConnection offer
@@ -116,10 +108,6 @@ function initSignaling(room, name) {
     console.log("Received answer from " + connections[id].name)
 
     if (id === ourID || connections[id].signalingState == "stable") return;
-
-    console.log("test")
-
-    console.log(answerDescription)
 
     connections[id].connection.setRemoteDescription(new RTCSessionDescription(answerDescription));
 
@@ -156,7 +144,6 @@ function sendOffer(id) {
   console.log('Sending offer to user ' + connections[id].name);
 
   connections[id].connection.createOffer().then(function(description) {
-    console.log(description)
     connections[id].connection.setLocalDescription(description);
     socket.emit('offer', {
       id: id,
@@ -226,13 +213,15 @@ function createPeerConnection(id) {
     pc.ontrack = function (event) {
       console.log('Remote stream added.');
 
+      let newStream = new MediaStream([event.track]);
+
       if (event.track.kind == "audio") {
-        userGotMedia(id, new MediaStream([event.track])); // Adds audio track to 3D environment
+        userGotMedia(id, newStream); // Adds audio track to 3D environment
       }
 
       if (event.track.kind == "video") {
         if (!event.streams[0]) { // Screen capture video
-          screenShare.srcObject = new MediaStream([event.track]); // Create a new stream containing the received track
+          screenShare.srcObject = newStream; // Create a new stream containing the received track
 
           if (document.getElementById(newStream.id)) return; // Ignore if there already is screen sharing
 
@@ -252,19 +241,7 @@ function createPeerConnection(id) {
         event.streams[0].onremovetrack = function (event) { // A track has been removed
           console.log(connections[id].name + ' removed a track from their stream.')
           if (event.track.kind == "video") {
-
-            let cameraLi = document.getElementById(connections[id].stream.id);
-            cameraLi.children[0].srcObject = null;
-            screenShare.hidden = true;
-            cameraLi.innerHTML = '';
-            videoElement.children[0].removeChild(cameraLi);
-
-            connections[id].stream = null;
-
-            if (videoElement.children[0].children.length == 0)
-              renderer.setSize(window.innerWidth, window.innerHeight - 30);
-
-            updateVideoList(id);
+            removeVideoStream(id);
           }
         }
       }

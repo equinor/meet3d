@@ -21,14 +21,14 @@ var buttons = document.getElementById("buttons");
 username.addEventListener("keyup", function(event) {
     if (event.keyCode === 13) { // This is the 'enter' key-press
       event.preventDefault();
-      init(); // Join the conference by pressing enter in the username input box
+      init(document.getElementById("start/leave")); // Join the conference by pressing enter in the username input box
     }
   });
 
 roomName.addEventListener("keyup", function(event) {
     if (event.keyCode === 13) { // This is the 'enter' key-press
       event.preventDefault();
-      init(); // Join the conference by pressing enter in the room name input box
+      init(document.getElementById("start/leave")); // Join the conference by pressing enter in the room name input box
     }
   });
 
@@ -39,16 +39,16 @@ chatSend.addEventListener("keyup", function(event) {
     }
   });
 
-var localStream = null;
-var localVideoTrack; // This is our local video stream
+// These two variables are present on both client.js and connect.js
 var ourID; // This is our unique ID
 var connections = {}; // The key is the socket id, and the value is {name: username, stream: mediastream, connection: PeerConnection}
+
+var localStream = null; // This is our local media stream
 var textFile = null; // This stores any downloaded file
 var sharing = false; // Is someone sharing their screen
 var shareUser = null; // Which user is sharing their screen
 var screenCapture = null; // The stream containing the video capture of our screen
 var unreadMessages = 0; // The number of messages we have received whilst not in 'chat mode'
-
 const maxChatLength = 20; // The chat will only hold this many messages at a time
 
 // Our local audio constraints
@@ -86,7 +86,7 @@ async function init(button) {
     return;
   }
 
-  let audio = await shareAudio(document.getElementById("microphoneButton")); // We need audio to start
+  let audio = await shareAudio(null); // We need audio to start
   if (!audio) {
     return;
   }
@@ -100,6 +100,10 @@ async function init(button) {
   initSignaling(roomName.value, username.value); // Connect to the conference room
 }
 
+/**
+ * Requests media from the user with the given constraints. Returns the returned
+ * track if there was only one medium, or a stream if several were requested.
+ */
 async function getLocalTrack(constraint) {
   try {
     let stream = await navigator.mediaDevices.getUserMedia(constraint); // Requests the webcamera stream
@@ -126,10 +130,12 @@ async function getLocalTrack(constraint) {
   }
 }
 
+/**
+ * Requests media from the user with the given constraints and adds the result
+ * to the PeerConnections.
+ */
 async function addLocalTrack(constraint) {
   let media = await getLocalTrack(constraint);
-
-  console.log(media);
 
   if (!media) return null;
 
@@ -142,17 +148,20 @@ async function addLocalTrack(constraint) {
   let trackID = null;
   for (let id in connections) {
     if (media.kind == "video") {
-      connections[id].video = connections[id].connection.addTrack(cameraCapture.getVideoTracks()[0], localStream); // Update our media stream
+      connections[id].video = connections[id].connection.addTrack(media, localStream); // Update our media stream
     } else {
-      connections[id].audio = connections[id].connection.addTrack(cameraCapture.getVideoTracks()[0], localStream); // Update our media stream
+      connections[id].audio = connections[id].connection.addTrack(media, localStream); // Update our media stream
     }
   }
-
   return media;
 }
 
+/**
+ * Adds all local streams to the PeerConnection to the user with the given ID.
+ */
 function addLocalTracksToConnection(id) {
-  if (!localStream) {
+  if (localStream.getTracks().length == 0) {
+    connections[id].connection.addTrack(null, localStream);
     return;
   }
   for (let i in localStream.getTracks()) {
@@ -165,28 +174,14 @@ function addLocalTracksToConnection(id) {
   }
 }
 
+/**
+ * Requests an audio track from the user and then adds it to the local stream.
+ */
 async function shareAudio(button) {
   let audioTrack = await addLocalTrack(audioConstraints);
 
-  if (!audioTrack) {
-    return false;
-  }
-
-  button.value = "Stop Sharing Audio";
-  button.onclick = function () { stopShareAudio(button) };
-
+  if (!audioTrack) return false;
   return true;
-}
-
-function stopShareAudio(button) {
-  for (let id in connections) {
-    connections[id].connection.removeTrack(connections[id].audio); // Update our media stream for the other users
-  }
-
-  button.onclick = function () { shareAudio(button) };
-  button.value = "Add audio";
-
-  localStream.getVideoTracks()[0].localAudioTrack.stop();
 }
 
 // Shares our camera stream with the other users
@@ -216,7 +211,8 @@ function stopShareCamera(button) {
   button.onclick = function () { shareCamera(button) };
   button.value = "Add video";
 
-  localStream.getVideoTracks()[0].localVideoTrack.stop();
+  localStream.getVideoTracks()[0].stop();
+  localStream.removeTrack(localStream.getVideoTracks()[0]);
 
   let videoSrc = cameraLi.children[0].srcObject; // Get the stream
   let tracks = videoSrc.getTracks();
@@ -537,12 +533,31 @@ function addVideoStream(id, track) {
 }
 
 /**
+ * Removes the video stream belonging to the user with ID 'id' from the HTML.
+ */
+function removeVideoStream(id) {
+  let cameraLi = document.getElementById(connections[id].stream.id);
+  cameraLi.children[0].srcObject = null;
+  screenShare.hidden = true;
+  cameraLi.innerHTML = '';
+  videoElement.children[0].removeChild(cameraLi);
+
+  connections[id].stream = null;
+
+  if (videoElement.children[0].children.length == 0)
+    renderer.setSize(window.innerWidth, window.innerHeight - 30);
+
+  updateVideoList(id);
+}
+
+/**
  * This function updates which videos are visible on the screen. The list of
  * videos to display is 'videoList' in 3D.js.
  */
 function updateVideoVisibility() {
-	for (let i = 0; i < videoListLength; i++) {
-    let id = videoList[i];
+  let vidList = getVideoList();
+	for (let i = 0; i < vidList.length; i++) {
+    let id = vidList[i];
     if (id == 0) continue;
 
     document.getElementById(connections[id].stream.id).hidden = false;
@@ -593,14 +608,12 @@ function addScreenCapture(id) {
     });
 
     if (id) {
-
       connections[id].dataChannel.send(shareJSON); // Notify everyone that we want to share our screen
       setTimeout(function() { // Wait 1 second to allow people to process the previous message
         connections[id].connection.addTrack(screenCapture.getVideoTracks()[0]); // Update our media stream
       }, 2000);
 
     } else {
-
       for (let i in connections) {
         connections[i].dataChannel.send(shareJSON); // Notify everyone that we want to share our screen
       }
@@ -609,7 +622,6 @@ function addScreenCapture(id) {
           connections[i].connection.addTrack(screenCapture.getVideoTracks()[0]); // Update our media stream
         }
       }, 1000);
-
     }
   }
 }
@@ -718,6 +730,22 @@ function swapViewOnC(event) {
       console.log("Could not swap view: changeModeButton.value = " + changeModeButton.value);
     }
   }
+}
+
+/**
+ * Tidies up variables related to a PeerConnection once a user leaves.
+ */
+function userLeft(id) {
+  removeConnectionHTMLList(id);
+  if (id == shareUser) {
+    shareUser = null;
+    screenShare.hidden = true;
+    shareButton.hidden = false;
+  }
+  if (connections[id].stream) document.getElementById(connections[id].stream.id).outerHTML = '';
+  if (connections[id].connection) connections[id].connection.close();
+  if (connections[id].dataChannel) connections[id].dataChannel.close();
+  delete connections[id];
 }
 
 // Leaves the conference, resets variable values and closes connections

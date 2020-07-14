@@ -56,10 +56,10 @@ function init3D() {
 
 	let floor = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, maxZ * 2, maxX * 2, maxZ * 2),
-		new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: floortext})
+		new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: floortext })
 	);
 	floor.rotation.x += Math.PI / 2; //can rotate the floor/plane
-	scene.add( floor );
+	scene.add(floor);
 	allObjects.push(floor);
 
 	//load models
@@ -166,6 +166,10 @@ function addWalls() {
 	allObjects.push( wallFront );
 
 	renderer.render(scene, camera);
+}
+
+function getVideoList() {
+	return videoList.slice(0, videoListLength);
 }
 
 //function to add a user to the UsersMap
@@ -306,7 +310,7 @@ function userGotMedia(id, mediaStream) {
 	};
 }
 
-function userLeft(id) {
+function userLeft3D(id) {
 	scene.remove(findUser(id).object);
 	if (removeUser(id)) {
 		userCount--;
