@@ -254,7 +254,12 @@ function newUserJoined(id, name) {
 	updateVideoList(id);
 }
 
-
+function changeUserPosition(id, x, y, z) {
+	findUser(id).setPosition(x, y, z);
+	if (connections[id].stream) {
+		updateVideoList(id);
+	}
+}
 
 /**
  * This function updates the list of videos to display on the screen. Only the
