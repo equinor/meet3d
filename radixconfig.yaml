@@ -1,0 +1,28 @@
+apiVersion: radix.equinor.com/v1
+kind: RadixApplication
+metadata:
+  name: meet3d
+spec:
+  environments:
+    - name: latest
+      build:
+        from: latest
+    - name: master
+      build:
+        from: master
+  components:
+    - name: signaling
+      dockerfileName: signaling.Dockerfile
+      ports:
+        - name: socketio
+          port: 3000
+      publicPort: socketio
+    - name: static
+      dockerfileName: static.Dockerfile
+      ports:
+        - name: http
+          port: 8080
+      publicPort: http
+  dnsAppAlias:
+    environment: latest
+    component: socketio
