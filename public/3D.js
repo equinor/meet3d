@@ -189,7 +189,7 @@ function addWalls() {
 }
 
 // Add username as text on top of 3D-object
-function addText(user) {
+function addText(user) { //FIXME Move to member function of class User
 
 	var loader = new THREE.FontLoader();
 	loader.load('helvetiker_regular.typeface.json', function(font) {
@@ -222,7 +222,6 @@ function addText(user) {
 		textGeometry.translate(0, (objectSize.y + shapeSize) / objectScale, 0);
 
 		var text = new THREE.Mesh(textGeometry, textMaterial);
-		text.name = "text"; //lets us access the text object later
 		user.object.add(text);
 	});
 } // end of addText() function
@@ -375,10 +374,8 @@ function userLeft(id) {
 //function that makes an object and position it at input coordinates
 var makeNewObject = function(xPosition, yPosition, zPosition){
 	const obj = new THREE.Object3D();
-	console.log("makeNewObject...");
 	loader.load('objects/obj/pawn.glb', function(gltf) {
 		var object = gltf.scene;				
-		//scene.add( gltf.scene );
 		obj.add(object);
 		obj.color = "blue";
 		obj.scale.x = objectScale;
@@ -387,11 +384,8 @@ var makeNewObject = function(xPosition, yPosition, zPosition){
 
 		let boundingBox = new THREE.Box3().setFromObject(obj);
 		objectSize = boundingBox.getSize(); // Returns Vector3
-		console.log("objectsize: {" + objectSize.x + objectSize.y + objectSize.z + "}");
-
 		scene.add(obj);
 	});
-	console.log("MakeNewObject finished");
 	return obj;
 };
 
@@ -455,7 +449,6 @@ function onDocumentKeyDown(event) {
 		case 68: // d
 			moveRight = true;
 			break;
-	
 	}
 }
 
@@ -527,8 +520,6 @@ function update() {
 
 		controls.moveRight( - velocity.x * delta );
 		controls.moveForward( - velocity.z * delta );
-
-		//controls.getObject().position.y += ( velocity.y * delta ); // new behavior
 
 		prevUpdateTime = time;
 	}
