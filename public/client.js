@@ -39,7 +39,7 @@ chatSend.addEventListener("keyup", function(event) {
     }
   });
 
-// These two variables are present on both client.js and connect.js
+// These two variables are present in both client.js and connect.js
 var ourID; // This is our unique ID
 var connections = {}; // The key is the socket id, and the value is {name: username, stream: mediastream, connection: PeerConnection}
 
@@ -75,6 +75,10 @@ const cameraConstraints = {
   }
 };
 
+/**
+ * Initialises the conference by first getting an audio stream from the user
+ * and then using that stream to connect to the other users in the given room.
+ */
 async function init(button) {
   if (username.value === '') { // No username given
     alert('Please enter a username');
@@ -184,7 +188,9 @@ async function shareAudio(button) {
   return true;
 }
 
-// Shares our camera stream with the other users
+/**
+ * Shares our camera stream with the other users.
+ */
 async function shareCamera(button) {
   let cameraCapture = await addLocalTrack(cameraConstraints);
 
@@ -196,7 +202,10 @@ async function shareCamera(button) {
   button.onclick = function () { stopShareCamera(button) };
 }
 
-// This function stops us from sharing our webcamera video with other users, and ourselves
+/**
+ * This function stops us from sharing our webcamera video with other users,
+ * and ourselves.
+ */
 function stopShareCamera(button) {
 
   let cameraLi = document.getElementById("ourVideo");
@@ -227,7 +236,9 @@ function stopShareCamera(button) {
   }
 }
 
-// Adds a username to the list of connections on the HTML page
+/**
+ * Adds a username to the list of connections on the HTML page.
+ */
 function appendConnectionHTMLList(id) {
   let item = document.createElement("li");
   item.id = id;
@@ -235,7 +246,9 @@ function appendConnectionHTMLList(id) {
   connectionList.appendChild(item);
 }
 
-// Removes a user from the list of connections on the HTML page
+/**
+ * Removes a user from the list of connections on the HTML page.
+ */
 function removeConnectionHTMLList(id) {
   let children = connectionList.children;
   for (let i = 0; i < children.length; i++) {
@@ -288,7 +301,10 @@ function dataChannelReceive(id, data) {
   }
 }
 
-// Adds the given message to the chat box, including the user that sent it and the received time
+/**
+ * Adds the given message to the chat box, including the user that sent it and
+ * the received time.
+ */
 function addChat(name, message, whisper) {
   let today = new Date(); // Get the current time
   let hour = today.getHours();
@@ -322,7 +338,9 @@ function addChat(name, message, whisper) {
   }
 }
 
-// Emits a chat message to all other connected users
+/**
+ * Emits a chat message to all other connected users.
+ */
 function sendChat() {
 
   if (chatSend.value == '') return; // If there is no text to send, do nothing
@@ -358,7 +376,9 @@ function sendChat() {
   chatSend.value = ''; // Clear the text box
 }
 
-// Advertise to the other users which files we can send them
+/**
+ * Advertise to the other users which files we can send them.
+ */
 function advertiseFile() {
   let files = document.getElementById("sendFile").files; // Get our selected files
 
@@ -386,7 +406,7 @@ function advertiseFile() {
 /**
  * This code was made by Alice Jim on StackOverflow: https://stackoverflow.com/a/18650828
  * It formats the given number of bytes into a more presentable string which is accurate
- * to 2 significant figures.
+ * to 'decimals' significant figures, which is by default 2.
  */
 function formatBytes(bytes, decimals = 2) {
     if (bytes === 0) return '0 Bytes';
@@ -399,14 +419,19 @@ function formatBytes(bytes, decimals = 2) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
 }
 
-// Empties the list of advertised files for a user
+/**
+ * Empties the list of advertised files for a user.
+ */
 function clearFileList(id) {
   if (document.getElementById(connections[id].name + 'Files')) {
     document.getElementById(connections[id].name + 'Files').outerHTML = ''; // Clears their list of files
   }
 }
 
-// Adds the given new file to the drop-down menu of advertised files for the relevant user
+/**
+ * Adds the given new file to the drop-down menu of advertised files for the
+ * relevant user.
+ */
 function updateFileList(id, message) {
   document.getElementById("remoteFiles").hidden = false;
   let file = document.getElementById(message.fileName + '-' + connections[id].name);
@@ -447,7 +472,9 @@ function updateFileList(id, message) {
   userFiles.childNodes[1].appendChild(file);
 }
 
-// Requests the file given in the 'option'
+/**
+ * Requests the file given in the 'option'.
+ */
 function requestFile(id, option) {
   connections[id].dataChannel.send(JSON.stringify({
     type: "request",
@@ -457,7 +484,9 @@ function requestFile(id, option) {
   document.getElementById("download").name = option;
 }
 
-// Transmits the file given in the 'option' to the user with ID 'id'
+/**
+ * Transmits the file given in the 'option' to the user with ID 'id'.
+ */
 function sendFile(id, option) {
   let fileReader = new FileReader();
   let files = document.getElementById("sendFile").files; // Gets an array of our selected files
@@ -476,7 +505,9 @@ function sendFile(id, option) {
   }
 }
 
-// Generates a URL for a received file which can be used to download it
+/**
+ * Generates a URL for a received file which can be used to download it.
+ */
 function receiveFile(id, data) {
 
   if (textFile !== null) {
@@ -493,7 +524,9 @@ function receiveFile(id, data) {
   receivedFiles.style.display = "inline-block";
 }
 
-// Adds a new video to the videos displayed on the right side of the screen
+/**
+ * Adds a new video to the videos displayed on the right side of the screen.
+ */
 function addVideoStream(id, track) {
 
   let stream;
@@ -565,7 +598,9 @@ function updateVideoVisibility() {
   }
 }
 
-// Shares our screen with the other users, if noone is doing so already
+/**
+ * Shares our screen with the other users, if noone is doing so already.
+ */
 async function shareScreen(button) {
 
   if (shareUser) return; // Someone else is sharing their screen
@@ -626,7 +661,9 @@ function addScreenCapture(id) {
   }
 }
 
-// Stops us sharing our screen, including notifying others that we have done so
+/**
+ * Stops us sharing our screen, including notifying others that we have done so
+ */
 function stopShareScreen(button) {
 
   if (!screenShare.srcObject || shareUser !== ourID) {
@@ -654,7 +691,9 @@ function stopShareScreen(button) {
   }
 }
 
-// Function which tells other users our new 3D position
+/**
+ * Function which tells other users our new 3D position.
+ */
 function changePos(x, y, z) {
   let jsonPos = JSON.stringify({type: "pos", x: x, y: y, z: z});
   for (let id in connections) { // Send it to everyone
@@ -662,7 +701,9 @@ function changePos(x, y, z) {
   }
 }
 
-// Open up the chat window to its initial state
+/**
+ * Open up the chat window to its initial state.
+ */
 function initChat() {
   openChat();
 
@@ -680,7 +721,9 @@ function initChat() {
   sceneDiv.style.display = "none"; // Hide the 3D scene
 }
 
-// Open the chat and hide the 3D environment
+/**
+ * Open the chat and hide the 3D environment.
+ */
 function openChat() {
   document.removeEventListener("keydown", onDocumentKeyDown);
 	document.removeEventListener("keyup", onDocumentKeyUp);
@@ -697,7 +740,9 @@ function openChat() {
   document.body.style.backgroundColor = "white";
 }
 
-// Open the 3D environment and hide the chat
+/**
+ * Open the 3D environment and hide the chat.
+ */
 function open3D() {
   document.addEventListener("keydown", onDocumentKeyDown, false);
 	document.addEventListener("keyup", onDocumentKeyUp, false);
@@ -711,7 +756,9 @@ function open3D() {
   document.body.style.backgroundColor = "grey";
 }
 
-// Make 'c'-keypress swap between chat and 3D-space
+/**
+ * Make 'c'-keypress swap between chat and 3D-space.
+ */
 function initSwapView() {
   document.addEventListener("keyup", swapViewOnC);
 
@@ -719,7 +766,9 @@ function initSwapView() {
   chatSend.onblur = function() { document.addEventListener("keyup", swapViewOnC) };
 }
 
-// Switches between the chat and the 3D environment
+/**
+ * Switches between the chat and the 3D environment.
+ */
 function swapViewOnC(event) {
   if (event.key == 'c') {
     if (changeModeButton.value == "Open 3D") {
@@ -733,7 +782,7 @@ function swapViewOnC(event) {
 }
 
 /**
- * Tidies up variables related to a PeerConnection once a user leaves.
+ * Tidies up variables related to a PeerConnection when a user leaves.
  */
 function userLeft(id) {
   removeConnectionHTMLList(id);
@@ -748,7 +797,9 @@ function userLeft(id) {
   delete connections[id];
 }
 
-// Leaves the conference, resets variable values and closes connections
+/**
+ * Leaves the conference, resets variable values and closes connections and streams.
+ */
 function leave(button) {
 
   if (textFile !== null) {

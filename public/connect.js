@@ -2,9 +2,10 @@ var socket; // This is the SocketIO connection to the signalling server
 const signalServer = 'ws://localhost:3000'; // The signaling server
 
 // These two variables are present on both client.js and connect.js
-// var ourID; // This is our unique ID
-// var connections; // The key is the socket id, and the value is {name: username, stream: mediastream, connection: PeerConnection}
+// ourID: This is our unique ID
+// connections: The key is the socket id, and the value is {name: username, stream: mediastream, connection: PeerConnection}
 
+// The configuration containing our STUN and TURN servers.
 const pcConfig = {
   iceServers: [
     {
@@ -131,7 +132,9 @@ function initSignaling(room, name) {
   });
 }
 
-// Sends an offer to a new user with our local PeerConnection description
+/**
+ * Sends an offer to a new user with our local PeerConnection description.
+ */
 function sendOffer(id) {
   console.log('Creating peer connection to user ' + connections[id].name);
 
@@ -157,7 +160,9 @@ function sendOffer(id) {
   });
 }
 
-// Sends a reply to an offer with our local PeerConnection description
+/**
+ * Sends a reply to an offer with our local PeerConnection description.
+ */
 function sendAnswer(id, offerDescription) {
   if (connections[id].signalingState == "stable") return;
 
@@ -286,7 +291,9 @@ function createPeerConnection(id) {
   return pc;
 }
 
-// Creates a new data channel to the user with the given id
+/**
+ * Creates a new data channel to the user with the given id.
+ */
 function createDataChannel(id) {
   let tempConnection = connections[id].connection.createDataChannel("Chat");
   tempConnection.addEventListener("open", () => {
@@ -306,7 +313,9 @@ function createDataChannel(id) {
   });
 }
 
-// Transmit local ICE candidates
+/**
+ * Transmit local ICE candidates.
+ */
 function handleIceCandidate(event) {
   if (event.candidate) {
     socket.emit('candidate', {
@@ -320,6 +329,10 @@ function handleIceCandidate(event) {
   }
 }
 
+/**
+ * Signifies to the signal server that we are leaving the conference, and then
+ * closes the connection. 
+ */
 function leaveRoom() {
   socket.emit('left');
   socket.disconnect(true);
