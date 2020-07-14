@@ -78,9 +78,11 @@ function initSignaling(room, name) {
 
   // A user left the conference
   socket.on('left', function(id) {
-    console.log("User " + connections[id].name + " left");
-    userLeft3D(id); // Removes the user from the 3D environment
-    userLeft(id);
+    if (connections[id]) {
+      console.log("User " + connections[id].name + " left");
+      userLeft3D(id); // Removes the user from the 3D environment
+      userLeft(id);
+    }
   });
 
   // We have received a PeerConnection offer
@@ -122,7 +124,7 @@ function initSignaling(room, name) {
     let candidates = message.candidateData;
     if (id === ourID) return;
 
-    console.log("Receiving candidates")
+    console.log("Receiving candidates from " + connections[id].name);
 
     let candidate = new RTCIceCandidate({
       sdpMLineIndex: candidates.label,
@@ -136,9 +138,9 @@ function initSignaling(room, name) {
  * Sends an offer to a new user with our local PeerConnection description.
  */
 function sendOffer(id) {
-  console.log('Creating peer connection to user ' + connections[id].name);
 
   if (!connections[id].connection) {
+    console.log('Creating peer connection to user ' + connections[id].name);
     connections[id].connection = createPeerConnection(id);
     createDataChannel(id);
     addLocalTracksToConnection(id);
@@ -166,8 +168,8 @@ function sendOffer(id) {
 function sendAnswer(id, offerDescription) {
   if (connections[id].signalingState == "stable") return;
 
-  console.log('Creating RTCPeerConnection to user ' + connections[id].name);
   if (!connections[id].connection) {
+    console.log('Creating RTCPeerConnection to user ' + connections[id].name);
     connections[id].connection = createPeerConnection(id);
     addLocalTracksToConnection(id);
   }
@@ -200,6 +202,7 @@ function createPeerConnection(id) {
     }
 
     pc = new RTCPeerConnection(pcConfig);
+
     pc.onicecandidate = function (event) {
       if (event.candidate) {
         socket.emit('candidate', {
@@ -215,6 +218,7 @@ function createPeerConnection(id) {
         console.log('End of candidates.');
       }
     };
+
     pc.ontrack = function (event) {
       console.log('Remote stream added.');
 
@@ -251,9 +255,11 @@ function createPeerConnection(id) {
         }
       }
     };
+
     pc.onremovestream = function (event) {
       console.log("Lost a stream from " + connections[id].name);
     };
+
     pc.ondatachannel = function (event) {
       event.channel.addEventListener("open", () => {
         connections[id].dataChannel = event.channel;
@@ -268,6 +274,7 @@ function createPeerConnection(id) {
         dataChannelReceive(id, message.data); // Called when we receive a DataChannel message
       });
     };
+
     pc.onnegotiationneeded = function (event) {
       console.log("Renegotiations needed, sending new offer")
 
@@ -282,6 +289,7 @@ function createPeerConnection(id) {
         return;
       });
     };
+
   } catch (e) {
     console.log('Failed to create PeerConnection. Exception: ' + e.message);
     alert('Cannot create RTCPeerConnection.');
@@ -296,21 +304,21 @@ function createPeerConnection(id) {
  */
 function createDataChannel(id) {
   let tempConnection = connections[id].connection.createDataChannel("Chat");
-  tempConnection.addEventListener("open", () => {
+  tempConnection.onopen = function () {
     connections[id].dataChannel = tempConnection;
     console.log("Datachannel established to " + connections[id].name);
     changePos(findUser(ourID).getxPosition(), findUser(ourID).getyPosition(), findUser(ourID).getzPosition());
 
     addScreenCapture(id);
-  });
+  };
 
-  tempConnection.addEventListener("close", () => {
+  tempConnection.onclose = function () {
     console.log("A DataChannel closed");
-  });
+  };
 
-  tempConnection.addEventListener("message", (event) => {
+  tempConnection.onmessage = function (event) {
     dataChannelReceive(id, event.data); // Called when we receive a DataChannel message
-  });
+  };
 }
 
 /**
@@ -331,7 +339,7 @@ function handleIceCandidate(event) {
 
 /**
  * Signifies to the signal server that we are leaving the conference, and then
- * closes the connection. 
+ * closes the connection.
  */
 function leaveRoom() {
   socket.emit('left');

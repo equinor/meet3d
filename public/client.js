@@ -17,6 +17,7 @@ var notification = document.getElementById("notification");
 var sceneDiv = document.getElementById("3D");
 var videoElement = document.getElementById("remoteVideo");
 var buttons = document.getElementById("buttons");
+var shareButton = document.getElementById("shareButton");
 
 username.addEventListener("keyup", function(event) {
     if (event.keyCode === 13) { // This is the 'enter' key-press
@@ -619,6 +620,8 @@ async function shareScreen(button) {
     return;
   }
 
+  console.log(button)
+
   button.value = "Stop Sharing Screen";
   button.onclick = function () { stopShareScreen(button) };
 
@@ -646,7 +649,7 @@ function addScreenCapture(id) {
       connections[id].dataChannel.send(shareJSON); // Notify everyone that we want to share our screen
       setTimeout(function() { // Wait 1 second to allow people to process the previous message
         connections[id].connection.addTrack(screenCapture.getVideoTracks()[0]); // Update our media stream
-      }, 2000);
+      }, 1000);
 
     } else {
       for (let i in connections) {
@@ -670,7 +673,7 @@ function stopShareScreen(button) {
     return; // We are not sharing our screen, so we do not need to close anything
   }
 
-  button.onclick = function () { shareScreen() }; // Reset the share screen button
+  button.onclick = function () { shareScreen(button) }; // Reset the share screen button
   button.value = "Share Screen";
 
   let tracks = screenShare.srcObject.getTracks();
@@ -679,6 +682,7 @@ function stopShareScreen(button) {
   screenShare.srcObject = null;
   screenShare.hidden = true;
   sharing = false; // This indicates that noone is sharing their screen
+  shareUser = null;
   addWalls(); // Re-add the 3D walls without the video texture
 
   let shareJSON = JSON.stringify({
@@ -786,15 +790,16 @@ function swapViewOnC(event) {
  */
 function userLeft(id) {
   removeConnectionHTMLList(id);
-  if (id == shareUser) {
+  if (id == shareUser) { // If they were sharing their screen then remove it
     shareUser = null;
     screenShare.hidden = true;
     shareButton.hidden = false;
+    addWalls();
   }
-  if (connections[id].stream) document.getElementById(connections[id].stream.id).outerHTML = '';
-  if (connections[id].connection) connections[id].connection.close();
-  if (connections[id].dataChannel) connections[id].dataChannel.close();
-  delete connections[id];
+  if (connections[id].stream) document.getElementById(connections[id].stream.id).outerHTML = ''; // Remove video
+  if (connections[id].dataChannel) connections[id].dataChannel.close(); // Close DataChannel
+  if (connections[id].connection) connections[id].connection.close(); // Close PeerConnection
+  delete connections[id]; // Delete object entry
 }
 
 /**
@@ -821,6 +826,14 @@ function leave(button) {
   videoElement.innerHTML = '<ul></ul>'; // Removes all videos from the list on the right side of the screen
   buttons.hidden = true;
 
+  if (localStream) {
+    localStream.getTracks().forEach(track => track.stop()); // Stop all local media tracks
+    localStream = null;
+  }
+
+  leave3D(); // Closes the 3D environment
+  leaveRoom(); // Let the other users know that we are leaving
+
   for (let id in connections) {
     if (connections[id].stream)
       connections[id].stream.getTracks().forEach(track => track.stop()); // Stop all remote media tracks, if there are any
@@ -828,15 +841,6 @@ function leave(button) {
     connections[id].connection.close(); // Close the PeerConnection
   }
   connections = {};
-
-  if (localStream) {
-    localStream.getTracks().forEach(track => track.stop()); // Stop all local media tracks
-    localStream = null;
-  }
-
-  leave3D(); // Closes the 3D environment
-  stop();
-  leaveRoom();
 
   button.value = "Join";
   button.onclick = function() { init(button) };
