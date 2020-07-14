@@ -222,7 +222,7 @@ function addText(user) {
 		textGeometry.translate(0, (objectSize.y + shapeSize) / objectScale, 0);
 
 		var text = new THREE.Mesh(textGeometry, textMaterial);
-
+		text.name = "text"; //lets us access the text object later
 		user.object.add(text);
 	});
 } // end of addText() function
@@ -508,6 +508,13 @@ function update() {
 			console.log("changing user pos");
 			changePos(camera.position.x, 0, camera.position.z);
 			prevPosTime = time;
+			if(UserMap.size > 0) { //FIXME UserMap.size is currently undefined
+				for(let [k, v] of UserMap) {
+					console.log("Trying to move text: ")
+					//v.getObjectByName(text).rotateY( Math.PI * 0.1 );
+					v.getObjectByName(text).lookAt(camera.position.x, 0, camera.position.z);
+				}
+			}
 		}
 
 		velocity.x -= velocity.x * 10.0 * delta;
