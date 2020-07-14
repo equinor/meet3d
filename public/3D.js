@@ -46,7 +46,7 @@ function init3D() {
 
 	// CAMERA
 	camera = new THREE.PerspectiveCamera(100, (window.innerWidth / window.outerWidth), 0.1, 1000);
-	camera.position.z = 70;
+	camera.position.y = 50;
 
 	//light
 	let light = new THREE.PointLight( 0xff0000, 1, 100 );
@@ -155,6 +155,7 @@ function init3D() {
 	listener = new THREE.AudioListener();
   
 	controls.getObject().add(listener)
+	
 	userCount++;
 
 	update();
@@ -291,7 +292,12 @@ function newUserJoined(id, name) {
 	updateVideoList(id);
 }
 
-
+function changeUserPosition(id, x, y, z) {
+	findUser(id).setPosition(x, y, z);
+	if (connections[id].stream) {
+		updateVideoList(id);
+	}
+}
 
 /**
  * This function updates the list of videos to display on the screen. Only the
@@ -445,6 +451,14 @@ class User {
 	getName() { return this.name; }
 	getId() { return this.id; }
 	
+	setxPosition(xPosition) { this.object.position.x = xPosition; }
+	setyPosition(yPosition) { this.object.position.y = yPosition; }
+	setzPosition(zPosition) { this.object.position.z = zPosition; }
+	setPosition(xPosition, yPosition, zPosition) {
+		this.setxPosition(xPosition);
+		this.setyPosition(yPosition);
+		this.setzPosition(zPosition);
+	}
 	setName(newname) { this.name = newname; }
 	
 	getMedia() { return this.media; }
@@ -478,11 +492,13 @@ function onDocumentKeyDown(event) {
 
 		case 39: // right
 		case 68: // d
-			moveRight = true;
+			moveRight = trxsue;
 			break;
 	
 	}
+	changePos(camera.position.x, camera.position.y, camera.position.z);
 }
+
 function onDocumentKeyUp(event){
 	switch ( event.keyCode ) {
 
@@ -526,9 +542,9 @@ function update() {
 		var time = performance.now();
 		var delta = ( time - prevTime ) / 1000;
 
-		velocity.x -= velocity.x * 100 * delta;
-		//velocity.z -= velocity.z * delta;
-		velocity.z = 0.01;
+		velocity.x -= velocity.x * 10 * delta;
+		velocity.z -= velocity.z * 10 * delta;
+		
 
 		direction.z = Number( moveForward ) - Number( moveBackward );
 		direction.x = Number( moveRight ) - Number( moveLeft );
@@ -542,7 +558,7 @@ function update() {
 		controls.moveRight( - velocity.x * delta );
 		controls.moveForward( - velocity.z * delta );
 
-		controls.getObject().position.y += ( velocity.y * delta ); // new behavior
+		//controls.getObject().position.y += ( velocity.y * delta ); // new behavior
 
 		prevTime = time;
 	}
