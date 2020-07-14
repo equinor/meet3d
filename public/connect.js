@@ -1,9 +1,9 @@
 var socket; // This is the SocketIO connection to the signalling server
-const signalServer = 'ws://localhost:3000'; // The signaling server
+const signalServer = 'localhost:3000'; // The signaling server
 
-// These two variables are present on both client.js and connect.js
-// ourID: This is our unique ID
-// connections: The key is the socket id, and the value is {name: username, stream: mediastream, connection: PeerConnection}
+// These variables are present on both client.js and connect.js
+//    ourID: This is our unique ID
+//    connections: The key is the socket id, and the value is {name: username, stream: mediastream, connection: PeerConnection}
 
 // The configuration containing our STUN and TURN servers.
 const pcConfig = {
@@ -308,7 +308,7 @@ function createDataChannel(id) {
     connections[id].dataChannel = tempConnection;
     console.log("Datachannel established to " + connections[id].name);
     changePos(findUser(ourID).getxPosition(), findUser(ourID).getyPosition(), findUser(ourID).getzPosition());
-
+    advertiseFile();
     addScreenCapture(id);
   };
 

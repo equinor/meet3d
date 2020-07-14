@@ -238,6 +238,102 @@ function stopShareCamera(button) {
 }
 
 /**
+ * Shares our screen with the other users, if noone is doing so already.
+ */
+async function shareScreen(button) {
+
+  if (shareUser) return; // Someone else is sharing their screen
+
+  try {
+    screenCapture = await navigator.mediaDevices.getDisplayMedia(screenShareConstraints); // Ask for the screen capture
+  } catch(e) {
+    if (e.name === "NotAllowedError") { // We were not given permission to use the screen capture
+      alert('Unfortunately, access to the microphone is necessary in order to use the program. ' +
+      'Permissions for this webpage can be updated in the settings for your browser, ' +
+      'or by refreshing the page and trying again.');
+    } else {
+      console.log(e);
+      alert('Unable to access local media: ' + e.name);
+    }
+    return;
+  }
+
+  console.log(button)
+
+  button.value = "Stop Sharing Screen";
+  button.onclick = function () { stopShareScreen(button) };
+
+  shareUser = ourID; // We are the one sharing our screen
+  screenShare.srcObject = screenCapture;
+  sharing = true;
+  addWalls(); // Add the stream to the 3D environment
+
+  addScreenCapture(null);
+}
+
+/**
+ * Adds our screen capture stream to the PeerConnection with the user with ID
+ * 'id', or to all connections if 'id' is null.
+ */
+function addScreenCapture(id) {
+  if (sharing && shareUser == ourID) {
+
+    let shareJSON = JSON.stringify({
+      type: "share",
+      sharing: true
+    });
+
+    if (id) {
+      connections[id].dataChannel.send(shareJSON); // Notify everyone that we want to share our screen
+      setTimeout(function() { // Wait 1 second to allow people to process the previous message
+        connections[id].connection.addTrack(screenCapture.getVideoTracks()[0]); // Update our media stream
+      }, 1000);
+
+    } else {
+      for (let i in connections) {
+        connections[i].dataChannel.send(shareJSON); // Notify everyone that we want to share our screen
+      }
+      setTimeout(function() { // Wait 1 second to allow people to process the previous message
+        for (let i in connections) {
+          connections[i].connection.addTrack(screenCapture.getVideoTracks()[0]); // Update our media stream
+        }
+      }, 1000);
+    }
+  }
+}
+
+/**
+ * Stops us sharing our screen, including notifying others that we have done so
+ */
+function stopShareScreen(button) {
+
+  if (!screenShare.srcObject || shareUser !== ourID) {
+    return; // We are not sharing our screen, so we do not need to close anything
+  }
+
+  button.onclick = function () { shareScreen(button) }; // Reset the share screen button
+  button.value = "Share Screen";
+
+  let tracks = screenShare.srcObject.getTracks();
+
+  tracks.forEach(track => track.stop()); // Stop the video track
+  screenShare.srcObject = null;
+  screenShare.hidden = true;
+  sharing = false; // This indicates that noone is sharing their screen
+  shareUser = null;
+  addWalls(); // Re-add the 3D walls without the video texture
+
+  let shareJSON = JSON.stringify({
+    type: "share",
+    sharing: false // Indicates that we are no longer sharing
+  });
+
+  for (let id in connections) {
+    connections[id].dataChannel.send(shareJSON); // Let all users know that we are no longer sharing our screen
+  }
+}
+
+/**
  * Adds a username to the list of connections on the HTML page.
  */
 function appendConnectionHTMLList(id) {
@@ -466,8 +562,8 @@ function updateFileList(id, message) {
     }
 
     userFiles.appendChild(request);
+    userFiles.appendChild(document.createElement("br")); // Place the next user on the next line
     files.appendChild(userFiles);
-    files.appendChild(document.createElement("br")); // Place the next user on the next line
   }
 
   userFiles.childNodes[1].appendChild(file);
@@ -596,102 +692,6 @@ function updateVideoVisibility() {
 
     document.getElementById(connections[id].stream.id).hidden = false;
     document.getElementById(connections[id].stream.id).children[0].autoplay = true;
-  }
-}
-
-/**
- * Shares our screen with the other users, if noone is doing so already.
- */
-async function shareScreen(button) {
-
-  if (shareUser) return; // Someone else is sharing their screen
-
-  try {
-    screenCapture = await navigator.mediaDevices.getDisplayMedia(screenShareConstraints); // Ask for the screen capture
-  } catch(e) {
-    if (e.name === "NotAllowedError") { // We were not given permission to use the screen capture
-      alert('Unfortunately, access to the microphone is necessary in order to use the program. ' +
-      'Permissions for this webpage can be updated in the settings for your browser, ' +
-      'or by refreshing the page and trying again.');
-    } else {
-      console.log(e);
-      alert('Unable to access local media: ' + e.name);
-    }
-    return;
-  }
-
-  console.log(button)
-
-  button.value = "Stop Sharing Screen";
-  button.onclick = function () { stopShareScreen(button) };
-
-  shareUser = ourID; // We are the one sharing our screen
-  screenShare.srcObject = screenCapture;
-  sharing = true;
-  addWalls(); // Add the stream to the 3D environment
-
-  addScreenCapture(null);
-}
-
-/**
- * Adds our screen capture stream to the PeerConnection with the user with ID
- * 'id', or to all connections if 'id' is null.
- */
-function addScreenCapture(id) {
-  if (sharing && shareUser == ourID) {
-
-    let shareJSON = JSON.stringify({
-      type: "share",
-      sharing: true
-    });
-
-    if (id) {
-      connections[id].dataChannel.send(shareJSON); // Notify everyone that we want to share our screen
-      setTimeout(function() { // Wait 1 second to allow people to process the previous message
-        connections[id].connection.addTrack(screenCapture.getVideoTracks()[0]); // Update our media stream
-      }, 1000);
-
-    } else {
-      for (let i in connections) {
-        connections[i].dataChannel.send(shareJSON); // Notify everyone that we want to share our screen
-      }
-      setTimeout(function() { // Wait 1 second to allow people to process the previous message
-        for (let i in connections) {
-          connections[i].connection.addTrack(screenCapture.getVideoTracks()[0]); // Update our media stream
-        }
-      }, 1000);
-    }
-  }
-}
-
-/**
- * Stops us sharing our screen, including notifying others that we have done so
- */
-function stopShareScreen(button) {
-
-  if (!screenShare.srcObject || shareUser !== ourID) {
-    return; // We are not sharing our screen, so we do not need to close anything
-  }
-
-  button.onclick = function () { shareScreen(button) }; // Reset the share screen button
-  button.value = "Share Screen";
-
-  let tracks = screenShare.srcObject.getTracks();
-
-  tracks.forEach(track => track.stop()); // Stop the video track
-  screenShare.srcObject = null;
-  screenShare.hidden = true;
-  sharing = false; // This indicates that noone is sharing their screen
-  shareUser = null;
-  addWalls(); // Re-add the 3D walls without the video texture
-
-  let shareJSON = JSON.stringify({
-    type: "share",
-    sharing: false // Indicates that we are no longer sharing
-  });
-
-  for (let id in connections) {
-    connections[id].dataChannel.send(shareJSON); // Let all users know that we are no longer sharing our screen
   }
 }
 
@@ -825,6 +825,7 @@ function leave(button) {
   changeModeButton.hidden = true;
   videoElement.innerHTML = '<ul></ul>'; // Removes all videos from the list on the right side of the screen
   buttons.hidden = true;
+  remoteFiles.innerHTML = ' Remote Files: ';
 
   if (localStream) {
     localStream.getTracks().forEach(track => track.stop()); // Stop all local media tracks
@@ -839,6 +840,7 @@ function leave(button) {
       connections[id].stream.getTracks().forEach(track => track.stop()); // Stop all remote media tracks, if there are any
     connections[id].dataChannel.close(); // Close the DataChannel
     connections[id].connection.close(); // Close the PeerConnection
+    clearFileList(id);
   }
   connections = {};
 

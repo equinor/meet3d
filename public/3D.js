@@ -288,11 +288,15 @@ function shiftVideoList(id) {
 	return shiftedID; // Return the shifted ID or 0 otherwise
 }
 
+/**
+ * Gets a number representing the distance between the user with ID 'id' and our
+ * user in the 3D space.
+ */
 function getDistance(id) {
 	let otherUser = findUser(id);
-	return Math.abs(otherUser.getxPosition() - ourUser.getxPosition()) +
-		Math.abs(otherUser.getyPosition() - ourUser.getyPosition()) +
-		Math.abs(otherUser.getzPosition() - ourUser.getzPosition());
+	return Math.pow(otherUser.getxPosition() - ourUser.getxPosition(), 2) +
+		Math.pow(otherUser.getyPosition() - ourUser.getyPosition(), 2) +
+		Math.pow(otherUser.getzPosition() - ourUser.getzPosition(), 2);
 }
 
 function userGotMedia(id, mediaStream) {
