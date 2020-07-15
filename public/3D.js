@@ -245,7 +245,7 @@ function findUser(id) {
 function newUserJoined(id, name) {
 	console.log("Adding new user to the 3D environment: " + name);
 	let newUser = {};
-	
+
 	newUser['name'] = name;
 	newUser['avatar'] = loadNewObject(resourceList[resourceIndex]);
 	resourceIndex++;
@@ -534,7 +534,8 @@ function leave3D() {
 	if (document.getElementById("scene")) {
 		document.getElementById("scene").outerHTML = ''; // Deletes the scene canvas
 	}
-
+	
+	window.cancelAnimationFrame(requestID); // Stops rendering the scene
 	scene = null;
 	camera = null;
 	renderer = null;
@@ -543,13 +544,9 @@ function leave3D() {
 	userCount = 0;
 	listener = null;
 	loader = null;
-	objectSize = new THREE.Vector3(); // Not needed?
-	velocity = new THREE.Vector3(); // Not needed?
-	direction = new THREE.Vector3(); // Not needed?
 	UserMap = {};
 	allObjects = [];
 	videoList = [];
 	listAvatars = [];
 	resourceIndex = 0;
-	window.cancelAnimationFrame(requestID); // Stops rendering the scene
 }
