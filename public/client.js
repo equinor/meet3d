@@ -42,7 +42,15 @@ chatSend.addEventListener("keyup", function(event) {
 
 // These two variables are present in both client.js and connect.js
 var ourID; // This is our unique ID
-var connections = {}; // The key is the socket id, and the value is {name: username, stream: mediastream, connection: PeerConnection}
+var connections = {}; // The key is the socket id, and the value is:
+/*    {
+ *      name: String,
+ *      stream: MediaStream,
+ *      connection: PeerConnection,
+ *      audio: RTCRtpSender,
+ *      video: RTCRtpSender
+ *    }
+ */
 
 var localStream = null; // This is our local media stream
 var textFile = null; // This stores any downloaded file

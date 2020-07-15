@@ -7,7 +7,7 @@ var rooms = {}
 var users = {}
 
 var server = require("http").createServer(onRequest);
-var io = require("socket.io")(server, { cookie: false, origins: allowedOrigins });
+var io = require("socket.io")(server, { cookie: false });
 
 function onRequest(req,res) {
   res.writeHead(200, { 'Access-Control-Allow-Origin' : '*' });

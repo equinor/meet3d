@@ -1,9 +1,17 @@
 var socket; // This is the SocketIO connection to the signalling server
 const signalServer = 'signaling-server-meet3d-testing.radix.equinor.com:80'; // The signaling server
 
-// These variables are present on both client.js and connect.js
-//    ourID: This is our unique ID
-//    connections: The key is the socket id, and the value is {name: username, stream: mediastream, connection: PeerConnection}
+/*  These variables are present on both client.js and connect.js:
+ *  ourID: This is our unique ID
+ *  connections: The key is the socket id, and the value is:
+ *    {
+ *      name: String,
+ *      stream: MediaStream,
+ *      connection: PeerConnection,
+ *      audio: RTCRtpSender,
+ *      video: RTCRtpSender
+ *    }
+ */
 
 // The configuration containing our STUN and TURN servers.
 const pcConfig = {
