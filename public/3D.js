@@ -194,16 +194,12 @@ function getVideoList() {
 
 //FIXME This function is currently not updated
 // Add username as text on top of 3D-object
-function addText(user) {
-
+function addText(name, model) {
+	var text = new THREE.Mesh();
 	var loader = new THREE.FontLoader();
 	loader.load('helvetiker_regular.typeface.json', function(font) {
 
-		let color, nameShowed;
-
-		color = 0x000000;
-		nameShowed = user.getName();
-
+		let color = 0x000000;
 
 		let textMaterial = new THREE.MeshBasicMaterial({
 			color: color,
@@ -212,10 +208,10 @@ function addText(user) {
 			side: THREE.DoubleSide
 		});
 
-		const shapeSize = 2;
+		const letterSize = 2;
 
 		// Creates an array of Shapes representing nameShowed
-		let shapes = font.generateShapes(nameShowed, shapeSize/objectScale);
+		let shapes = font.generateShapes(name, letterSize / objectScale);
 
 		let textGeometry = new THREE.ShapeBufferGeometry(shapes);
 
@@ -224,13 +220,15 @@ function addText(user) {
 		textGeometry.center();
 
 		// Determine position of text object realtive to 3D-object
-		textGeometry.translate(0, (objectSize.y + shapeSize) / objectScale, 0);
+		textGeometry.translate(0, (objectSize.y + letterSize) / objectScale, 0);
 
-		var text = new THREE.Mesh(textGeometry, textMaterial);
-		text.name = "text";
-		user.object.add(text);
+		text.geometry = textGeometry;
+		text.material =  textMaterial;
+		text.name = "text"; // DELETE ME Probably do not need this
+		model.add(text);
 	});
-} // end of addText() function
+	return text;
+} // end of function addText()
 
 
 //return true if a User with the id passed in parameter was a part of the UserMap and removed, false otherwise
@@ -248,22 +246,21 @@ function newUserJoined(id, name) {
 	let newUser = {};
 	
 	newUser['name'] = name;
-	try{
+
 	newUser['avatar'] = loadNewObject(resourceList[resourceIndex]);
-	console.log("prøver å kalle loadNew object")}
-	catch{
-		console.log("klarer ikke kalle loadnewObject")
-	}
+	
 	resourceIndex++;
 	resourceIndex %= resourceList.length; // Make sure the index never exceeds the size of the list
 	
-	//newUser['text'] = addText(newUser.avatar, name); //FIXME Have to change addText()
-
+	newUser['text'] = addText(name, newUser.avatar.model);
+	
+	
+	// Add new user to UserMap
 	UserMap[id] = newUser;
+	userCount++;
 
 	//scene.add(newUser.avatar.model);
 
-	userCount++;
 	updateVideoList(id);
 }
 
@@ -498,14 +495,11 @@ function update() {
 		// Only do this if position is changed?
 		if ( time - prevPosTime > 100 ) {
 			changePos(camera.position.x, 0, camera.position.z);
-			console.log("Dette skjer mange ganger?");
 			prevPosTime = time;
 
 			for(let keyId in UserMap) {
-				//FIXME addText needs to be updated first
-				//UserMap[keyId].avatar.model.getObjectByName("text").lookAt(camera.position.x, 0, camera.position.z);
-
 				//UserMap[keyId].avatar.text.lookAt(camera.position.x, 0, camera.position.z);
+				UserMap[keyId].avatar.model.getObjectByName('text').lookAt(camera.position.x, 0, camera.position.z);
 			}
 
 			//Add functionality to update direction based on camera direction OR movement direction
