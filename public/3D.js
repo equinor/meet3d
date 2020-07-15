@@ -30,6 +30,12 @@ const videoCount = 3;
 
 var listener;
 var loader;
+var dt
+var lastframe = Date.now()
+var mixer;
+//var clip;
+var group;
+
 
 var listAvatars = ["objects/Anglerfish/Anglerfish.glb","objects/ArmoredCatfish/ArmoredCatfish.glb","objects/Betta/Betta.glb", "objects/BlackLionFish/BlackLionFish.glb", "objects/Blobfish/Blobfish.glb", "objects/BlueGoldfish.glb", "objects/Clownfish.glb",
 "objects/Flatfish/Flatfish.glb", "objects/FlowerHorn/FlowerHorn.glb", "objects/GoblinShark/GoblinShark.glb", "objects/Goldfish/Goldfish.glb",
@@ -126,30 +132,26 @@ function newUserJoined(id, name){
 	user['name'] = name;
 	var avatar = {};
 	avatar['ressource'] = listAvatars.shift();
-	avatar['model'] = new THREE.Object3D();
+	const obj = new THREE.Object3D();
 	loader.load(avatar.ressource, function(gltf) { //this could probably be vastly improved
-		avatar.model.add(gltf.scene);
-		avatar.model.scale.x = 7;
-		avatar.model.scale.y = 7;
-		avatar.model.scale.z = 7;
-		//avatar['clips'] = gltf.animations;
-		//avatar['mixer'] = new THREE.AnimationMixer(gltf.scene);
-		//avatar['swim'] = avatar.mixer.clipAction(gltf.animations[0]);
-		//avatar.action.play();
-		var mixer = new THREE.AnimationMixer(avatar.model);
-		//var action = mixer.clipAction(gltf.animations);
-		avatar['action'] = mixer.clipAction(gltf.animations[0]);
-		avatar.action.play();
-		scene.add(avatar.model);
+		group.add(gltf.scene);
+		mixer = new THREE.AnimationMixer( group);
+		var action = mixer.clipAction( gltf.animations[ 0 ] );
+		action.play();
+		var object = gltf.scene;				
+		obj.add(object);
+		obj.position.x = 10;
+		obj.position.y = 10;
+		obj.position.z = (distance * userCount);
+		obj.scale.x =7;
+		obj.scale.y =7;
+		obj.scale.z =7;
+		scene.add(obj);
 	});
-	//user['avatar'] = listAvatars.shift();
+	avatar['model'] = obj;
 	user['avatar'] = avatar;
-	//user.avatar.action.play();
-	console.log(UserMap);
-	user.avatar.model.position.x = 10;
-	user.avatar.model.position.y = 10;
-	user.avatar.model.position.z = (distance * userCount);
 	addToUserMap(user);
+	console.log(UserMap);
 	return user;
 }
 
@@ -326,7 +328,12 @@ function onDocumentKeyUp(event) {
 
 //function to update frame
 function update() {
-	renderer.render(scene, camera);
+	dt = (Date.now()-lastframe)/1000
+	if(mixer){
+    	mixer.update(dt)        
+	}
+	renderer.render( scene, camera );
+	lastframe=Date.now()
 	requestID = requestAnimationFrame(update);
 }
 
@@ -462,6 +469,8 @@ function init3D() {
 
 	//load models
 	loader = new THREE.GLTFLoader();
+
+	group = new THREE.AnimationObjectGroup();
 
 	//addPlant
 	const plant = new THREE.Object3D();
