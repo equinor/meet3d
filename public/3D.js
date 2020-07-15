@@ -47,7 +47,7 @@ var UserMap = {};
 
 listAvatars = [];
 
-var resourceList = ['obj/objects/pawn.glb'];
+var resourceList = ['objects/obj/pawn.glb'];
 var resourceIndex = 0;
 
 function init3D() {
@@ -248,8 +248,12 @@ function newUserJoined(id, name) {
 	let newUser = {};
 	
 	newUser['name'] = name;
-
+	try{
 	newUser['avatar'] = loadNewObject(resourceList[resourceIndex]);
+	console.log("prøver å kalle loadNew object")}
+	catch{
+		console.log("klarer ikke kalle loadnewObject")
+	}
 	resourceIndex++;
 	resourceIndex %= resourceList.length; // Make sure the index never exceeds the size of the list
 	
@@ -257,14 +261,16 @@ function newUserJoined(id, name) {
 
 	UserMap[id] = newUser;
 
-	scene.add(newUser.avatar.model);
+	//scene.add(newUser.avatar.model);
 
 	userCount++;
 	updateVideoList(id);
 }
 
 function changeUserPosition(id, x, y, z) {
-	findUser(id).avatar.model.position = new THREE.Vector3(x, y, z);
+	findUser(id).avatar.model.position.x = x;
+	findUser(id).avatar.model.position.y = y;
+	findUser(id).avatar.model.position.z = z;
 	if (connections[id].stream) {
 		updateVideoList(id);
 	}
@@ -400,15 +406,20 @@ function loadNewObject(ressource){
 		avatar.model.scale.x = objectScale;
 		avatar.model.scale.y = objectScale;
 		avatar.model.scale.z = objectScale;
-		avatar['clips'] = gltf.animations;
-		avatar['mixer'] = new THREE.AnimationMixer(gltf.scene);
-		avatar['swim'] = avatar.mixer.clipAction(gltf.animations[0]);
+
+		//FIXME errors when these are uncommented
+		//avatar['clips'] = gltf.animations;
+		//avatar['mixer'] = new THREE.AnimationMixer(gltf.scene);
+		//avatar['swim'] = avatar.mixer.clipAction(gltf.animations[0]);
 		//avatar.swim.play(); // FIXME Currently not working
 
-		let boundingBox = new THREE.Box3().setFromObject(avatar);
+		let boundingBox = new THREE.Box3().setFromObject(avatar.model);
 		objectSize = boundingBox.getSize(); // Returns Vector3
 		allObjects.push(avatar.model); //FIXME should this be outside loader?
+		
 		scene.add(avatar.model);
+			
+		
 	});
 	//listAvatars.push(avatar); // DELETE ME Probably not needed
 	return avatar;
@@ -487,6 +498,7 @@ function update() {
 		// Only do this if position is changed?
 		if ( time - prevPosTime > 100 ) {
 			changePos(camera.position.x, 0, camera.position.z);
+			console.log("Dette skjer mange ganger?");
 			prevPosTime = time;
 
 			for(let keyId in UserMap) {
