@@ -222,7 +222,8 @@ function addText(name, model) {
 		// Determine position of text object realtive to 3D-object
 		textGeometry.translate(0, (objectSize.y + letterSize) / objectScale, 0);
 
-		text = new THREE.Mesh(textGeometry, textMaterial);
+		text.geometry = textGeometry;
+		text.material =  textMaterial;
 		text.name = "text"; // DELETE ME Probably do not need this
 		model.add(text);
 	});
@@ -245,16 +246,14 @@ function newUserJoined(id, name) {
 	let newUser = {};
 	
 	newUser['name'] = name;
-	try{
+
 	newUser['avatar'] = loadNewObject(resourceList[resourceIndex]);
-	console.log("prøver å kalle loadNew object")}
-	catch{
-		console.log("klarer ikke kalle loadnewObject")
-	}
+	
 	resourceIndex++;
 	resourceIndex %= resourceList.length; // Make sure the index never exceeds the size of the list
 	
 	newUser['text'] = addText(name, newUser.avatar.model);
+	
 	
 	// Add new user to UserMap
 	UserMap[id] = newUser;
@@ -496,7 +495,6 @@ function update() {
 		// Only do this if position is changed?
 		if ( time - prevPosTime > 100 ) {
 			changePos(camera.position.x, 0, camera.position.z);
-			console.log("Dette skjer mange ganger?");
 			prevPosTime = time;
 
 			for(let keyId in UserMap) {
