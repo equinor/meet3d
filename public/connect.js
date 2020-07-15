@@ -1,5 +1,5 @@
 var socket; // This is the SocketIO connection to the signalling server
-const signalServer = 'localhost:3000'; // The signaling server
+const signalServer = 'signaling-server-meet3d-master.radix.equinor.com:80'; // The signaling server
 
 // These variables are present on both client.js and connect.js
 //    ourID: This is our unique ID

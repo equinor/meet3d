@@ -6,7 +6,9 @@ const maxUsers = 10; // TODO: determine a good value for this
 var rooms = {}
 var users = {}
 
-const io = require('socket.io')(3000, { cookie: false });
+var allowedOrigins = "http://localhost:* http://127.0.0.1:* https://web-server-meet3d-testing.radix.equinor.com/:*";
+
+const io = require('socket.io')(80, { cookie: false, origins: allowedOrigins });
 
 io.sockets.on('connection', function(socket) {
 
