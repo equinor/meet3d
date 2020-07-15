@@ -1,36 +1,44 @@
+var socket; // This is the SocketIO connection to the signalling server
+const signalServer = 'localhost:3000'; // The signaling server
+
+// These variables are present on both client.js and connect.js
+//    ourID: This is our unique ID
+//    connections: The key is the socket id, and the value is {name: username, stream: mediastream, connection: PeerConnection}
+
+// The configuration containing our STUN and TURN servers.
+const pcConfig = {
+  iceServers: [
+    {
+      urls: 'turn:51.120.91.82:3478',
+      username: 'default_turn_user',
+      credential: 'lime_mercury_hammerkop'
+    }
+  ]
+};
+
 /**
  * This function is run in order to join a conference. It establishes contact
  * with the signal server which helps create PeerConnection and DataChannel
- * connections with the other users in the conference. It also first gets the
- * audio stream from the user microphone which is added to the PeerConnections.
+ * connections with the other users in the conference.
  */
-function init(button) {
-
-  if (username.value === '') { // No username given
-    alert('Please enter a username');
-    return;
-  }
-
-  if (roomName.value === '') { // No room name given
-    alert('Please enter a room name');
-    return;
-  }
-
-  button.value = "Leave";
-  button.onclick = function() { leave(button) };
-
-  room = roomName.value;
-  username.readOnly = true; // Do not allow the user to edit their name, but show it
-  roomName.readOnly = true; // Do not allow the user to edit the room name, but show it
-  initChat(); // Show the chat
+function initSignaling(room, name) {
   socket = io(signalServer); // Connect to the signaling server
+
+  let startInfo = {
+    room: room, // The room we want to join
+    name: name // Our username
+  };
+
+  socket.emit('join', startInfo);
+
+  console.log('Attempting to join ', room);
 
   // We created and joined a room
   socket.on('created', function(connectionInfo) {
     console.log('Created room ' + connectionInfo.room);
     ourID = connectionInfo.id;
 
-    init3D(); // Renders the 3D environment
+    init3D(name); // Renders the 3D environment
     initSwapView();
   });
 
@@ -58,7 +66,7 @@ function init(button) {
     console.log('We joined: ' + connectionInfo.room);
     ourID = connectionInfo.id;
 
-    init3D(); // Renders the 3D environment
+    init3D(name); // Renders the 3D environment
     initSwapView(); // Lets the user quickly switch between chat mode and 3D mode
   });
 
@@ -70,18 +78,10 @@ function init(button) {
 
   // A user left the conference
   socket.on('left', function(id) {
-    console.log("User " + connections[id].name + " left");
-    removeConnectionHTMLList(id);
-    userLeft(id) // Removes the user from the 3D environment
-    if (connections[id].stream) document.getElementById(connections[id].stream.id).outerHTML = '';
-    if (connections[id].connection) connections[id].connection.close();
-    if (connections[id].dataChannel) connections[id].dataChannel.close();
-    delete connections[id];
-
-    if (id == shareUser) {
-      shareUser = null;
-      screenShare.hidden = true;
-      shareButton.hidden = false;
+    if (connections[id]) {
+      console.log("User " + connections[id].name + " left");
+      userLeft3D(id); // Removes the user from the 3D environment
+      userLeft(id);
     }
   });
 
@@ -91,38 +91,16 @@ function init(button) {
     let name = message.name;
     let offerDescription = message.offer;
 
-    if (id === ourID) return;
+    if (id === ourID || (connections[id] && connections[id].signalingState == "stable")) return;
 
-    connections[id] = {};
-    connections[id].name = name;
-
+    if (!connections[id]) {
+      connections[id] = {};
+      connections[id].name = name;
+      appendConnectionHTMLList(id); // Add their username to the list of connections on the webpage
+      newUserJoined(id, name); // Add new user to 3D environment
+    }
+    console.log("Received offer from " + connections[id].name)
     sendAnswer(id, offerDescription); // Reply to the offer with our details
-    appendConnectionHTMLList(id); // Add their username to the list of connections on the webpage
-    newUserJoined(id, name); // Add new user to 3D environment
-  });
-
-  // We have received an updated PeerConnection offer
-  socket.on('newOffer', function(message) {
-    let id = message.id;
-    let offerDescription = message.offer;
-
-    if (id === ourID) return;
-
-    if (connections[id].signalingState == "stable") return;
-
-    console.log('Sending new answer to connection to user ' + connections[id].name);
-
-    connections[id].connection.setRemoteDescription(new RTCSessionDescription(offerDescription));
-    connections[id].connection.createAnswer().then(function(description) {
-      connections[id].connection.setLocalDescription(description);
-      socket.emit('newAnswer', {
-        id: id,
-        answer: description
-      });
-    }, function (e) {
-      console.log("Failed to create answer: " + e);
-      return;
-    });
   });
 
   // We have received an answer to our PeerConnection offer
@@ -130,72 +108,45 @@ function init(button) {
     let id = message.id;
     let answerDescription = message.answer;
 
-    if (id === ourID) return;
+    console.log("Received answer from " + connections[id].name)
+
+    if (id === ourID || connections[id].signalingState == "stable") return;
 
     connections[id].connection.setRemoteDescription(new RTCSessionDescription(answerDescription));
-    appendConnectionHTMLList(id);
-  });
 
-  // We have received an answer to our updated PeerConnection offer
-  socket.on('newAnswer', function(message) {
-
-    let id = message.id;
-    let answerDescription = message.answer;
-
-    if (id === ourID) return;
-
-    if (connections[id].signalingState == "stable") return;
-
-    connections[id].connection.setRemoteDescription(new RTCSessionDescription(answerDescription));
+    if (!connections[id].dataChannel) appendConnectionHTMLList(id);
   });
 
   // We have received an ICE candidate from a user we are connecting to
   socket.on('candidate', function(message) {
 
     let id = message.id;
-    let answerDescription = message.candidateData;
+    let candidates = message.candidateData;
     if (id === ourID) return;
 
+    console.log("Receiving candidates from " + connections[id].name);
+
     let candidate = new RTCIceCandidate({
-      sdpMLineIndex: answerDescription.label,
-      candidate: answerDescription.candidate
+      sdpMLineIndex: candidates.label,
+      candidate: candidates.candidate
     });
     connections[id].connection.addIceCandidate(candidate);
   });
-
-  // Gets the audio stream from our microphone
-  navigator.mediaDevices.getUserMedia({
-    audio: true,
-    video: false
-  }).then(gotLocalStream).catch(function(e) {
-    if (e.name === "NotAllowedError") {
-      alert('Unfortunately, access to the microphone is necessary in order to use the program. ' +
-      'Permissions for this webpage can be updated in the settings for your browser, ' +
-      'or by refreshing the page and trying again.');
-      leave();
-    } else {
-      console.log(e);
-      alert('Unable to access local media: ' + e.name);
-      leave();
-    }
-  });
-
-  if (location.hostname !== 'localhost') { // If we are not hosting locally
-    requestTurn('https://computeengineondemand.appspot.com/turn?username=41784574&key=4080218913');
-  }
 }
 
-// Sends an offer to a new user with our local PeerConnection description
+/**
+ * Sends an offer to a new user with our local PeerConnection description.
+ */
 function sendOffer(id) {
-  console.log('Creating peer connection to user ' + connections[id].name);
-  connections[id].connection = createPeerConnection(id);
 
-  createDataChannel(id);
-
-  connections[id].connection.addStream(localStream);
-  if (localVideoTrack) {
-    connections[id].senderCam = connections[id].connection.addTrack(localVideoTrack, localStream);
+  if (!connections[id].connection) {
+    console.log('Creating peer connection to user ' + connections[id].name);
+    connections[id].connection = createPeerConnection(id);
+    createDataChannel(id);
+    addLocalTracksToConnection(id);
   }
+
+  console.log('Sending offer to user ' + connections[id].name);
 
   connections[id].connection.createOffer().then(function(description) {
     connections[id].connection.setLocalDescription(description);
@@ -211,15 +162,19 @@ function sendOffer(id) {
   });
 }
 
-// Sends a reply to an offer with our local PeerConnection description
+/**
+ * Sends a reply to an offer with our local PeerConnection description.
+ */
 function sendAnswer(id, offerDescription) {
   if (connections[id].signalingState == "stable") return;
 
-  console.log('>>>>>> Creating RTCPeerConnection to user ' + connections[id].name);
-  connections[id].connection = createPeerConnection(id);
-  connections[id].connection.addStream(localStream);
+  if (!connections[id].connection) {
+    console.log('Creating RTCPeerConnection to user ' + connections[id].name);
+    connections[id].connection = createPeerConnection(id);
+    addLocalTracksToConnection(id);
+  }
 
-  console.log('>>>>>> Sending answer to connection to user ' + connections[id].name);
+  console.log('Sending answer to connection to user ' + connections[id].name);
 
   connections[id].connection.setRemoteDescription(new RTCSessionDescription(offerDescription));
   connections[id].connection.createAnswer().then(function(description) {
@@ -234,21 +189,6 @@ function sendAnswer(id, offerDescription) {
   });
 }
 
-// Called when we have got a local media stream
-function gotLocalStream(stream) {
-  console.log('Adding local stream.');
-  localStream = stream;
-
-  if (room !== '') { // Check that the room does not already exist
-    let startInfo = {
-      room: room, // The room we want to join
-      name: username.value // Our username
-    };
-    socket.emit('join', startInfo);
-    console.log('Attempting to join ', room);
-  }
-}
-
 /**
  * Creates a PeerConnection to the user with ID 'id', and sets the listeners
  * for the connection.
@@ -261,7 +201,8 @@ function createPeerConnection(id) {
       connections[id] = {};
     }
 
-    pc = new RTCPeerConnection(null);
+    pc = new RTCPeerConnection(pcConfig);
+
     pc.onicecandidate = function (event) {
       if (event.candidate) {
         socket.emit('candidate', {
@@ -277,20 +218,19 @@ function createPeerConnection(id) {
         console.log('End of candidates.');
       }
     };
+
     pc.ontrack = function (event) {
       console.log('Remote stream added.');
 
-      console.log(event)
-
-      let newStream = new MediaStream([event.track]) // Create a new stream containing the received track
+      let newStream = new MediaStream([event.track]);
 
       if (event.track.kind == "audio") {
         userGotMedia(id, newStream); // Adds audio track to 3D environment
       }
 
       if (event.track.kind == "video") {
-        if (sharing && id == shareUser) { // Screen capture video
-          screenShare.srcObject = newStream;
+        if (!event.streams[0]) { // Screen capture video
+          screenShare.srcObject = newStream; // Create a new stream containing the received track
 
           if (document.getElementById(newStream.id)) return; // Ignore if there already is screen sharing
 
@@ -301,9 +241,8 @@ function createPeerConnection(id) {
 
         } else { // Web camera video
 
-          if (!event.streams[0]) return; // Web camera videos should always be in a stream
-
-          addVideoStream(id, event.streams[0]);
+          // Web camera videos should always be in a stream
+          addVideoStream(id, event.track);
         }
       }
 
@@ -311,26 +250,16 @@ function createPeerConnection(id) {
         event.streams[0].onremovetrack = function (event) { // A track has been removed
           console.log(connections[id].name + ' removed a track from their stream.')
           if (event.track.kind == "video") {
-
-            let cameraLi = document.getElementById(connections[id].stream.id);
-            cameraLi.children[0].srcObject = null;
-            screenShare.hidden = true;
-            cameraLi.innerHTML = '';
-            videoElement.children[0].removeChild(cameraLi);
-
-            connections[id].stream = null;
-
-            if (videoElement.children[0].children.length == 0)
-              renderer.setSize(window.innerWidth, window.innerHeight - 30);
-
-            updateVideoList(id);
+            removeVideoStream(id);
           }
         }
       }
     };
+
     pc.onremovestream = function (event) {
       console.log("Lost a stream from " + connections[id].name);
     };
+
     pc.ondatachannel = function (event) {
       event.channel.addEventListener("open", () => {
         connections[id].dataChannel = event.channel;
@@ -345,12 +274,13 @@ function createPeerConnection(id) {
         dataChannelReceive(id, message.data); // Called when we receive a DataChannel message
       });
     };
+
     pc.onnegotiationneeded = function (event) {
       console.log("Renegotiations needed, sending new offer")
 
       connections[id].connection.createOffer().then(function(description) {
         connections[id].connection.setLocalDescription(description);
-        socket.emit('newOffer', {
+        socket.emit('offer', {
           id: id,
           offer: description
         });
@@ -360,50 +290,42 @@ function createPeerConnection(id) {
       });
     };
 
-    console.log('>>>>>> Created RTCPeerConnection');
-
   } catch (e) {
     console.log('Failed to create PeerConnection. Exception: ' + e.message);
     alert('Cannot create RTCPeerConnection.');
     return;
   }
+  console.log('Created RTCPeerConnection');
   return pc;
 }
 
-// Creates a new data channel to the user with the given id
+/**
+ * Creates a new data channel to the user with the given id.
+ */
 function createDataChannel(id) {
   let tempConnection = connections[id].connection.createDataChannel("Chat");
-  tempConnection.addEventListener("open", () => {
-    connections[id].dataChannel = tempConnection
+  tempConnection.onopen = function () {
+    connections[id].dataChannel = tempConnection;
     console.log("Datachannel established to " + connections[id].name);
-    changePos(findUser(myID).getxPosition(), findUser(myID).getyPosition(), findUser(myID).getzPosition());
+    //changePos(findUser(ourID).getxPosition(), findUser(ourID).getyPosition(), findUser(ourID).getzPosition());
+    advertiseFile();
+    addScreenCapture(id);
+  };
 
-    if (sharing && shareUser == ourID) {
-      let shareJSON = JSON.stringify({
-        type: "share",
-        sharing: true
-      });
-      connections[id].dataChannel.send(shareJSON);
-
-      setTimeout(function() { // Wait 2 second
-        connections[id].connection.addTrack(screenCapture.getVideoTracks()[0]);
-      }, 2000);
-    }
-  });
-
-  tempConnection.addEventListener("close", () => {
+  tempConnection.onclose = function () {
     console.log("A DataChannel closed");
-  });
+  };
 
-  tempConnection.addEventListener("message", (event) => {
+  tempConnection.onmessage = function (event) {
     dataChannelReceive(id, event.data); // Called when we receive a DataChannel message
-  });
+  };
 }
 
-// Transmit local ICE candidates
+/**
+ * Transmit local ICE candidates.
+ */
 function handleIceCandidate(event) {
   if (event.candidate) {
-
     socket.emit('candidate', {
       type: 'candidate',
       label: event.candidate.sdpMLineIndex,
@@ -415,27 +337,11 @@ function handleIceCandidate(event) {
   }
 }
 
-// Tries to find a TURN server
-function requestTurn(turnURL) {
-  for (let i in pcConfig.iceServers) {
-    if (pcConfig.iceServers[i].urls.substr(0, 5) === 'turn:') {
-      return;
-    }
-  }
-
-  console.log('Getting TURN server from ', turnURL);
-  // No TURN server. Get one from computeengineondemand.appspot.com:
-  let xhr = new XMLHttpRequest();
-  xhr.onreadystatechange = function() {
-    if (xhr.readyState === 4 && xhr.status === 200) { // If there are no errors returned fromt the HTTP request
-      let turnServer = JSON.parse(xhr.responseText); // Make the received String into JSON
-      console.log('Got TURN server: ', turnServer);
-      pcConfig.iceServers.push({ // Add new TURN server to our config
-        'urls': 'turn:' + turnServer.username + '@' + turnServer.turn,
-                'credential': turnServer.password
-      });
-    }
-  };
-  xhr.open('GET', turnURL, true);
-  xhr.send();
+/**
+ * Signifies to the signal server that we are leaving the conference, and then
+ * closes the connection.
+ */
+function leaveRoom() {
+  socket.emit('left');
+  socket.disconnect(true);
 }
