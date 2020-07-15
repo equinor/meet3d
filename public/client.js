@@ -487,7 +487,7 @@ async function shareScreen(button) {
 
   shareUser = ourID; // We are the one sharing our screen
   screenShare.srcObject = screenCapture;
-  sharing = true;
+  sharing = true; 
   addWalls(); // Add the stream to the 3D environment
 
   let shareJSON = JSON.stringify({

@@ -31,8 +31,14 @@ const videoCount = 3;
 var listener;
 var loader;
 
-listAvatars = [];
-UserMap = {};
+var listAvatars = ["objects/Anglerfish/Anglerfish.glb","objects/ArmoredCatfish/ArmoredCatfish.glb","objects/Betta/Betta.glb", "objects/BlackLionFish/BlackLionFish.glb", "objects/Blobfish/Blobfish.glb", "objects/BlueGoldfish.glb", "objects/Clownfish.glb",
+"objects/Flatfish/Flatfish.glb", "objects/FlowerHorn/FlowerHorn.glb", "objects/GoblinShark/GoblinShark.glb", "objects/Goldfish/Goldfish.glb",
+"objects/Huphhead/HumphHead.glb", "objects/Koi/Koi.glb", "objects/Lionfish/Lionfish.glb", "objects/MandarinFish/MandarinFish.glb",
+"objects/MoorishIdol/MoorishIdol.glb","objects/ParrotFish/ParrotFish.glb", "objects/Piranha/Piranha.glb", "objects/Puffer/Puffer.glb",
+"objects/RedSnapper/RedSnapper.glb", "objects/RoyalGramma/RoyalGramma.glb", "objects/Shark/Shark.glb", "objects/Sunfish/Sunfish.glb",
+"objects/Swordfish/Swordfish.glb", "objects/Tang/Tang.glb", "objects/Tetra/Tetra.glb", "objects/Tuna/Tuna.glb", "objects/Turbot/Turbot.glb",
+"objects/YellowTang/YellowTang", "objects/ZebraClownFish/ZebraClownFish.glb"];
+var UserMap = {};
 
 function addWalls() {
 	let texture = 0;
@@ -94,7 +100,7 @@ function addWalls() {
 }
 
 //load the .gltf file passed in argument, store the 3D object and in corresponding animation in listAvatars, add the object to the scene outside the field of view
-function makeNewObjects(ressource){
+/*function makeNewObjects(ressource){
 	console.log("creating object: " + ressource);
 	var avatar = {};
 	avatar['model'] = new THREE.Object3D();
@@ -111,18 +117,38 @@ function makeNewObjects(ressource){
 	listAvatars.push(avatar);
 	console.log(listAvatars);
 	return avatar;
-}
+}*/
 
 function newUserJoined(id, name){
 	console.log("Adding new user to the 3D environment: " + name);
 	var user = {};
 	user['id'] = id;
 	user['name'] = name;
-	user['avatar'] = listAvatars.shift();
+	var avatar = {};
+	avatar['ressource'] = listAvatars.shift();
+	avatar['model'] = new THREE.Object3D();
+	loader.load(avatar.ressource, function(gltf) { //this could probably be vastly improved
+		avatar.model.add(gltf.scene);
+		avatar.model.scale.x = 7;
+		avatar.model.scale.y = 7;
+		avatar.model.scale.z = 7;
+		//avatar['clips'] = gltf.animations;
+		//avatar['mixer'] = new THREE.AnimationMixer(gltf.scene);
+		//avatar['swim'] = avatar.mixer.clipAction(gltf.animations[0]);
+		//avatar.action.play();
+		var mixer = new THREE.AnimationMixer(avatar.model);
+		//var action = mixer.clipAction(gltf.animations);
+		avatar['action'] = mixer.clipAction(gltf.animations[0]);
+		avatar.action.play();
+		scene.add(avatar.model);
+	});
+	//user['avatar'] = listAvatars.shift();
+	user['avatar'] = avatar;
+	//user.avatar.action.play();
+	console.log(UserMap);
 	user.avatar.model.position.x = 10;
 	user.avatar.model.position.y = 10;
 	user.avatar.model.position.z = (distance * userCount);
-	scene.add(user.avatar.model);
 	addToUserMap(user);
 	return user;
 }
@@ -164,7 +190,7 @@ function changeUserRotation(id, x, y, z) {
 
 //put the object passed in argument outside of the field of view of the scene and add it to listAvatar
 function removeAvatar(avatar){
-	listAvatars.push(avatar);
+	listAvatars.push(avatar.ressource);
 	scene.remove(avatar.model);
 }
 
@@ -472,7 +498,7 @@ function init3D() {
 	controls.maxAzimuthAngle = 0; // Prevents left-right rotation of camera
 
 	// Users' models
-	makeNewObjects('objects/Anglerfish/Anglerfish.glb');
+	/*makeNewObjects('objects/Anglerfish/Anglerfish.glb');
 	makeNewObjects('objects/ArmoredCatfish/ArmoredCatfish.glb');
 	makeNewObjects('objects/Betta/Betta.glb');
 	makeNewObjects('objects/BlackLionFish/BlackLionFish.glb');
@@ -506,7 +532,7 @@ function init3D() {
 	makeNewObjects('objects/Tuna/Tuna.glb');
 	makeNewObjects('objects/Turbot/Turbot.glb');
 	makeNewObjects('objects/YellowTang/YellowTang.glb');
-	makeNewObjects('objects/ZebraClownFish/ZebraClownFish.glb');
+	makeNewObjects('objects/ZebraClownFish/ZebraClownFish.glb');*/
 
 	myID = newUserJoined(0, "test").id;
 	ourUser = findUser(myID);
