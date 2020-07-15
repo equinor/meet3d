@@ -526,7 +526,6 @@ function update() {
 	renderer.render(scene, camera);
 }
 
-
 function leave3D() {
 
 	for (let i in allObjects) {
