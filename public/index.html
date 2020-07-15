@@ -23,7 +23,7 @@
 				<div>
 					Room name:
 					<input type="text" id="roomName" placeholder="Enter a room name here!"></input>
-					<input type="button" id="start/leave" onclick="init(this)" value="Open room"></input>
+					<input type="button" id="start/leave" onclick="init(this)" value="Join"></input>
 				</div>
 			</room>
 
@@ -69,10 +69,10 @@
 			</ul>
 		</videos>
 
-		<buttons>
+		<buttons id="buttons" hidden>
 			<input type="button" id="changeMode" onclick="open3D()" value="Open Chat" hidden></input>
 			<input type="button" id="shareButton" onclick="shareScreen(this)" value="Share Screen" hidden></input>
-			<input type="button" id="cameraButton" onclick="shareCamera(this)" value="Add video" hidden></input>
+			<input type="button" id="cameraButton" onclick="shareCamera(this)" value="Add video"></input>
 		</buttons>
 
 		<div id="3D">
@@ -89,8 +89,8 @@
 		<script src="three.js"></script>
 		<script src="GLTFLoader.js"></script>
 		<script src="OrbitControls.js"></script>
+		<script src="PointerLockControls.js"></script>
 		<script src="https://threejs.org/examples/js/loaders/GLTFLoader.js"></script>
 		<script src="3D.js"></script>
 	</body>
 </html>
-

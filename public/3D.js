@@ -1,7 +1,7 @@
 var scene;
 var camera;
 var renderer;
-var controls;
+
 var geometry;
 var material;
 var requestID = undefined;
@@ -11,11 +11,23 @@ var loader;
 var allObjects = []; // Stores all 3D objects so that they can be removed later
 var videoList = []; // The list of remote videos to display
 var videoListLength = 0; // The number of videos to show at a time, not including our own
-var ourUser;
+
+var controls;
+var loader;
 
 let wallLeft;
 let wallRight;
 let wallFront;
+
+var moveForward = false;
+var moveBackward = false;
+var moveLeft = false;
+var moveRight = false;
+
+var prevUpdateTime = performance.now();
+var prevPosTime = performance.now();
+var velocity = new THREE.Vector3();
+var direction = new THREE.Vector3();
 
 const distance = 15;
 const maxX = 100;
@@ -30,13 +42,16 @@ const videoCount = 3;
 const objectWidth = 10; // Probably not needed
 const objectHeight = 20; // Probably not needed
 
-function init3D() {
+//map to store the Users
+var UserMap = {};
+
+function init3D(name) {
 	scene = new THREE.Scene();
 	scene.background = new THREE.Color(0xf0f0f0);
 
 	// CAMERA
 	camera = new THREE.PerspectiveCamera(100, (window.innerWidth / window.outerWidth), 0.1, 1000);
-	camera.position.z = 70;
+	camera.position.y = 30;
 
 	//light
 	let light = new THREE.PointLight( 0xff0000, 1, 100 );
@@ -50,6 +65,7 @@ function init3D() {
 
 	// RENDERER
 	renderer = new THREE.WebGLRenderer();
+	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize(window.innerWidth, window.innerHeight - 30);
 	renderer.domElement.id = "scene"; // Adds an ID to the canvas element
 	document.getElementById("3D").appendChild(renderer.domElement);
@@ -59,19 +75,22 @@ function init3D() {
 
 	let floor = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, maxZ * 2, maxX * 2, maxZ * 2),
-		new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: floortext})
+		new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: floortext })
 	);
 	floor.rotation.x += Math.PI / 2; //can rotate the floor/plane
-	scene.add( floor );
+	scene.add(floor);
 	allObjects.push(floor);
 
 	//load models
 	loader = new THREE.GLTFLoader();
 
-	//addPlant
+	controls = new THREE.PointerLockControls( camera, document.body );
 
+	scene.add(controls.getObject());
+
+	//addPlant
 	const plant = new THREE.Object3D();
-	loader.load('objects/obj/planten.glb', function(gltf) {				
+	loader.load('objects/obj/planten.glb', function(gltf) {
 		plant.add(gltf.scene);
 		plant.scale.x = 20; plant.scale.y = 20; plant.scale.z = 20;
 		plant.position.x= 0; plant.position.y = 7; plant.position.z = 10;
@@ -80,48 +99,28 @@ function init3D() {
 
 	//add table
 	const table = new THREE.Object3D();
-	loader.load('objects/obj/table.glb', function(gltf) {				
+	loader.load('objects/obj/table.glb', function(gltf) {
 		table.add(gltf.scene);
 		table.scale.x = 20; table.scale.y = 20; table.scale.z = 20;
-		table.rotation.y += Math.PI / 2;  
+		table.rotation.y += Math.PI / 2;
 		scene.add(table);
 	});
-	
+
+	window.addEventListener( 'resize', onWindowResize, false );
+	document.addEventListener( 'keydown', onDocumentKeyDown, false );
+	document.addEventListener( 'keyup', onDocumentKeyUp, false );
+
 	addWalls()
 	allObjects.push(table);
 	allObjects.push(plant);
 
 	changeModeButton.hidden = false; // Allows the user to open the 3D environment
 
-/*
-	//choose which object to make when the makeobjectfunction is called
-	geometry = new THREE.BoxGeometry(10, 20, 10);
-	material = new THREE.MeshBasicMaterial( {color: 0x669966, wireframe: false});
-	object = new THREE.Mesh(geometry, material);
-	allObjects.push(object);
-*/
-
-	// ORBITCONTROLS
-	controls = new THREE.OrbitControls(camera, renderer.domElement);
-	controls.enableKeys = false;
-	controls.enablePan = false;
-	controls.minDistance = 1;
-	controls.maxDistance = 100;
-	controls.maxPolarAngle = Math.PI * 0.5; // Does not let you clip through the floor
-	controls.minAzimuthAngle = 0; // Prevents left-right rotation of camera
-	controls.maxAzimuthAngle = 0; // Prevents left-right rotation of camera
-
 	listener = new THREE.AudioListener();
-  
-	ourUser = new User(ourID, username.value, 10, 10, 0);
 
-	ourUser.object.add(listener);
+	controls.getObject().add(listener)
+
 	userCount++;
-
-	addText(ourUser);
-
-	controls.target.set(ourUser.getxPosition(), ourUser.getyPosition() + 0.5 * objectSize.y, ourUser.getzPosition());
-	controls.update();
 
 	update();
 }
@@ -185,6 +184,10 @@ function addWalls() {
 	renderer.render(scene, camera);
 }
 
+function getVideoList() {
+	return videoList.slice(0, videoListLength);
+}
+
 // Add username as text on top of 3D-object
 function addText(user) {
 
@@ -193,14 +196,9 @@ function addText(user) {
 
 		let color, nameShowed;
 
-		if(user == ourUser) {
-			color = 0x00ff00;
-			nameShowed = 'Me (' + user.getName() + ')';
-		}
-		else {
-			color = 0x000000;
-			nameShowed = user.getName();
-		}
+		color = 0x000000;
+		nameShowed = user.getName();
+
 
 		let textMaterial = new THREE.MeshBasicMaterial({
 			color: color,
@@ -215,7 +213,7 @@ function addText(user) {
 		let shapes = font.generateShapes(nameShowed, shapeSize/objectScale);
 
 		let textGeometry = new THREE.ShapeBufferGeometry(shapes);
-		
+
 		// Set center of text object equal to center of 3D-text-object
 		textGeometry.computeBoundingBox();
 		textGeometry.center();
@@ -224,7 +222,7 @@ function addText(user) {
 		textGeometry.translate(0, (objectSize.y + shapeSize) / objectScale, 0);
 
 		var text = new THREE.Mesh(textGeometry, textMaterial);
-
+		text.name = "text";
 		user.object.add(text);
 	});
 } // end of addText() function
@@ -245,13 +243,11 @@ function findUser(id) {
 	return UserMap[id];
 }
 
-//map to store the Users
-var UserMap = {};
 
 function newUserJoined(id, name) {
 	console.log("Adding new user to the 3D environment: " + name);
 	let newUser = new User(id, name, 10, 10, distance * userCount); // This does not look great at the moment
-  addText(newUser);
+ 	addText(newUser);
 	addToUserMap(newUser);
 	userCount++;
 	updateVideoList(id);
@@ -329,7 +325,7 @@ function updateVideoList(id) {
  */
 function shiftVideoList(id) {
 
-	let thisDistance = getDistance(id);
+	let thisDistance = getDistanceSquared(id);
 	let shiftedID = 0;
 	for (let i = 0; i < videoListLength; i++) {
 
@@ -337,7 +333,7 @@ function shiftVideoList(id) {
 			let tempID = shiftedID
 			shiftedID = videoList[i];
 			videoList[i] = tempID;
-		}	else if (getDistance(videoList[i]) >= thisDistance) {
+		}	else if (getDistanceSquared(videoList[i]) >= thisDistance) {
 			// If the user 'id' is closer than the current entry then replace the entry and shift it along
 			shiftedID = videoList[i];
 			videoList[i] = id;
@@ -346,11 +342,15 @@ function shiftVideoList(id) {
 	return shiftedID; // Return the shifted ID or 0 otherwise
 }
 
+/**
+ * Gets a number representing the distance between the user with ID 'id' and our
+ * user in the 3D space.
+ */
 function getDistance(id) {
 	let otherUser = findUser(id);
-	return Math.abs(otherUser.getxPosition() - ourUser.getxPosition()) +
-		Math.abs(otherUser.getyPosition() - ourUser.getyPosition()) +
-		Math.abs(otherUser.getzPosition() - ourUser.getzPosition());
+	return Math.pow(otherUser.getxPosition() - ourUser.getxPosition(), 2) +
+		Math.pow(otherUser.getyPosition() - ourUser.getyPosition(), 2) +
+		Math.pow(otherUser.getzPosition() - ourUser.getzPosition(), 2);
 }
 
 function userGotMedia(id, mediaStream) {
@@ -368,7 +368,7 @@ function userGotMedia(id, mediaStream) {
 	};
 }
 
-function userLeft(id) {
+function userLeft3D(id) {
 	scene.remove(findUser(id).object);
 	if (removeUser(id)) {
 		userCount--;
@@ -377,12 +377,10 @@ function userLeft(id) {
 
 
 //function that makes an object and position it at input coordinates
-var makeNewObject = function(xPosition, yPosition, zPosition){
+var makeNewObject = function(xPosition, yPosition, zPosition) {
 	const obj = new THREE.Object3D();
-	console.log("makeNewObject...");
 	loader.load('objects/obj/pawn.glb', function(gltf) {
-		var object = gltf.scene;				
-		//scene.add( gltf.scene );
+		var object = gltf.scene;
 		obj.add(object);
 		obj.color = "blue";
 		obj.scale.x = objectScale;
@@ -391,11 +389,12 @@ var makeNewObject = function(xPosition, yPosition, zPosition){
 
 		let boundingBox = new THREE.Box3().setFromObject(obj);
 		objectSize = boundingBox.getSize(); // Returns Vector3
-		console.log("objectsize: {" + objectSize.x + objectSize.y + objectSize.z + "}");
 
 		scene.add(obj);
 	});
-	console.log("MakeNewObject finished");
+
+	allObjects.push(obj);
+
 	return obj;
 };
 
@@ -403,20 +402,18 @@ var makeNewObject = function(xPosition, yPosition, zPosition){
 //constructor adds a User to UserMap
 class User {
 	constructor(id, name, xPosition, yPosition, zPosition) {
-		console.log("constructing user...");
 		this.name = name,
 		this.id = id,
 		this.object = makeNewObject(xPosition, yPosition, zPosition);
 		addToUserMap(this)
 	};
-	getName() { return this.name; }
-	getId() { return this.id; }
 	getxPosition() { return this.object.position.x; }
 	getyPosition() { return this.object.position.y; }
 	getzPosition() { return this.object.position.z; }
 	getPosition() { return this.object.position; }
+	getName() { return this.name; }
+	getId() { return this.id; }
 
-	setName(newname) { this.name = newname; }
 	setxPosition(xPosition) { this.object.position.x = xPosition; }
 	setyPosition(yPosition) { this.object.position.y = yPosition; }
 	setzPosition(zPosition) { this.object.position.z = zPosition; }
@@ -425,106 +422,115 @@ class User {
 		this.setyPosition(yPosition);
 		this.setzPosition(zPosition);
 	}
-	getValidPosition(xPosition, yPosition, zPosition) {
-		let posVec = new THREE.Vector3(xPosition, yPosition, zPosition);
 
-		posVec.x = Math.max( -(maxX - 0.5 * objectWidth), Math.min(xPosition, maxX - 0.5 * objectWidth) );
-		posVec.y = Math.max( -(maxY - 0.5 * objectHeight), Math.min(yPosition, maxY - 0.5 * objectHeight) );
-		posVec.z = Math.max( -(maxZ - 0.5 * objectWidth), Math.min(zPosition, maxZ - 0.5 * objectWidth) );
-
-		return posVec;
-	}
-  
-	// Return the Vector3 from current position to a valid new position
-	getValidMoveVec(velX, velY, velZ) {
-		let validPos = this.getValidPosition( this.getxPosition() + velX, this.getyPosition() + velY, this.getzPosition() + velZ );
-		return validPos.sub(this.getPosition());
-	}
-  
-	// Moves both the 3D-object and the camera
-	move(moveVec) {
-		this.setPosition(this.getxPosition() + moveVec.x, this.getyPosition() + moveVec.y, this.getzPosition() + moveVec.z);
-		camera.position.add(moveVec);
-	}
+	setName(newname) { this.name = newname; }
 	getMedia() { return this.media; }
 	setMedia(media) {
 		this.media = media;
 	}
 };
 
-var keysPressed = {};
 function onDocumentKeyDown(event) {
-	var key = event.key;
-	var moveVec = new THREE.Vector3(0,0,0);
+	switch (event.keyCode) {
 
-	keysPressed[event.key] = true;
-	switch (key) {
-		case 'w':
-			if (keysPressed['d']) {
-				moveVec = ourUser.getValidMoveVec( speed, 0, -speed );
-			}
-			else if (keysPressed['a']) {
-				moveVec = ourUser.getValidMoveVec( -speed, 0, -speed );
-			}
-			else {
-				moveVec = ourUser.getValidMoveVec( 0, 0, -speed );
-			}
+		case 87: //w
+			moveForward = true;
 			break;
-		case 's':
-			if (keysPressed['d']) {
-				moveVec = ourUser.getValidMoveVec( speed, 0, speed );
-			}
-			else if (keysPressed['a']) {
-				moveVec = ourUser.getValidMoveVec( -speed, 0, speed );
-			}
-			else {
-				moveVec = ourUser.getValidMoveVec( 0, 0, speed );
-			}
+
+		case 65: // a
+			moveLeft = true;
 			break;
-		case 'd':
-			if (keysPressed['w']) {
-				moveVec = ourUser.getValidMoveVec( speed, 0, -speed );
-			}
-			else if (keysPressed['s']) {
-				moveVec = ourUser.getValidMoveVec( speed, 0, speed );
-			}
-			else {
-				moveVec = ourUser.getValidMoveVec( speed, 0, 0 );
-			}
+
+		case 83: // s
+			moveBackward = true;
 			break;
-		case 'a':
-			if (keysPressed['w']) {
-				moveVec = ourUser.getValidMoveVec( -speed, 0, -speed );
-			}
-			else if (keysPressed['s']) {
-				moveVec = ourUser.getValidMoveVec( -speed, 0, speed );
-			}
-			else {
-				moveVec = ourUser.getValidMoveVec( -speed, 0, 0 );
-			}
+
+		case 68: // d
+			moveRight = true;
 			break;
-		default:
+
+		case 38://up
+			console.log("locking mouse");
+			controls.lock();
+			document.removeEventListener("keyup", swapViewOnC);
+			break;
+
+		case 40: // down
+			console.log("unlocking mouse");
+			controls.unlock();
 			break;
 	}
-
-	ourUser.move(moveVec);
-
-	// Makes the camera target object when using mouse to move the camera
-	controls.target.set(ourUser.getxPosition(), ourUser.getyPosition() + 0.5 * objectSize.y, ourUser.getzPosition());
-
-	changePos(ourUser.getxPosition(), ourUser.getyPosition(), ourUser.getzPosition());
-	updateVideoList(ourID);
 }
 
 function onDocumentKeyUp(event) {
-	delete keysPressed[event.key];
+	switch ( event.keyCode ) {
+
+		case 87: // w
+			moveForward = false;
+			break;
+
+		case 65: // a
+			moveLeft = false;
+			break;
+
+		case 83: // s
+			moveBackward = false;
+			break;
+
+		case 68: // d
+			moveRight = false;
+			break;
+	}
 }
+
+function onWindowResize() {
+
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
+
+	renderer.setSize( window.innerWidth, window.innerHeight - 30 );
+}
+
 
 //function to update frame
 function update() {
-	renderer.render(scene, camera);
 	requestID = requestAnimationFrame(update);
+	if (controls.isLocked === true){
+		document.removeEventListener("keyup", swapViewOnC); // this is not looking too great at the moment
+		var time = performance.now();
+		var delta = ( time - prevUpdateTime ) / 1000;
+
+		if ( time - prevPosTime > 100 ) {
+			changePos(camera.position.x, 0, camera.position.z);
+			prevPosTime = time;
+
+			//FIXME This currently doesn't work
+			for(let key in UserMap) {
+				UserMap[key].object.getObjectByName("text").lookAt(camera.position.x, 0, camera.position.z);
+			}
+		}
+
+		velocity.x -= velocity.x * 10.0 * delta;
+		velocity.z -= velocity.z * 10.0 * delta;
+
+		direction.z = Number( moveForward ) - Number( moveBackward );
+		direction.x = Number( moveRight ) - Number( moveLeft );
+		direction.normalize(); // this ensures consistent movements in all directions
+
+		if ( moveForward || moveBackward ) velocity.z -= direction.z * 400.0 * delta;
+		if ( moveLeft || moveRight ) velocity.x -= direction.x * 400.0 * delta;
+
+		controls.moveRight( - velocity.x * delta );
+		controls.moveForward( - velocity.z * delta );
+
+		prevUpdateTime = time;
+	} else {
+		document.addEventListener("keyup", swapViewOnC);
+	}
+
+	renderer.render(scene, camera);
 }
+
 
 function leave3D() {
 
@@ -537,6 +543,11 @@ function leave3D() {
 	if (document.getElementById("scene")) {
 		document.getElementById("scene").outerHTML = ''; // Deletes the scene canvas
 	}
+
+	UserMap = {};
+	controls = null;
+	renderer = null;
+	camera = null;
 	scene = null;
 	camera = null;
 	renderer = null;

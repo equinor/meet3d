@@ -113,10 +113,6 @@ videos ul li {
   padding-top: 0px;
 }
 
-buttons {
-  display: inline-block;
-}
-
 canvas {
   position: absolute;
   left: 0%;

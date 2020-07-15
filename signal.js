@@ -6,7 +6,9 @@ const maxUsers = 10; // TODO: determine a good value for this
 var rooms = {}
 var users = {}
 
-const io = require('socket.io')(3000);
+var allowedOrigins = "http://localhost:* http://127.0.0.1:* https://web-server-meet3d-testing.radix.equinor.com/:*";
+
+const io = require('socket.io')(80, { cookie: false, origins: allowedOrigins });
 
 io.sockets.on('connection', function(socket) {
 
@@ -27,13 +29,17 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('disconnect', function() {
-    if (users[socket.id])
+    if (users[socket.id]) {
       io.sockets.in(users[socket.id].room).emit('left', socket.id);
+      socket.leave(users[socket.id].room);
+    }
   });
 
   socket.on('left', function() {
-    if (users[socket.id])
+    if (users[socket.id]) {
       io.sockets.in(users[socket.id].room).emit('left', socket.id);
+      socket.leave(users[socket.id].room);
+    }
   })
 
   socket.on('newOffer', function(data) {
@@ -61,7 +67,7 @@ io.sockets.on('connection', function(socket) {
       socket.join(room); // Add this user to the room
       socket.emit('created', {room: room, id: socket.id});
 
-    } else if (numClients > 0 && numClients < maxUsers) { // Room joined
+    } else if (numClients > 0 && numClients < maxUsers) { // Existing room joined
 
       rooms[room].push(socket) // Add the client ID to the list of clients in the room
       users[socket.id] = new User(room, socket) // Add the User object to the list of users
