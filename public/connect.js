@@ -237,7 +237,7 @@ function createPeerConnection(id) {
           screenShare.srcObject = null;
           screenShare.autoplay = true;
           screenShare.srcObject = newStream;
-          addWalls(); // Add the video track to the 3D environment
+          updateShareScreen3D(screenShare); // Add the video track to the 3D environment
 
         } else { // Web camera video
 

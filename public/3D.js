@@ -86,37 +86,30 @@ function init3D() {
 	scene.add(floor);
 	allObjects.push(floor);
 
+	// ROOF
+	let rooftext = new THREE.TextureLoader().load( "objects/obj/floor.jpg" );
+
+	let roof = new THREE.Mesh(
+		new THREE.PlaneGeometry(maxX * 2, maxZ * 2, maxX * 2, maxZ * 2),
+		new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: rooftext })
+	);
+	roof.rotation.x += Math.PI / 2; //can rotate the floor/plane
+	roof.position.y += wallHeight;
+	scene.add(roof);
+	allObjects.push(roof);
+
 	//load models
 	loader = new THREE.GLTFLoader();
 
 	controls = new THREE.PointerLockControls( camera, document.body );
 	scene.add(controls.getObject());
 
-	//addPlant
-	const plant = new THREE.Object3D();
-	loader.load('objects/obj/planten.glb', function(gltf) {
-		plant.add(gltf.scene);
-		plant.scale.x = 20; plant.scale.y = 20; plant.scale.z = 20;
-		plant.position.x= 0; plant.position.y = 7; plant.position.z = 10;
-		scene.add(plant);
-	});
-
-	//add table
-	const table = new THREE.Object3D();
-	loader.load('objects/obj/table.glb', function(gltf) {
-		table.add(gltf.scene);
-		table.scale.x = 20; table.scale.y = 20; table.scale.z = 20;
-		table.rotation.y += Math.PI / 2;
-		scene.add(table);
-	});
-
 	window.addEventListener( 'resize', onWindowResize, false );
 	document.addEventListener( 'keydown', onDocumentKeyDown, false );
 	document.addEventListener( 'keyup', onDocumentKeyUp, false );
 
-	addWalls()
-	allObjects.push(table);
-	allObjects.push(plant);
+	addWalls();
+	addDecoration();
 
 	changeModeButton.hidden = false; // Allows the user to open the 3D environment
 
@@ -129,21 +122,32 @@ function init3D() {
 	update();
 }
 
-function addWalls() {
-	let texture = 0;
+function updateShareScreen3D(screenObject) {
 
-	if (wallLeft && wallRight && wallFront) { // If the walls already exist, remove them
-		scene.remove(wallLeft);
-		scene.remove(wallRight);
-		scene.remove(wallFront);
-	}
+	scene.remove(wallFront);
 
-	if (screenShare.srcObject) { // If someone is sharing their screen, display it
-			texture = new THREE.VideoTexture(screenShare);
+	if (screenObject) { // If someone is sharing their screen, display it
+			texture = new THREE.VideoTexture(screenObject); // TODO: make screenShare not global
 			texture.minFilter = THREE.LinearFilter;
 			texture.magFilter = THREE.LinearFilter;
 			texture.format = THREE.RGBFormat;
+
+			wallFront = new THREE.Mesh(
+				new THREE.PlaneBufferGeometry(maxX * 2, wallHeight, 1, 1),
+				new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: texture } )
+			);
+	} else {
+		wallFront = new THREE.Mesh(
+			new THREE.PlaneBufferGeometry(maxX * 2, wallHeight, 1, 1),
+			new THREE.MeshBasicMaterial( { color: "cadetblue", side: THREE.DoubleSide } )
+		);
 	}
+	wallFront.position.z = -maxZ;
+	wallFront.position.y += wallHeight / 2;
+	scene.add( wallFront );
+}
+
+function addWalls() {
 
 	wallLeft = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxY * 2, wallHeight, 1, 1),
@@ -163,29 +167,55 @@ function addWalls() {
 	wallRight.position.x = maxX;
 	wallRight.position.y += wallHeight / 2;
 
-	if (!texture) { // If there is no video assign a colour to the front wall
-		wallFront = new THREE.Mesh(
-			new THREE.PlaneBufferGeometry(maxX * 2, wallHeight, 1, 1),
-			new THREE.MeshBasicMaterial( { color: "cadetblue", side: THREE.DoubleSide } )
-		);
-	} else { // If there is a video place the video texture on the wall
-		wallFront = new THREE.Mesh(
-			new THREE.PlaneBufferGeometry(maxX * 2, wallHeight, 1, 1),
-			new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: texture } )
-		);
-	}
+	wallBack = new THREE.Mesh(
+		new THREE.PlaneGeometry(maxY * 2, wallHeight, 1, 1),
+		new THREE.MeshBasicMaterial( { color: "cadetblue", side: THREE.DoubleSide } )
+	);
+
+	wallBack.position.z = maxZ;
+	wallBack.position.y += wallHeight / 2;
+
+	wallFront = new THREE.Mesh(
+		new THREE.PlaneBufferGeometry(maxX * 2, wallHeight, 1, 1),
+		new THREE.MeshBasicMaterial( { color: "cadetblue", side: THREE.DoubleSide } )
+	);
 
 	wallFront.position.z = -maxZ;
 	wallFront.position.y += wallHeight / 2;
 
 	scene.add( wallLeft );
 	scene.add( wallRight );
+	scene.add( wallBack );
 	scene.add( wallFront );
 	allObjects.push( wallLeft );
 	allObjects.push( wallRight );
+	allObjects.push( wallBack );
 	allObjects.push( wallFront );
 
 	renderer.render(scene, camera);
+}
+
+function addDecoration() {
+	//addPlant
+	const plant = new THREE.Object3D();
+	loader.load('objects/obj/planten.glb', function(gltf) {
+		plant.add(gltf.scene);
+		plant.scale.x = 20; plant.scale.y = 20; plant.scale.z = 20;
+		plant.position.x= 0; plant.position.y = 7; plant.position.z = 10;
+		scene.add(plant);
+	});
+
+	//add table
+	const table = new THREE.Object3D();
+	loader.load('objects/obj/table.glb', function(gltf) {
+		table.add(gltf.scene);
+		table.scale.x = 20; table.scale.y = 20; table.scale.z = 20;
+		table.rotation.y += Math.PI / 2;
+		scene.add(table);
+	});
+
+	allObjects.push(table);
+	allObjects.push(plant);
 }
 
 function getVideoList() {
@@ -443,6 +473,8 @@ function onDocumentKeyDown(event) {
 
 		case 38://up
 			console.log("locking mouse");
+			time = performance.now();
+			prevUpdateTime = time;
 			controls.lock();
 			document.removeEventListener("keyup", swapViewOnC);
 			break;
