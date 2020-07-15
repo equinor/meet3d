@@ -6,9 +6,16 @@ const maxUsers = 10; // TODO: determine a good value for this
 var rooms = {}
 var users = {}
 
-var allowedOrigins = "http://localhost:* http://127.0.0.1:* https://web-server-meet3d-testing.radix.equinor.com/:*";
+var server = require("http").createServer(onRequest);
+var io = require("socket.io")(server, { cookie: false, origins: allowedOrigins });
 
-const io = require('socket.io')(80, { cookie: false, origins: allowedOrigins });
+function onRequest(req,res) {
+  res.writeHead(200, { 'Access-Control-Allow-Origin' : '*' });
+}
+
+server.listen(3000);
+
+//const io = require('socket.io')(80, { cookie: false, origins: allowedOrigins });
 
 io.sockets.on('connection', function(socket) {
 
