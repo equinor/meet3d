@@ -13,6 +13,7 @@ var videoList = []; // The list of remote videos to display
 var videoListLength = 0; // The number of videos to show at a time, not including our own
 
 var controls;
+var loader;
 
 let wallLeft;
 let wallRight;
@@ -79,21 +80,21 @@ function init3D() {
 
 	let floor = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, maxZ * 2, maxX * 2, maxZ * 2),
-		new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: floortext})
+		new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: floortext })
 	);
 	floor.rotation.x += Math.PI / 2; //can rotate the floor/plane
-	scene.add( floor );
+	scene.add(floor);
 	allObjects.push(floor);
 
 	//load models
 	loader = new THREE.GLTFLoader();
-	
+
 	controls = new THREE.PointerLockControls( camera, document.body );
 	scene.add(controls.getObject());
 
 	//addPlant
 	const plant = new THREE.Object3D();
-	loader.load('objects/obj/planten.glb', function(gltf) {				
+	loader.load('objects/obj/planten.glb', function(gltf) {
 		plant.add(gltf.scene);
 		plant.scale.x = 20; plant.scale.y = 20; plant.scale.z = 20;
 		plant.position.x= 0; plant.position.y = 7; plant.position.z = 10;
@@ -102,13 +103,13 @@ function init3D() {
 
 	//add table
 	const table = new THREE.Object3D();
-	loader.load('objects/obj/table.glb', function(gltf) {				
+	loader.load('objects/obj/table.glb', function(gltf) {
 		table.add(gltf.scene);
 		table.scale.x = 20; table.scale.y = 20; table.scale.z = 20;
-		table.rotation.y += Math.PI / 2;  
+		table.rotation.y += Math.PI / 2;
 		scene.add(table);
 	});
-	
+
 	window.addEventListener( 'resize', onWindowResize, false );
 	document.addEventListener( 'keydown', onDocumentKeyDown, false );
 	document.addEventListener( 'keyup', onDocumentKeyUp, false );
@@ -120,7 +121,7 @@ function init3D() {
 	changeModeButton.hidden = false; // Allows the user to open the 3D environment
 
 	listener = new THREE.AudioListener();
-  
+
 	controls.getObject().add(listener)
 
 	userCount++;
@@ -187,6 +188,10 @@ function addWalls() {
 	renderer.render(scene, camera);
 }
 
+function getVideoList() {
+	return videoList.slice(0, videoListLength);
+}
+
 //FIXME This function is currently not updated
 // Add username as text on top of 3D-object
 function addText(user) {
@@ -198,7 +203,7 @@ function addText(user) {
 
 		color = 0x000000;
 		nameShowed = user.getName();
-		
+
 
 		let textMaterial = new THREE.MeshBasicMaterial({
 			color: color,
@@ -213,7 +218,7 @@ function addText(user) {
 		let shapes = font.generateShapes(nameShowed, shapeSize/objectScale);
 
 		let textGeometry = new THREE.ShapeBufferGeometry(shapes);
-		
+
 		// Set center of text object equal to center of 3D-text-object
 		textGeometry.computeBoundingBox();
 		textGeometry.center();
@@ -351,7 +356,11 @@ function shiftVideoList(id) {
 	return shiftedID; // Return the shifted ID or 0 otherwise
 }
 
-function getDistanceSquared(id) {
+/**
+ * Gets a number representing the distance between the user with ID 'id' and our
+ * user in the 3D space.
+ */
+function getDistance(id) {
 	let otherUser = findUser(id);
 	return Math.abs(otherUser.getxPosition() - camera.position.x) ** 2 +
 		Math.abs(otherUser.getyPosition() - camera.position.y) ** 2 +
@@ -373,7 +382,7 @@ function userGotMedia(id, mediaStream) {
 	};
 }
 
-function userLeft(id) {
+function userLeft3D(id) {
 	scene.remove(findUser(id).avatar.model);
 	if(removeUser(id)) {
 		userCount--;
@@ -398,8 +407,8 @@ function loadNewObject(ressource){
 
 		let boundingBox = new THREE.Box3().setFromObject(avatar);
 		objectSize = boundingBox.getSize(); // Returns Vector3
-
-		//scene.add(avatar); // DELETE ME Probably not needed
+		allObjects.push(avatar.model); //FIXME should this be outside loader?
+		scene.add(avatar.model);
 	});
 	//listAvatars.push(avatar); // DELETE ME Probably not needed
 	return avatar;
@@ -407,7 +416,7 @@ function loadNewObject(ressource){
 
 function onDocumentKeyDown(event) {
 	switch (event.keyCode) {
-		
+
 		case 87: //w
 			moveForward = true;
 			break;
@@ -415,7 +424,7 @@ function onDocumentKeyDown(event) {
 		case 65: // a
 			moveLeft = true;
 			break;
-		
+
 		case 83: // s
 			moveBackward = true;
 			break;
@@ -429,7 +438,7 @@ function onDocumentKeyDown(event) {
 			controls.lock();
 			document.removeEventListener("keyup", swapViewOnC);
 			break;
-		
+
 		case 40: // down
 			console.log("unlocking mouse");
 			controls.unlock();
@@ -437,7 +446,7 @@ function onDocumentKeyDown(event) {
 	}
 }
 
-function onDocumentKeyUp(event){
+function onDocumentKeyUp(event) {
 	switch ( event.keyCode ) {
 
 		case 87: // w
@@ -457,22 +466,20 @@ function onDocumentKeyUp(event){
 			break;
 	}
 }
-	
 
 function onWindowResize() {
 
 	camera.aspect = window.innerWidth / window.innerHeight;
 	camera.updateProjectionMatrix();
 
-	renderer.setSize( window.innerWidth, window.innerHeight );
-
+	renderer.setSize( window.innerWidth, window.innerHeight - 30 );
 }
 
 
 //function to update frame
 function update() {
 	requestID = requestAnimationFrame(update);
-	if (controls.isLocked===true){
+	if (controls.isLocked === true){
 		document.removeEventListener("keyup", swapViewOnC); // this is not looking too great at the moment
 		var time = performance.now();
 		var delta = ( time - prevUpdateTime ) / 1000;
@@ -506,11 +513,10 @@ function update() {
 		controls.moveForward( - velocity.z * delta );
 
 		prevUpdateTime = time;
-	}
-	else {
+	} else {
 		document.addEventListener("keyup", swapViewOnC);
 	}
-	
+
 	renderer.render(scene, camera);
 }
 
@@ -526,6 +532,11 @@ function leave3D() {
 	if (document.getElementById("scene")) {
 		document.getElementById("scene").outerHTML = ''; // Deletes the scene canvas
 	}
+
+	UserMap = {};
+	controls = null;
+	renderer = null;
+	camera = null;
 	scene = null;
 	camera = null;
 	renderer = null;
