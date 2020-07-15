@@ -716,6 +716,7 @@ function changePos(x, y, z) {
  */
 function initChat() {
   openChat();
+  initSwapView();
 
   files.style.display = "inline-block";
   users.style.display = "inline-block";

@@ -325,7 +325,7 @@ function updateVideoList(id) {
  */
 function shiftVideoList(id) {
 
-	let thisDistance = getDistanceSquared(id);
+	let thisDistance = getDistance(id);
 	let shiftedID = 0;
 	for (let i = 0; i < videoListLength; i++) {
 
@@ -333,7 +333,7 @@ function shiftVideoList(id) {
 			let tempID = shiftedID
 			shiftedID = videoList[i];
 			videoList[i] = tempID;
-		}	else if (getDistanceSquared(videoList[i]) >= thisDistance) {
+		}	else if (getDistance(videoList[i]) >= thisDistance) {
 			// If the user 'id' is closer than the current entry then replace the entry and shift it along
 			shiftedID = videoList[i];
 			videoList[i] = id;

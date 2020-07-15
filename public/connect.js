@@ -1,5 +1,5 @@
 var socket; // This is the SocketIO connection to the signalling server
-const signalServer = 'signaling-server-meet3d-testing.radix.equinor.com:80'; // The signaling server
+const signalServer = 'signaling-server-meet3d-testing.radix.equinor.com'; // The signaling server
 
 /*  These variables are present on both client.js and connect.js:
  *  ourID: This is our unique ID
@@ -47,7 +47,6 @@ function initSignaling(room, name) {
     ourID = connectionInfo.id;
 
     init3D(name); // Renders the 3D environment
-    initSwapView();
   });
 
   // The room we tried to join is full
@@ -75,7 +74,6 @@ function initSignaling(room, name) {
     ourID = connectionInfo.id;
 
     init3D(name); // Renders the 3D environment
-    initSwapView(); // Lets the user quickly switch between chat mode and 3D mode
   });
 
   // A user moved in the 3D space
