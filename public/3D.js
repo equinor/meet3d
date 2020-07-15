@@ -30,10 +30,10 @@ const videoCount = 3;
 
 var listener;
 var loader;
-var dt
+var dt;
 var lastframe = Date.now()
-var mixer;
-var group;
+//var mixer;
+//var group;
 
 
 var listAvatars = ["objects/Anglerfish/Anglerfish.glb","objects/ArmoredCatfish/ArmoredCatfish.glb","objects/Betta/Betta.glb", "objects/BlackLionFish/BlackLionFish.glb", "objects/Blobfish/Blobfish.glb", "objects/BlueGoldfish.glb", "objects/Clownfish.glb",
@@ -113,9 +113,9 @@ function newUserJoined(id, name){
 	avatar['ressource'] = listAvatars.shift();
 	avatar['model'] = new THREE.Object3D();
 	loader.load(avatar.ressource, function(gltf) { //this could probably be vastly improved
-		group.add(gltf.scene);
-		mixer = new THREE.AnimationMixer( group);
-		var action = mixer.clipAction( gltf.animations[0]);
+		/*group.add(gltf.scene);
+		mixer = new THREE.AnimationMixer(group);
+		var action = mixer.clipAction(gltf.animations[0]);
 		action.play();	
 		avatar.model.add(gltf.scene);
 		avatar.model.position.x = 10;
@@ -125,11 +125,22 @@ function newUserJoined(id, name){
 		avatar.model.scale.y =7;
 		avatar.model.scale.z =7;
 		scene.add(avatar.model);
+		userCount++;*/
+		avatar.model.add(gltf.scene);
+		avatar.model.position.x = 10;
+		avatar.model.position.y = 10;
+		avatar.model.position.z = (distance * userCount);
+		avatar.model.scale.x =7;
+		avatar.model.scale.y =7;
+		avatar.model.scale.z =7;
+		scene.add(avatar.model);
 		userCount++;
+		avatar['mixer'] = new THREE.AnimationMixer(avatar.model);
+		avatar['action'] = avatar.mixer.clipAction(gltf.animations[0]);
+		avatar.action.play();
 	});
 	user['avatar'] = avatar;
 	addToUserMap(user);
-	console.log(UserMap);
 	return user;
 }
 
@@ -307,9 +318,14 @@ function onDocumentKeyUp(event) {
 //function to update frame
 function update() {
 	dt = (Date.now()-lastframe)/1000
-	if(mixer){
-    	mixer.update(dt)        
+	for(u in UserMap){
+		if(findUser(u).avatar.mixer){
+			findUser(u).avatar.mixer.update(dt);
+		}
 	}
+	/*if(ourUser.avatar.mixer){
+    	ourUser.avatar.mixer.update(dt)        
+	}*/
 	renderer.render( scene, camera );
 	lastframe=Date.now()
 	requestID = requestAnimationFrame(update);
@@ -448,7 +464,7 @@ function init3D() {
 	//load models
 	loader = new THREE.GLTFLoader();
 
-	group = new THREE.AnimationObjectGroup();
+	//group = new THREE.AnimationObjectGroup();
 
 	//addPlant
 	const plant = new THREE.Object3D();
