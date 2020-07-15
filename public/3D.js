@@ -33,7 +33,6 @@ var loader;
 var dt
 var lastframe = Date.now()
 var mixer;
-//var clip;
 var group;
 
 
@@ -105,26 +104,6 @@ function addWalls() {
 	renderer.render(scene, camera);
 }
 
-//load the .gltf file passed in argument, store the 3D object and in corresponding animation in listAvatars, add the object to the scene outside the field of view
-/*function makeNewObjects(ressource){
-	console.log("creating object: " + ressource);
-	var avatar = {};
-	avatar['model'] = new THREE.Object3D();
-	loader.load(ressource, function(gltf) { //this could probably be vastly improved
-		avatar.model.add(gltf.scene);
-		avatar.model.scale.x = 7;
-		avatar.model.scale.y = 7;
-		avatar.model.scale.z = 7;
-		avatar['clips'] = gltf.animations;
-		avatar['mixer'] = new THREE.AnimationMixer(gltf.scene);
-		avatar['swim'] = avatar.mixer.clipAction(gltf.animations[0]);
-		avatar.swim.play();
-	});
-	listAvatars.push(avatar);
-	console.log(listAvatars);
-	return avatar;
-}*/
-
 function newUserJoined(id, name){
 	console.log("Adding new user to the 3D environment: " + name);
 	var user = {};
@@ -132,23 +111,22 @@ function newUserJoined(id, name){
 	user['name'] = name;
 	var avatar = {};
 	avatar['ressource'] = listAvatars.shift();
-	const obj = new THREE.Object3D();
+	avatar['model'] = new THREE.Object3D();
 	loader.load(avatar.ressource, function(gltf) { //this could probably be vastly improved
 		group.add(gltf.scene);
 		mixer = new THREE.AnimationMixer( group);
-		var action = mixer.clipAction( gltf.animations[ 0 ] );
-		action.play();
-		var object = gltf.scene;				
-		obj.add(object);
-		obj.position.x = 10;
-		obj.position.y = 10;
-		obj.position.z = (distance * userCount);
-		obj.scale.x =7;
-		obj.scale.y =7;
-		obj.scale.z =7;
-		scene.add(obj);
+		var action = mixer.clipAction( gltf.animations[0]);
+		action.play();	
+		avatar.model.add(gltf.scene);
+		avatar.model.position.x = 10;
+		avatar.model.position.y = 10;
+		avatar.model.position.z = (distance * userCount);
+		avatar.model.scale.x =7;
+		avatar.model.scale.y =7;
+		avatar.model.scale.z =7;
+		scene.add(avatar.model);
+		userCount++;
 	});
-	avatar['model'] = obj;
 	user['avatar'] = avatar;
 	addToUserMap(user);
 	console.log(UserMap);
@@ -506,45 +484,13 @@ function init3D() {
 	controls.minAzimuthAngle = 0; // Prevents left-right rotation of camera
 	controls.maxAzimuthAngle = 0; // Prevents left-right rotation of camera
 
-	// Users' models
-	/*makeNewObjects('objects/Anglerfish/Anglerfish.glb');
-	makeNewObjects('objects/ArmoredCatfish/ArmoredCatfish.glb');
-	makeNewObjects('objects/Betta/Betta.glb');
-	makeNewObjects('objects/BlackLionFish/BlackLionFish.glb');
-	makeNewObjects('objects/Blobfish/Blobfish.glb');
-	makeNewObjects('objects/BlueGoldfish/BlueGoldfish.glb');
-	makeNewObjects('objects/BlueTang/BlueTang.glb');
-	makeNewObjects('objects/ButterflyFish/ButterflyFish.glb');
-	makeNewObjects('objects/CardinalFish/CardinalFish.glb');
-	makeNewObjects('objects/Clownfish/Clownfish.glb');
-	makeNewObjects('objects/CoralGrouper/CoralGrouper.glb');
-	makeNewObjects('objects/Cowfish/Cowfish.glb');
-	makeNewObjects('objects/Flatfish/Flatfish.glb');
-	makeNewObjects('objects/FlowerHorn/FlowerHorn.glb');
-	makeNewObjects('objects/GoblinShark/GoblinShark.glb');
-	makeNewObjects('objects/Goldfish/Goldfish.glb');
-	makeNewObjects('objects/Humphead/Humphead.glb');
-	makeNewObjects('objects/Koi/Koi.glb');
-	makeNewObjects('objects/Lionfish/Lionfish.glb');
-	makeNewObjects('objects/MandarinFish/MandarinFish.glb');
-	makeNewObjects('objects/MoorishIdol/MoorishIdol.glb');
-	makeNewObjects('objects/ParrotFish/ParrotFish.glb');
-	makeNewObjects('objects/Piranha/Piranha.glb');
-	makeNewObjects('objects/Puffer/Puffer.glb');
-	makeNewObjects('objects/RedSnapper/RedSnapper.glb');
-	makeNewObjects('objects/RoyalGramma/RoyalGramma.glb');
-	makeNewObjects('objects/Shark/Shark.glb');
-	makeNewObjects('objects/Sunfish/Sunfish.glb');
-	makeNewObjects('objects/Swordfish/Swordfish.glb');
-	makeNewObjects('objects/Tang/Tang.glb');
-	makeNewObjects('objects/Tetra/Tetra.glb');
-	makeNewObjects('objects/Tuna/Tuna.glb');
-	makeNewObjects('objects/Turbot/Turbot.glb');
-	makeNewObjects('objects/YellowTang/YellowTang.glb');
-	makeNewObjects('objects/ZebraClownFish/ZebraClownFish.glb');*/
-
 	myID = newUserJoined(0, "test").id;
 	ourUser = findUser(myID);
+
+	newUserJoined(1, "1");
+	newUserJoined(2, "2");
+	newUserJoined(3, "3");
+	newUserJoined(4, "4");
 
 	listener = new THREE.AudioListener();
 
