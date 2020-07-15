@@ -47,7 +47,7 @@ var UserMap = {};
 
 listAvatars = [];
 
-var resourceList = ['obj/objects/pawn.glb'];
+var resourceList = ['objects/obj/pawn.glb'];
 var resourceIndex = 0;
 
 function init3D() {
@@ -223,7 +223,7 @@ function addText(name, model) {
 		textGeometry.translate(0, (objectSize.y + letterSize) / objectScale, 0);
 
 		text = new THREE.Mesh(textGeometry, textMaterial);
-		//text.name = "text"; // DELETE ME Probably do not need this
+		text.name = "text"; // DELETE ME Probably do not need this
 		model.add(text);
 	});
 	return text;
@@ -262,7 +262,9 @@ function newUserJoined(id, name) {
 }
 
 function changeUserPosition(id, x, y, z) {
-	findUser(id).avatar.model.position = new THREE.Vector3(x, y, z);
+	findUser(id).avatar.model.position.x = x;
+	findUser(id).avatar.model.position.y = y;
+	findUser(id).avatar.model.position.z = z;
 	if (connections[id].stream) {
 		updateVideoList(id);
 	}
@@ -398,14 +400,14 @@ function loadNewObject(ressource){
 		avatar.model.scale.x = objectScale;
 		avatar.model.scale.y = objectScale;
 		avatar.model.scale.z = objectScale;
-		avatar['clips'] = gltf.animations;
-		avatar['mixer'] = new THREE.AnimationMixer(gltf.scene);
-		avatar['swim'] = avatar.mixer.clipAction(gltf.animations[0]);
+		//avatar['clips'] = gltf.animations;
+		//avatar['mixer'] = new THREE.AnimationMixer(gltf.scene);
+		//avatar['swim'] = avatar.mixer.clipAction(gltf.animations[0]);
 		//avatar.swim.play(); // FIXME Currently not working
 
-		let boundingBox = new THREE.Box3().setFromObject(avatar);
+		let boundingBox = new THREE.Box3().setFromObject(avatar.model);
 		objectSize = boundingBox.getSize(); // Returns Vector3
-		allObjects.push(avatar.model); //FIXME should this be outside loader?
+		//allObjects.push(avatar.model); //FIXME should this be outside loader?
 		scene.add(avatar.model);
 	});
 	//listAvatars.push(avatar); // DELETE ME Probably not needed
@@ -488,8 +490,8 @@ function update() {
 			prevPosTime = time;
 
 			for(let keyId in UserMap) {
-				//UserMap[keyId].avatar.model.getObjectByName("text").lookAt(camera.position.x, 0, camera.position.z);
-				UserMap[keyId].avatar.text.lookAt(camera.position.x, 0, camera.position.z);
+				//UserMap[keyId].avatar.text.lookAt(camera.position.x, 0, camera.position.z);
+				UserMap[keyId].avatar.model.getObjectByName('text').lookAt(camera.position.x, 0, camera.position.z);
 			}
 
 			//Add functionality to update direction based on camera direction OR movement direction
