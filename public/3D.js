@@ -5,7 +5,7 @@ var renderer;
 var geometry;
 var material;
 var requestID = undefined;
-var userCount = 0;
+var userCount = 0; // FIXME Do we need this?
 var listener;
 var loader;
 var allObjects = []; // Stores all 3D objects so that they can be removed later
@@ -35,14 +35,19 @@ const maxZ = 100;
 const speed = 3;
 const wallHeight = 100;
 const objectScale = 7;
-var objectSize = new THREE.Vector3(0,0,0); // A Vector3 representing size of 3D-object
 const videoCount = 3;
 
 const objectWidth = 10; // Probably not needed
 const objectHeight = 20; // Probably not needed
+var objectSize = new THREE.Vector3(); // A Vector3 representing size of 3D-object
 
 //map to store the Users
 var UserMap = {};
+
+listAvatars = [];
+
+var resourceList = ['obj/objects/pawn.glb'];
+var resourceIndex = 0;
 
 function init3D() {
 	scene = new THREE.Scene();
@@ -82,15 +87,11 @@ function init3D() {
 
 	//load models
 	loader = new THREE.GLTFLoader();
-
 	
 	controls = new THREE.PointerLockControls( camera, document.body );
-
 	scene.add(controls.getObject());
 
-
 	//addPlant
-
 	const plant = new THREE.Object3D();
 	loader.load('objects/obj/planten.glb', function(gltf) {				
 		plant.add(gltf.scene);
@@ -121,7 +122,7 @@ function init3D() {
 	listener = new THREE.AudioListener();
   
 	controls.getObject().add(listener)
-	
+
 	userCount++;
 
 	update();
@@ -186,6 +187,7 @@ function addWalls() {
 	renderer.render(scene, camera);
 }
 
+//FIXME This function is currently not updated
 // Add username as text on top of 3D-object
 function addText(user) {
 
@@ -225,11 +227,6 @@ function addText(user) {
 	});
 } // end of addText() function
 
-//function to add a User to the UserMap
-function addToUserMap(User) {
-	UserMap[User.getId()] = User;
-	return UserMap;
-}
 
 //return true if a User with the id passed in parameter was a part of the UserMap and removed, false otherwise
 function removeUser(id) {
@@ -241,21 +238,35 @@ function findUser(id) {
 	return UserMap[id];
 }
 
-
 function newUserJoined(id, name) {
 	console.log("Adding new user to the 3D environment: " + name);
-	let newUser = new User(id, name, 10, 10, distance * userCount); // This does not look great at the moment
- 	addText(newUser);
-	addToUserMap(newUser);
+	let newUser = {};
+	
+	newUser['name'] = name;
+
+	newUser['avatar'] = loadNewObject(resourceList[resourceIndex]);
+	resourceIndex++;
+	resourceIndex %= resourceList.length; // Make sure the index never exceeds the size of the list
+	
+	//newUser['text'] = addText(newUser.avatar, name); //FIXME Have to change addText()
+
+	UserMap[id] = newUser;
+
+	scene.add(newUser.avatar.model);
+
 	userCount++;
 	updateVideoList(id);
 }
 
 function changeUserPosition(id, x, y, z) {
-	findUser(id).setPosition(x, y, z);
+	findUser(id).avatar.model.position = new THREE.Vector3(x, y, z);
 	if (connections[id].stream) {
 		updateVideoList(id);
 	}
+}
+
+function setUserRotation(id, angleY) {
+	findUser(id).avatar.model.rotation.y = angleY;
 }
 
 /**
@@ -268,7 +279,7 @@ function updateVideoList(id) {
 	if (connections[id] && !connections[id].stream) {
 		return; // Ignore users who do not share video
 	}
-
+	// FIXME Might not need " || id == ourID"
 	if (videoList.includes(id) || id == ourID) { // In this case we need to update the entire list using all positions
 		for (let i = 0; i < videoListLength; i++) {
 	    let id = videoList[i];
@@ -281,7 +292,7 @@ function updateVideoList(id) {
 		videoList = []; // Reset the list of videos to display
 		videoListLength = 0;
 		for (const testID in UserMap) {
-			if (testID == ourID || !connections[testID].stream || videoList.includes(testID)) {
+			if (/*testID == ourID ||*/ !connections[testID].stream || videoList.includes(testID)) {
 				continue; // Ignore our own user, those who do not have video and those already in the list
 			}
 
@@ -292,7 +303,7 @@ function updateVideoList(id) {
 					videoList[videoListLength] = shiftedID;
 					videoListLength++;
 				}
-			} else { // Noone was removed from the list, which means 'testID' was not added
+			} else { // No one was removed from the list, which means 'testID' was not added
 				if (videoListLength < videoCount) {
 					videoList[videoListLength] = testID;
 					videoListLength++;
@@ -342,13 +353,13 @@ function shiftVideoList(id) {
 
 function getDistanceSquared(id) {
 	let otherUser = findUser(id);
-	return Math.abs(otherUser.getxPosition() - camera.position.x)**2 +
-		Math.abs(otherUser.getyPosition() - camera.position.y)**2 +
-		Math.abs(otherUser.getzPosition() - camera.position.z)**2;
+	return Math.abs(otherUser.getxPosition() - camera.position.x) ** 2 +
+		Math.abs(otherUser.getyPosition() - camera.position.y) ** 2 +
+		Math.abs(otherUser.getzPosition() - camera.position.z) ** 2;
 }
 
 function userGotMedia(id, mediaStream) {
-	findUser(id).setMedia(mediaStream);
+	findUser(id)["media"] = mediaStream;
 	var posAudio = new THREE.PositionalAudio(listener);
 	posAudio.setRefDistance(20);
 	posAudio.setRolloffFactor(2);
@@ -356,70 +367,43 @@ function userGotMedia(id, mediaStream) {
 
 	try {
 		posAudio.setNodeSource(audio1);
-		findUser(id).object.add(posAudio);
+		findUser(id).avatar.model.add(posAudio);
 	} catch(err) {
 		console.log(err);
 	};
 }
 
 function userLeft(id) {
-	scene.remove(findUser(id).object);
-	if (removeUser(id)) {
+	scene.remove(findUser(id).avatar.model);
+	if(removeUser(id)) {
 		userCount--;
 	}
 }
 
 
-//function that makes an object and position it at input coordinates
-var makeNewObject = function(xPosition, yPosition, zPosition){
-	const obj = new THREE.Object3D();
-	loader.load('objects/obj/pawn.glb', function(gltf) {
-		var object = gltf.scene;				
-		obj.add(object);
-		obj.color = "blue";
-		obj.scale.x = objectScale;
-		obj.scale.y = objectScale;
-		obj.scale.z = objectScale;
+// Load 3D-object from file "resource" and add it to scene
+function loadNewObject(ressource){
+	console.log("loading object from: " + ressource);
+	let avatar = {};
+	avatar['model'] = new THREE.Object3D();
+	loader.load(ressource, function(gltf) { // this could probably be vastly improved
+		avatar.model.add(gltf.scene);
+		avatar.model.scale.x = objectScale;
+		avatar.model.scale.y = objectScale;
+		avatar.model.scale.z = objectScale;
+		avatar['clips'] = gltf.animations;
+		avatar['mixer'] = new THREE.AnimationMixer(gltf.scene);
+		avatar['swim'] = avatar.mixer.clipAction(gltf.animations[0]);
+		//avatar.swim.play(); // FIXME Currently not working
 
-		let boundingBox = new THREE.Box3().setFromObject(obj);
+		let boundingBox = new THREE.Box3().setFromObject(avatar);
 		objectSize = boundingBox.getSize(); // Returns Vector3
-		scene.add(obj);
-	});
-	return obj;
-};
 
-//A User class. The constructor calls the makenewobject function.
-//constructor adds a User to UserMap
-class User {
-	constructor(id, name, xPosition, yPosition, zPosition) {
-		console.log("constructing user...");
-		this.name = name,
-		this.id = id,
-		this.object = makeNewObject(xPosition, yPosition, zPosition);
-		addToUserMap(this)
-	};
-	getxPosition() { return this.object.position.x; }
-	getyPosition() { return this.object.position.y; }
-	getzPosition() { return this.object.position.z; }
-	getPosition() { return this.object.position; }
-	getName() { return this.name; }
-	getId() { return this.id; }
-	
-	setxPosition(xPosition) { this.object.position.x = xPosition; }
-	setyPosition(yPosition) { this.object.position.y = yPosition; }
-	setzPosition(zPosition) { this.object.position.z = zPosition; }
-	setPosition(xPosition, yPosition, zPosition) {
-		this.setxPosition(xPosition);
-		this.setyPosition(yPosition);
-		this.setzPosition(zPosition);
-	}
-	setName(newname) { this.name = newname; }
-	
-	getMedia() { return this.media; }
-	setMedia(media) {
-		this.media = media;
-	}
-};
+		//scene.add(avatar); // DELETE ME Probably not needed
+	});
+	//listAvatars.push(avatar); // DELETE ME Probably not needed
+	return avatar;
+}
 
 function onDocumentKeyDown(event) {
 	switch (event.keyCode) {
@@ -493,14 +477,19 @@ function update() {
 		var time = performance.now();
 		var delta = ( time - prevUpdateTime ) / 1000;
 
+		// Only do this if position is changed?
 		if ( time - prevPosTime > 100 ) {
 			changePos(camera.position.x, 0, camera.position.z);
 			prevPosTime = time;
 
-			//FIXME This currently doesn't work
-			for(let key in UserMap) {
-				UserMap[key].object.getObjectByName("text").lookAt(camera.position.x, 0, camera.position.z);
+			for(let keyId in UserMap) {
+				//FIXME addText needs to be updated first
+				//UserMap[keyId].avatar.model.getObjectByName("text").lookAt(camera.position.x, 0, camera.position.z);
+
+				//UserMap[keyId].avatar.text.lookAt(camera.position.x, 0, camera.position.z);
 			}
+
+			//Add functionality to update direction based on camera direction OR movement direction
 		}
 
 		velocity.x -= velocity.x * 10.0 * delta;
@@ -543,7 +532,12 @@ function leave3D() {
 	controls = null;
 	geometry = null;
 	material = null;
-	userCount = 0;
-	window.cancelAnimationFrame(requestID); // Stops rendering the scene
 	requestID = undefined;
+	userCount = 0;
+	// Should maybe do this for all the globals
+	/*
+	listener = null;
+	loader = null;
+	*/
+	window.cancelAnimationFrame(requestID); // Stops rendering the scene
 }
