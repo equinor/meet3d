@@ -244,17 +244,17 @@ function findUser(id) {
 function newUserJoined(id, name) {
 	console.log("Adding new user to the 3D environment: " + name);
 	let newUser = {};
-	
+
 	newUser['name'] = name;
 
 	newUser['avatar'] = loadNewObject(resourceList[resourceIndex]);
-	
+
 	resourceIndex++;
 	resourceIndex %= resourceList.length; // Make sure the index never exceeds the size of the list
-	
+
 	newUser['text'] = addText(name, newUser.avatar.model);
-	
-	
+
+
 	// Add new user to UserMap
 	UserMap[id] = newUser;
 	userCount++;
@@ -413,10 +413,10 @@ function loadNewObject(ressource){
 		let boundingBox = new THREE.Box3().setFromObject(avatar.model);
 		objectSize = boundingBox.getSize(); // Returns Vector3
 		allObjects.push(avatar.model); //FIXME should this be outside loader?
-		
+
 		scene.add(avatar.model);
-			
-		
+
+
 	});
 	//listAvatars.push(avatar); // DELETE ME Probably not needed
 	return avatar;
@@ -539,6 +539,8 @@ function leave3D() {
 		document.getElementById("scene").outerHTML = ''; // Deletes the scene canvas
 	}
 
+	window.cancelAnimationFrame(requestID); // Stops rendering the scene
+
 	UserMap = {};
 	controls = null;
 	renderer = null;
@@ -556,5 +558,5 @@ function leave3D() {
 	listener = null;
 	loader = null;
 	*/
-	window.cancelAnimationFrame(requestID); // Stops rendering the scene
+
 }
