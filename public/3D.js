@@ -84,11 +84,9 @@ function init3D(name) {
 	//load models
 	loader = new THREE.GLTFLoader();
 
-
 	controls = new THREE.PointerLockControls( camera, document.body );
 
 	scene.add(controls.getObject());
-
 
 	//addPlant
 	const plant = new THREE.Object3D();
@@ -464,7 +462,7 @@ function onDocumentKeyDown(event) {
 	}
 }
 
-function onDocumentKeyUp(event){
+function onDocumentKeyUp(event) {
 	switch ( event.keyCode ) {
 
 		case 87: // w
@@ -485,20 +483,19 @@ function onDocumentKeyUp(event){
 	}
 }
 
-
 function onWindowResize() {
 
 	camera.aspect = window.innerWidth / window.innerHeight;
 	camera.updateProjectionMatrix();
 
-	renderer.setSize( window.innerWidth, window.innerHeight );
+	renderer.setSize( window.innerWidth, window.innerHeight - 30 );
 }
 
 
 //function to update frame
 function update() {
 	requestID = requestAnimationFrame(update);
-	if (controls.isLocked===true){
+	if (controls.isLocked === true){
 		document.removeEventListener("keyup", swapViewOnC); // this is not looking too great at the moment
 		var time = performance.now();
 		var delta = ( time - prevUpdateTime ) / 1000;
