@@ -9,7 +9,9 @@ var chatReceive = document.getElementById("chatReceive");
 var chatBox = document.getElementById("chatBox");
 var chatSend = document.getElementById("chatSend");
 var chatDiv = document.getElementById("chatSection");
-var changeModeButton = document.getElementById("changeMode");
+var roomButton = document.getElementById("3Droom");
+var chatButton = document.getElementById("chatMode");
+var videoButton = document.getElementById("videoPage")
 var files = document.getElementById("files");
 var receivedFiles = document.getElementById("receivedFiles");
 var screenShare = document.getElementById("screenShare");
@@ -728,11 +730,13 @@ function openChat() {
   sceneDiv.style.display = "none"; // Hide the 3D scene
   videoDiv.style.display = "none"; //Hide video
 
+  chatButton.hidden = true;
+  roomButton.hidden = false;
+  videoButton.hidden = false;
+
+
   unreadMessages = 0; // We have now seen the received chat messages
   notification.innerHTML = "";
-
-  changeModeButton.onclick = function() { open3D() };
-  changeModeButton.value = "Open 3D";
 
   document.body.style.backgroundColor = "white";
 }
@@ -748,8 +752,9 @@ function open3D() {
   videoDiv.style.display = "none"; //Hide video
   sceneDiv.style.display = "inline-block"; // Open the 3D scene
 
-  changeModeButton.onclick = function() { openChat() };
-  changeModeButton.value = "Open Chat";
+  chatButton.hidden = false;
+  videoButton.hidden = false;
+  roomButton.hidden = true;
 
   document.body.style.backgroundColor = "grey";
 }
@@ -766,7 +771,9 @@ function openVideoPage(){
   sceneDiv.style.display = "none"; //Hide 3D scene
   videoDiv.style.display = "inline-block"; //Open videopage
   document.body.style.backgroundColor = "grey";
-
+  roomButton.hidden = false;
+  chatButton.hidden = false;
+  videoButton.hidden =true; 
   
 }
 
@@ -787,7 +794,7 @@ function swapViewOnC(event) {
   if (event.key == 'c') {
     if (controls.isLocked === true) controls.unlock(); // Unlocks the mouse if you swap view while moving in the 3D-space
 
-    if (changeModeButton.value == "Open 3D") open3D();
+    if (roomButton.hidden == false) open3D();
     else openChat();
   }
 }
@@ -830,7 +837,7 @@ function leave(button) {
   chatBox.style.display = "none"; // Stop listing messages
   users.style.display = "none"; // Stop listing users
   connectionList.innerHTML = ''; // Empty the list of users
-  changeModeButton.hidden = true;
+  roomButton.hidden = true;
   videoElement.innerHTML = '<ul></ul>'; // Removes all videos from the list on the right side of the screen
   buttons.hidden = true;
   remoteFiles.innerHTML = ' Remote Files: ';
