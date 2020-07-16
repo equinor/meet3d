@@ -624,12 +624,9 @@ function receiveFile(id, data) {
  */
 function addVideoStream(id, track) {
 
-  let stream;
+  let stream = new MediaStream([track]);
   if (id !== ourID) {
-    stream = new MediaStream([track]);
     connections[id].stream = stream; // Update the 'stream' attribute for the connection
-  } else {
-    stream = localStream;
   }
 
   let streamElement = document.createElement("video"); // Create an element to place the stream in
