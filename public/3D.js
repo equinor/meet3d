@@ -1,19 +1,28 @@
+// GLOBAL CONSTANTS
+const distance = 15; // This is currently not used
+const maxX = 100;
+const maxY = 100; // This is probably not needed
+const maxZ = 100;
+const speed = 3;
+const wallHeight = 100;
+const objectScale = 7;
+const videoCount = 3;
+const objectWidth = 10; // Probably not needed
+const objectHeight = 20; // Probably not needed
+
+
+// GLOBAL VARIABLES
 var scene;
 var camera;
 var renderer;
+var controls;
 
-var geometry;
-var material;
 var requestID = undefined;
 var userCount = 0; // FIXME Do we need this?
 var listener;
 var loader;
-var allObjects = []; // Stores all 3D objects so that they can be removed later
-var videoList = []; // The list of remote videos to display
-var videoListLength = 0; // The number of videos to show at a time, not including our own
 
-var controls;
-var loader;
+var objectSize = new THREE.Vector3(); // A Vector3 representing size of each 3D-object
 
 let wallLeft;
 let wallRight;
@@ -29,26 +38,21 @@ var prevPosTime = performance.now();
 var velocity = new THREE.Vector3();
 var direction = new THREE.Vector3();
 
-const distance = 15;
-const maxX = 100;
-const maxY = 100; // This is probably not needed
-const maxZ = 100;
-const speed = 3;
-const wallHeight = 100;
-const objectScale = 7;
-const videoCount = 3;
 
-const objectWidth = 10; // Probably not needed
-const objectHeight = 20; // Probably not needed
-var objectSize = new THREE.Vector3(); // A Vector3 representing size of 3D-object
+// GLOBAL CONTAINERS
+var UserMap = {}; //json-object to store the Users
 
-//map to store the Users
-var UserMap = {};
+var allObjects = []; // Stores all 3D objects so that they can be removed later
+
+var videoList = []; // The list of remote videos to display
+var videoListLength = 0; // The number of videos to show at a time, not including our own
 
 listAvatars = [];
 
-var resourceList = ['objects/obj/pawn.glb'];
+const resourceList = ['objects/obj/pawn.glb']; //List of 3D-object-files
 var resourceIndex = 0;
+
+
 
 function init3D() {
 	scene = new THREE.Scene();
@@ -192,14 +196,13 @@ function getVideoList() {
 	return videoList.slice(0, videoListLength);
 }
 
-//FIXME This function is currently not updated
 // Add username as text on top of 3D-object
 function addText(name, model) {
 	var text = new THREE.Mesh();
 	var loader = new THREE.FontLoader();
 	loader.load('helvetiker_regular.typeface.json', function(font) {
 
-		let color = 0x000000;
+		let color = 0x990000;
 
 		let textMaterial = new THREE.MeshBasicMaterial({
 			color: color,
@@ -222,11 +225,10 @@ function addText(name, model) {
 		// Determine position of text object realtive to 3D-object
 		textGeometry.translate(0, (objectSize.y + letterSize) / objectScale, 0);
 
-		text.geometry = textGeometry;
-		text.material =  textMaterial;
+		text = new THREE.Mesh(textGeometry, textMaterial);
+		text.name = "text";
 		model.add(text);
 	});
-	return text;
 } // end of function addText()
 
 
@@ -243,17 +245,15 @@ function findUser(id) {
 function newUserJoined(id, name) {
 	console.log("Adding new user to the 3D environment: " + name);
 	let newUser = {};
-	
-	newUser['name'] = name;
 
+	newUser['name'] = name;
 	newUser['avatar'] = loadNewObject(resourceList[resourceIndex]);
-	
 	resourceIndex++;
 	resourceIndex %= resourceList.length; // Make sure the index never exceeds the size of the list
 	
-	newUser['text'] = addText(name, newUser.avatar.model);
-	
-	
+	//newUser['text'] = addText(name, newUser.avatar.model);
+	addText(name, newUser.avatar.model);
+
 	// Add new user to UserMap
 	UserMap[id] = newUser;
 	userCount++;
@@ -411,11 +411,9 @@ function loadNewObject(ressource){
 
 		let boundingBox = new THREE.Box3().setFromObject(avatar.model);
 		objectSize = boundingBox.getSize(); // Returns Vector3
-		allObjects.push(avatar.model); //FIXME should this be outside loader?
 		
 		scene.add(avatar.model);
-			
-		
+		allObjects.push(avatar.model);
 	});
 	//listAvatars.push(avatar); // DELETE ME Probably not needed
 	return avatar;
@@ -497,11 +495,10 @@ function update() {
 			prevPosTime = time;
 
 			for(let keyId in UserMap) {
-				//UserMap[keyId].avatar.text.lookAt(camera.position.x, 0, camera.position.z);
 				UserMap[keyId].avatar.model.getObjectByName('text').lookAt(camera.position.x, 0, camera.position.z);
 			}
 
-			//Add functionality to update direction based on camera direction OR movement direction
+			// Add functionality to update direction based on camera direction OR movement direction
 		}
 
 		velocity.x -= velocity.x * 10.0 * delta;
@@ -537,23 +534,19 @@ function leave3D() {
 	if (document.getElementById("scene")) {
 		document.getElementById("scene").outerHTML = ''; // Deletes the scene canvas
 	}
-
-	UserMap = {};
-	controls = null;
-	renderer = null;
-	camera = null;
+	
+	window.cancelAnimationFrame(requestID); // Stops rendering the scene
 	scene = null;
 	camera = null;
 	renderer = null;
 	controls = null;
-	geometry = null;
-	material = null;
 	requestID = undefined;
 	userCount = 0;
-	// Should maybe do this for all the globals
-	/*
 	listener = null;
 	loader = null;
-	*/
-	window.cancelAnimationFrame(requestID); // Stops rendering the scene
+	UserMap = {};
+	allObjects = [];
+	videoList = [];
+	listAvatars = [];
+	resourceIndex = 0;
 }
