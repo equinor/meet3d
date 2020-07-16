@@ -92,7 +92,7 @@ function initSignaling(room, name) {
     let name = message.name;
     let offerDescription = message.offer;
 
-    if (id === ourID || (connections[id] && connections[id].signalingState == "stable")) return;
+    if (id === ourID) return;
 
     console.log(message)
 
@@ -113,9 +113,13 @@ function initSignaling(room, name) {
 
     console.log("Received answer from " + connections[id].name)
 
-    if (id === ourID || connections[id].signalingState == "stable") return;
+    if (id === ourID) return;
 
-    connections[id].connection.setRemoteDescription(new RTCSessionDescription(answerDescription));
+    connections[id].connection.setRemoteDescription(new RTCSessionDescription(answerDescription)).then(function () {
+      console.log("yay");
+    }, function (e) {
+      console.log(e);
+    });;
   });
 
   // We have received an ICE candidate from a user we are connecting to
@@ -131,18 +135,27 @@ function initSignaling(room, name) {
       sdpMLineIndex: candidates.label,
       candidate: candidates.candidate
     });
-    connections[id].connection.addIceCandidate(candidate);
+
+    connections[id].connection.addIceCandidate(candidate).then(
+      function () {
+        console.log("dddddd");
+        console.log(candidate)
+      }, function (e) {
+        console.log(e)
+        console.log(candidate)
+      }
+    );
   });
 }
 
 /**
  * Sends an offer to a new user with our local PeerConnection description.
  */
-function sendOffer(id) {
+async function sendOffer(id) {
 
   if (!connections[id].connection) {
     console.log('Creating peer connection to user ' + connections[id].name);
-    connections[id].connection = createPeerConnection(id);
+    connections[id].connection = await createPeerConnection(id);
     createDataChannel(id);
     addLocalTracksToConnection(id);
   }
@@ -150,7 +163,11 @@ function sendOffer(id) {
   console.log('Sending offer to user ' + connections[id].name);
 
   connections[id].connection.createOffer().then(function(description) {
-    connections[id].connection.setLocalDescription(description);
+    connections[id].connection.setLocalDescription(description).then(function () {
+      console.log("yay");
+    }, function (e) {
+      console.log(e);
+    });;
     socket.emit('offer', {
       id: id,
       name: username.value,
@@ -166,20 +183,27 @@ function sendOffer(id) {
 /**
  * Sends a reply to an offer with our local PeerConnection description.
  */
-function sendAnswer(id, offerDescription) {
-  if (connections[id].signalingState == "stable") return;
+async function sendAnswer(id, offerDescription) {
 
   if (!connections[id].connection) {
     console.log('Creating RTCPeerConnection to user ' + connections[id].name);
-    connections[id].connection = createPeerConnection(id);
+    connections[id].connection = await createPeerConnection(id);
     addLocalTracksToConnection(id);
   }
 
   console.log('Sending answer to connection to user ' + connections[id].name);
 
-  connections[id].connection.setRemoteDescription(new RTCSessionDescription(offerDescription));
+  connections[id].connection.setRemoteDescription(new RTCSessionDescription(offerDescription)).then(function () {
+    console.log("yay");
+  }, function (e) {
+    console.log(e);
+  });
   connections[id].connection.createAnswer().then(function(description) {
-    connections[id].connection.setLocalDescription(description);
+    connections[id].connection.setLocalDescription(description).then(function () {
+      console.log("yay");
+    }, function (e) {
+      console.error(e);
+    });
     socket.emit('answer', {
       id: id,
       answer: description
@@ -194,7 +218,7 @@ function sendAnswer(id, offerDescription) {
  * Creates a PeerConnection to the user with ID 'id', and sets the listeners
  * for the connection.
  */
-function createPeerConnection(id) {
+async function createPeerConnection(id) {
   let pc;
 
   try {
@@ -275,10 +299,15 @@ function createPeerConnection(id) {
     };
 
     pc.onnegotiationneeded = function (event) {
-      console.log("Renegotiations needed, sending new offer")
+      console.log("Renegotiations needed, sending new offer to " + connections[id]);
 
       connections[id].connection.createOffer().then(function(description) {
-        connections[id].connection.setLocalDescription(description);
+        connections[id].connection.setLocalDescription(description).then(function () {
+          console.log("yay");
+        }, function (e) {
+          console.log(e);
+          return;
+        });;
         socket.emit('offer', {
           id: id,
           offer: description
@@ -302,7 +331,7 @@ function createPeerConnection(id) {
  * Creates a new data channel to the user with the given id.
  */
 function createDataChannel(id) {
-  let tempConnection = connections[id].connection.createDataChannel("Chat");
+  let tempConnection = connections[id].connection.createDataChannel("Conference");
   tempConnection.onopen = function () {
     connections[id].dataChannel = tempConnection;
     console.log("Datachannel established to " + connections[id].name);

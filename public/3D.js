@@ -529,13 +529,12 @@ function update() {
 		var time = performance.now();
 		var delta = ( time - prevUpdateTime ) / 1000;
 
-		// Only do this if position is changed?
 		if (moved && time - prevPosTime > 100 ) {
 			changePos(camera.position.x, 0, camera.position.z);
 			updateVideoList(ourID);
 			prevPosTime = time;
 
-			for(let keyId in UserMap) {
+			for (let keyId in UserMap) {
 				UserMap[keyId].avatar.model.getObjectByName('text').lookAt(camera.position.x, 0, camera.position.z);
 			}
 

@@ -111,6 +111,7 @@ async function init(button) {
  */
 async function getLocalTrack(constraint) {
   try {
+    console.log(constraint)
     let stream = await navigator.mediaDevices.getUserMedia(constraint); // Requests the webcamera stream
 
     if (constraint.video && !constraint.audio) {
