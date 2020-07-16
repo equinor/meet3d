@@ -14,6 +14,7 @@ const signalServer = 'signaling-server-meet3d-testing.radix.equinor.com'; // The
  */
 
 // The configuration containing our STUN and TURN servers.
+/*
 const pcConfig = {
   iceServers: [
     {
@@ -23,6 +24,9 @@ const pcConfig = {
     }
   ]
 };
+*/
+
+const pcConfig = null;
 
 /**
  * This function is run in order to join a conference. It establishes contact
