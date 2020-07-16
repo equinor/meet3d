@@ -31,7 +31,7 @@ function initSignaling(room, name) {
 
   socket.emit('join', startInfo);
 
-  console.log('Attempting to join ', room);
+  console.log('Attempting to join ' + room);
 
   // We created and joined a room
   socket.on('created', function(connectionInfo) {
@@ -59,6 +59,7 @@ function initSignaling(room, name) {
 
     sendOffer(startInfo.id); // Send the user your local description in order to create a connection
     newUserJoined(startInfo.id, startInfo.name); // Add the new user to the 3D environment
+    appendConnectionHTMLList(startInfo.id);
   });
 
   // We joined a conference
@@ -93,6 +94,8 @@ function initSignaling(room, name) {
 
     if (id === ourID || (connections[id] && connections[id].signalingState == "stable")) return;
 
+    console.log(message)
+
     if (!connections[id]) {
       connections[id] = {};
       connections[id].name = name;
@@ -113,8 +116,6 @@ function initSignaling(room, name) {
     if (id === ourID || connections[id].signalingState == "stable") return;
 
     connections[id].connection.setRemoteDescription(new RTCSessionDescription(answerDescription));
-
-    if (!connections[id].dataChannel) appendConnectionHTMLList(id);
   });
 
   // We have received an ICE candidate from a user we are connecting to
@@ -222,7 +223,6 @@ function createPeerConnection(id) {
     pc.ontrack = function (event) {
       console.log('Remote stream added.');
 
-      console.log(event)
       let newStream = new MediaStream([event.track]);
 
       if (event.track.kind == "audio") {

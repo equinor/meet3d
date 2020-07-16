@@ -32,6 +32,7 @@ var moveForward = false;
 var moveBackward = false;
 var moveLeft = false;
 var moveRight = false;
+var moved = false;
 
 var prevUpdateTime = performance.now();
 var prevPosTime = performance.now();
@@ -69,6 +70,9 @@ function init3D() {
 	scene.add( light );
 	scene.add( ambientLight );
 	scene.add( directionalLight );
+	allObjects.push(light);
+	allObjects.push(ambientLight);
+	allObjects.push(directionalLight);
 
 	// RENDERER
 	renderer = new THREE.WebGLRenderer();
@@ -105,26 +109,7 @@ function init3D() {
 
 	controls = new THREE.PointerLockControls( camera, document.body );
 	scene.add(controls.getObject());
-
-	//addPlant
-	const plant = new THREE.Object3D();
-	loader.load('objects/obj/planten.glb', function(gltf) {
-		plant.add(gltf.scene);
-		plant.scale.x = 20; plant.scale.y = 20; plant.scale.z = 20;
-		plant.position.x= 0; plant.position.y = 7; plant.position.z = 10;
-		scene.add(plant);
-	});
-
-	//add table
-	const table = new THREE.Object3D();
-	loader.load('objects/obj/table.glb', function(gltf) {
-		table.add(gltf.scene);
-		table.scale.x = 20; table.scale.y = 20; table.scale.z = 20;
-		table.rotation.y += Math.PI / 2;
-		scene.add(table);
-	});
-
-	console.log("blir oppdatert");
+	allObjects.push(controls.getObject());
 
 	window.addEventListener( 'resize', onWindowResize, false );
 	document.addEventListener( 'keydown', onDocumentKeyDown, false );
@@ -165,6 +150,7 @@ function updateShareScreen3D(screenObject) {
 	wallFront.position.z = -maxZ;
 	wallFront.position.y += wallHeight / 2;
 	scene.add( wallFront );
+	allObjects.push( wallFront );
 }
 
 function addWalls() {
@@ -231,10 +217,10 @@ function addDecoration() {
 		table.add(gltf.scene);
 		table.scale.x = 20; table.scale.y = 20; table.scale.z = 20;
 		table.rotation.y += Math.PI / 2;
-		scene.add(table);
+		//scene.add(table);
 	});
 
-	allObjects.push(table);
+	//allObjects.push(table);
 	allObjects.push(plant);
 }
 
@@ -297,7 +283,6 @@ function newUserJoined(id, name) {
 	resourceIndex++;
 	resourceIndex %= resourceList.length; // Make sure the index never exceeds the size of the list
 
-	//newUser['text'] = addText(name, newUser.avatar.model);
 	addText(name, newUser.avatar.model);
 
 	// Add new user to UserMap
@@ -431,7 +416,7 @@ function userGotMedia(id, mediaStream) {
 
 function userLeft3D(id) {
 	scene.remove(findUser(id).avatar.model);
-	if(removeUser(id)) {
+	if (removeUser(id)) {
 		userCount--;
 	}
 }
@@ -442,6 +427,7 @@ function loadNewObject(resource){
 	console.log("loading object from: " + resource);
 	let avatar = {};
 	avatar['model'] = new THREE.Object3D();
+
 	loader.load(resource, function(gltf) { // this could probably be vastly improved
 		avatar.model.add(gltf.scene);
 		avatar.model.scale.x = objectScale;
@@ -460,6 +446,7 @@ function loadNewObject(resource){
 		scene.add(avatar.model);
 		allObjects.push(avatar.model);
 	});
+
 	//listAvatars.push(avatar); // DELETE ME Probably not needed
 	return avatar;
 }
@@ -469,18 +456,22 @@ function onDocumentKeyDown(event) {
 
 		case 87: //w
 			moveForward = true;
+			moved = true;
 			break;
 
 		case 65: // a
 			moveLeft = true;
+			moved = true;
 			break;
 
 		case 83: // s
 			moveBackward = true;
+			moved = true;
 			break;
 
 		case 68: // d
 			moveRight = true;
+			moved = true;
 			break;
 
 		case 38://up
@@ -534,12 +525,12 @@ function resizeCanvas(newWidth) {
 //function to update frame
 function update() {
 	requestID = requestAnimationFrame(update);
-	if (controls.isLocked === true){
+	if (controls.isLocked === true) {
 		var time = performance.now();
 		var delta = ( time - prevUpdateTime ) / 1000;
 
 		// Only do this if position is changed?
-		if ( time - prevPosTime > 100 ) {
+		if (moved && time - prevPosTime > 100 ) {
 			changePos(camera.position.x, 0, camera.position.z);
 			updateVideoList(ourID);
 			prevPosTime = time;
@@ -565,8 +556,8 @@ function update() {
 		controls.moveForward( - velocity.z * delta );
 
 		prevUpdateTime = time;
+		moved = false;
 	}
-
 	renderer.render(scene, camera);
 }
 
