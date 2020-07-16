@@ -222,6 +222,7 @@ function createPeerConnection(id) {
     pc.ontrack = function (event) {
       console.log('Remote stream added.');
 
+      console.log(event)
       let newStream = new MediaStream([event.track]);
 
       if (event.track.kind == "audio") {
@@ -229,7 +230,7 @@ function createPeerConnection(id) {
       }
 
       if (event.track.kind == "video") {
-        if (!event.streams[0]) { // Screen capture video
+        if (event.streams.length == 0) { // Screen capture video
           screenShare.srcObject = newStream; // Create a new stream containing the received track
 
           if (document.getElementById(newStream.id)) return; // Ignore if there already is screen sharing
@@ -237,7 +238,7 @@ function createPeerConnection(id) {
           screenShare.srcObject = null;
           screenShare.autoplay = true;
           screenShare.srcObject = newStream;
-          addWalls(); // Add the video track to the 3D environment
+          updateShareScreen3D(screenShare); // Add the video track to the 3D environment
 
         } else { // Web camera video
 
