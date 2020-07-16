@@ -281,15 +281,27 @@ function addText(name, model) {
 	});
 } // end of function addText()
 
-
-//return true if a User with the id passed in parameter was a part of the UserMap and removed, false otherwise
-function removeUser(id) {
-	delete UserMap[id];
-}
-
 // Returns the user object corresponding to the given user ID
 function findUser(id) {
-	return UserMap[id];
+	if(UserMap[id]){
+		return UserMap[id];
+	}
+	return false;
+}
+
+function addToUserMap(User) {
+	UserMap[User.id] = User;
+	return UserMap;
+}
+
+//return true if a User with the id passed in parameter was a part of the UserMap and removed, false otherwise
+function removeFromUserMap(id) {
+	if(UserMap[id]){
+		delete UserMap[id];
+		return true;
+	}else{
+		return false;
+	}
 }
 
 function newUserJoined(id, name) {
@@ -297,7 +309,7 @@ function newUserJoined(id, name) {
 
 	if(resourceList.length == 0){ return false; } //there is no more model to attribute to the new user
 
-	let newUser = {};
+	var newUser = {};
 
 	newUser['id'] = id;
 	newUser['name'] = name;
@@ -326,7 +338,7 @@ function newUserJoined(id, name) {
 	addText(name, newUser.avatar.model);
 
 	// Add new user to UserMap
-	UserMap[id] = newUser;
+	addToUserMap(newUser);
 	userCount++;
 
 	updateVideoList(id);
@@ -462,7 +474,7 @@ function userLeft3D(id) {
 	}
 	UserMap[id].audioElement.srcObject = null;
 	UserMap[id].audioElement = null;
-	if (removeUser(id)) {
+	if (removeFromUserMap(id)) {
 		userCount--;
 		updateVideoList();
 	}
