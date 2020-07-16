@@ -133,7 +133,7 @@ function init3D() {
 	addWalls();
 	addDecoration();
 
-	changeModeButton.hidden = false; // Allows the user to open the 3D environment
+	roomButton.hidden = false; // Allows the user to open the 3D environment
 
 	listener = new THREE.AudioListener();
 
