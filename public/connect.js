@@ -306,7 +306,6 @@ function createDataChannel(id) {
   tempConnection.onopen = function () {
     connections[id].dataChannel = tempConnection;
     console.log("Datachannel established to " + connections[id].name);
-    //changePos(findUser(ourID).getxPosition(), findUser(ourID).getyPosition(), findUser(ourID).getzPosition());
     advertiseFile();
     addScreenCapture(id);
   };

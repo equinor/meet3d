@@ -37,7 +37,7 @@ var prevUpdateTime = performance.now();
 var prevPosTime = performance.now();
 var velocity = new THREE.Vector3();
 var direction = new THREE.Vector3();
-
+var videoWidth = 0; // The width that is used up by videos on the side
 
 // GLOBAL CONTAINERS
 var UserMap = {}; //json-object to store the Users
@@ -521,7 +521,13 @@ function onWindowResize() {
 	camera.aspect = window.innerWidth / window.innerHeight;
 	camera.updateProjectionMatrix();
 
-	renderer.setSize( window.innerWidth, window.innerHeight - 30 );
+	resizeCanvas(-1);
+}
+
+function resizeCanvas(newWidth) {
+	if (newWidth >= 0)
+		videoWidth = newWidth;
+	renderer.setSize( window.innerWidth - videoWidth, window.innerHeight - 30 );
 }
 
 

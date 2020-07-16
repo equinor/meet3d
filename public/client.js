@@ -165,8 +165,8 @@ async function addLocalTrack(constraint) {
  * Adds all local streams to the PeerConnection to the user with the given ID.
  */
 function addLocalTracksToConnection(id) {
-  if (localStream.getTracks().length == 0) {
-    connections[id].connection.addTrack(null, localStream);
+  if (!localStream || localStream.getTracks().length == 0) {
+    console.error("There is no track to add to the new connection.");
     return;
   }
   for (let i in localStream.getTracks()) {
@@ -233,7 +233,7 @@ function stopShareCamera(button) {
   videoElement.children[0].removeChild(cameraLi);
   if (videoElement.children[0].children.length == 0) {
     // There are no videos to show, so resize the 3D scene
-    renderer.setSize(window.innerWidth, window.innerHeight - 30);
+    resizeCanvas(0); // Make space for the videos on the screen
   }
 }
 
@@ -648,7 +648,7 @@ function addVideoStream(id, track) {
     videoElement.children[0].appendChild(streamElementLi);
   }
 
-  renderer.setSize(window.innerWidth - cameraConstraints.video.width, window.innerHeight - 30); // Make space for the videos on the screen
+  resizeCanvas(cameraConstraints.video.width); // Make space for the videos on the screen
   updateVideoList(id); // Update the list of what videos to show, in 3D.js
 }
 
@@ -665,7 +665,7 @@ function removeVideoStream(id) {
   connections[id].stream = null;
 
   if (videoElement.children[0].children.length == 0)
-    renderer.setSize(window.innerWidth, window.innerHeight - 30);
+    resizeCanvas(0); // Make space for the videos on the screen
 
   updateVideoList(id);
 }
