@@ -94,8 +94,6 @@ function initSignaling(room, name) {
 
     if (id === ourID) return;
 
-    console.log(message)
-
     if (!connections[id]) {
       connections[id] = {};
       connections[id].name = name;
@@ -115,11 +113,7 @@ function initSignaling(room, name) {
 
     if (id === ourID) return;
 
-    connections[id].connection.setRemoteDescription(new RTCSessionDescription(answerDescription)).then(function () {
-      console.log("yay");
-    }, function (e) {
-      console.log(e);
-    });;
+    connections[id].connection.setRemoteDescription(new RTCSessionDescription(answerDescription));
   });
 
   // We have received an ICE candidate from a user we are connecting to
@@ -136,15 +130,7 @@ function initSignaling(room, name) {
       candidate: candidates.candidate
     });
 
-    connections[id].connection.addIceCandidate(candidate).then(
-      function () {
-        console.log("dddddd");
-        console.log(candidate)
-      }, function (e) {
-        console.log(e)
-        console.log(candidate)
-      }
-    );
+    connections[id].connection.addIceCandidate(candidate);
   });
 }
 
@@ -162,6 +148,7 @@ async function sendOffer(id) {
 
   console.log('Sending offer to user ' + connections[id].name);
 
+  /*
   connections[id].connection.createOffer().then(function(description) {
     connections[id].connection.setLocalDescription(description).then(function () {
       console.log("yay");
@@ -178,6 +165,7 @@ async function sendOffer(id) {
     console.log("Failed to create offer: " + e);
     return;
   });
+  */
 }
 
 /**
@@ -193,17 +181,9 @@ async function sendAnswer(id, offerDescription) {
 
   console.log('Sending answer to connection to user ' + connections[id].name);
 
-  connections[id].connection.setRemoteDescription(new RTCSessionDescription(offerDescription)).then(function () {
-    console.log("yay");
-  }, function (e) {
-    console.log(e);
-  });
+  connections[id].connection.setRemoteDescription(new RTCSessionDescription(offerDescription));
   connections[id].connection.createAnswer().then(function(description) {
-    connections[id].connection.setLocalDescription(description).then(function () {
-      console.log("yay");
-    }, function (e) {
-      console.error(e);
-    });
+    connections[id].connection.setLocalDescription(description);
     socket.emit('answer', {
       id: id,
       answer: description
@@ -299,17 +279,14 @@ async function createPeerConnection(id) {
     };
 
     pc.onnegotiationneeded = function (event) {
-      console.log("Renegotiations needed, sending new offer to " + connections[id]);
+
+      console.log("Renegotiations needed, sending new offer to " + connections[id].name);
 
       connections[id].connection.createOffer().then(function(description) {
-        connections[id].connection.setLocalDescription(description).then(function () {
-          console.log("yay");
-        }, function (e) {
-          console.log(e);
-          return;
-        });;
+        connections[id].connection.setLocalDescription(description);
         socket.emit('offer', {
           id: id,
+          name: username.value,
           offer: description
         });
       }, function (e) {

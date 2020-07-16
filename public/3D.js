@@ -394,9 +394,10 @@ function shiftVideoList(id) {
  * user in the 3D space.
  */
 function getDistance(id) {
+	console.log(id);
 	let otherUser = findUser(id);
-	return Math.pow(Math.abs(otherUser.avatar.model.position.x - camera.position.x), 2) +
-		Math.pow(Math.abs(otherUser.avatar.model.position.z - camera.position.z), 2);
+	return (otherUser.avatar.model.position.x - camera.position.x) ** 2 +
+		(otherUser.avatar.model.position.z - camera.position.z) ** 2;
 }
 
 function userGotMedia(id, mediaStream) {
@@ -562,6 +563,10 @@ function update() {
 
 function leave3D() {
 
+	for (let id in UserMap) {
+		delete UserMap[id];
+	}
+
 	for (let i in allObjects) {
 		if (allObjects[i]) scene.remove(allObjects[i]);
 	}
@@ -584,6 +589,7 @@ function leave3D() {
 	UserMap = {};
 	allObjects = [];
 	videoList = [];
+	videoListLength = 0;
 	listAvatars = [];
 	resourceIndex = 0;
 }
