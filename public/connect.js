@@ -139,33 +139,14 @@ function initSignaling(room, name) {
  */
 async function sendOffer(id) {
 
+  console.log('Sending offer to user ' + connections[id].name);
+
   if (!connections[id].connection) {
     console.log('Creating peer connection to user ' + connections[id].name);
     connections[id].connection = await createPeerConnection(id);
     createDataChannel(id);
-    addLocalTracksToConnection(id);
+    addLocalTracksToConnection(id); // This triggers 'renegotiations'
   }
-
-  console.log('Sending offer to user ' + connections[id].name);
-
-  /*
-  connections[id].connection.createOffer().then(function(description) {
-    connections[id].connection.setLocalDescription(description).then(function () {
-      console.log("yay");
-    }, function (e) {
-      console.log(e);
-    });;
-    socket.emit('offer', {
-      id: id,
-      name: username.value,
-      offer: description
-    });
-
-  }, function (e) {
-    console.log("Failed to create offer: " + e);
-    return;
-  });
-  */
 }
 
 /**

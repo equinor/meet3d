@@ -405,7 +405,14 @@ function userGotMedia(id, mediaStream) {
 	var posAudio = new THREE.PositionalAudio(listener);
 	posAudio.setRefDistance(20);
 	posAudio.setRolloffFactor(2);
-	const audio1 = posAudio.context.createMediaStreamSource(mediaStream);
+
+	let n = document.createElement("audio");
+
+	n.srcObject = mediaStream;
+	n.muted = true;
+	findUser(id).audioElement = n;
+
+	const audio1 = posAudio.context.createMediaStreamSource(n.srcObject);
 
 	try {
 		posAudio.setNodeSource(audio1);
@@ -417,10 +424,15 @@ function userGotMedia(id, mediaStream) {
 
 function userLeft3D(id) {
 	scene.remove(findUser(id).avatar.model);
+	if (UserMap[id].audioElement.srcObject) {
+		UserMap[id].audioElement.srcObject.getTracks().forEach(track => track.stop());
+	}
+	UserMap[id].audioElement.srcObject = null;
+	UserMap[id].audioElement = null;
 	if (removeUser(id)) {
 		userCount--;
 		updateVideoList();
-	} 
+	}
 }
 
 
@@ -448,8 +460,6 @@ function loadNewObject(resource){
 		scene.add(avatar.model);
 		allObjects.push(avatar.model);
 	});
-
-	//listAvatars.push(avatar); // DELETE ME Probably not needed
 	return avatar;
 }
 
@@ -565,6 +575,11 @@ function update() {
 function leave3D() {
 
 	for (let id in UserMap) {
+		if (UserMap[id].audioElement.srcObject) {
+			UserMap[id].audioElement.srcObject.getTracks().forEach(track => track.stop());
+		}
+		UserMap[id].audioElement.srcObject = null;
+		UserMap[id].audioElement = null;
 		delete UserMap[id];
 	}
 
