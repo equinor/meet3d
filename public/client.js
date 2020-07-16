@@ -165,8 +165,8 @@ async function addLocalTrack(constraint) {
  * Adds all local streams to the PeerConnection to the user with the given ID.
  */
 function addLocalTracksToConnection(id) {
-  if (localStream.getTracks().length == 0) {
-    connections[id].connection.addTrack(null, localStream);
+  if (!localStream || localStream.getTracks().length == 0) {
+    console.error("There is no track to add to the new connection.");
     return;
   }
   for (let i in localStream.getTracks()) {
@@ -233,7 +233,7 @@ function stopShareCamera(button) {
   videoElement.children[0].removeChild(cameraLi);
   if (videoElement.children[0].children.length == 0) {
     // There are no videos to show, so resize the 3D scene
-    renderer.setSize(window.innerWidth, window.innerHeight - 30);
+    resizeCanvas(0); // Make space for the videos on the screen
   }
 }
 
@@ -264,7 +264,7 @@ async function shareScreen(button) {
   shareUser = ourID; // We are the one sharing our screen
   screenShare.srcObject = screenCapture;
   sharing = true;
-  addWalls(); // Add the stream to the 3D environment
+  updateShareScreen3D(screenShare); // Add the stream to the 3D environment
 
   addScreenCapture(null);
 }
@@ -274,28 +274,23 @@ async function shareScreen(button) {
  * 'id', or to all connections if 'id' is null.
  */
 function addScreenCapture(id) {
-  if (sharing && shareUser == ourID) {
+  if (sharing && shareUser == ourID) { // If we are sharing
 
     let shareJSON = JSON.stringify({
       type: "share",
       sharing: true
     });
 
-    if (id) {
+    if (id) { // Share it with one user
       connections[id].dataChannel.send(shareJSON); // Notify everyone that we want to share our screen
-      setTimeout(function() { // Wait 1 second to allow people to process the previous message
-        connections[id].connection.addTrack(screenCapture.getVideoTracks()[0]); // Update our media stream
-      }, 1000);
-
-    } else {
+      connections[id].connection.addTrack(screenCapture.getVideoTracks()[0]); // Update our media stream
+    } else { // Share it with all users
       for (let i in connections) {
         connections[i].dataChannel.send(shareJSON); // Notify everyone that we want to share our screen
       }
-      setTimeout(function() { // Wait 1 second to allow people to process the previous message
-        for (let i in connections) {
-          connections[i].connection.addTrack(screenCapture.getVideoTracks()[0]); // Update our media stream
-        }
-      }, 1000);
+      for (let i in connections) {
+        connections[i].connection.addTrack(screenCapture.getVideoTracks()[0]); // Update our media stream
+      }
     }
   }
 }
@@ -319,7 +314,7 @@ function stopShareScreen(button) {
   screenShare.hidden = true;
   sharing = false; // This indicates that noone is sharing their screen
   shareUser = null;
-  addWalls(); // Re-add the 3D walls without the video texture
+  updateShareScreen3D(null); // Re-add the 3D walls without the video texture
 
   let shareJSON = JSON.stringify({
     type: "share",
@@ -390,7 +385,7 @@ function dataChannelReceive(id, data) {
       shareUser = null;
       shareButton.hidden = false; // Unhide the share screen button
       screenShare.srcObject = null;
-      addWalls(); // Re-add the 3D walls without the video texture
+      updateShareScreen3D(null); // Re-add the 3D walls without the video texture
     }
     sharing = message.sharing; // This boolean stores whether or not someone is streaming
   }
@@ -624,12 +619,9 @@ function receiveFile(id, data) {
  */
 function addVideoStream(id, track) {
 
-  let stream;
+  let stream = new MediaStream([track]);
   if (id !== ourID) {
-    stream = new MediaStream([track]);
     connections[id].stream = stream; // Update the 'stream' attribute for the connection
-  } else {
-    stream = localStream;
   }
 
   let streamElement = document.createElement("video"); // Create an element to place the stream in
@@ -656,7 +648,7 @@ function addVideoStream(id, track) {
     videoElement.children[0].appendChild(streamElementLi);
   }
 
-  renderer.setSize(window.innerWidth - cameraConstraints.video.width, window.innerHeight - 30); // Make space for the videos on the screen
+  resizeCanvas(cameraConstraints.video.width); // Make space for the videos on the screen
   updateVideoList(id); // Update the list of what videos to show, in 3D.js
 }
 
@@ -673,7 +665,7 @@ function removeVideoStream(id) {
   connections[id].stream = null;
 
   if (videoElement.children[0].children.length == 0)
-    renderer.setSize(window.innerWidth, window.innerHeight - 30);
+    resizeCanvas(0); // Make space for the videos on the screen
 
   updateVideoList(id);
 }
@@ -773,13 +765,10 @@ function initSwapView() {
  */
 function swapViewOnC(event) {
   if (event.key == 'c') {
-    if (changeModeButton.value == "Open 3D") {
-      open3D();
-    } else if (changeModeButton.value == "Open Chat") {
-      openChat();
-    } else {
-      console.log("Could not swap view: changeModeButton.value = " + changeModeButton.value);
-    }
+    if (controls.isLocked === true) controls.unlock(); // Unlocks the mouse if you swap view while moving in the 3D-space
+
+    if (changeModeButton.value == "Open 3D") open3D();
+    else openChat();
   }
 }
 
@@ -791,8 +780,9 @@ function userLeft(id) {
   if (id == shareUser) { // If they were sharing their screen then remove it
     shareUser = null;
     screenShare.hidden = true;
+    screenShare.srcObject = null;
     shareButton.hidden = false;
-    addWalls();
+    updateShareScreen3D(null);
   }
   if (connections[id].stream) document.getElementById(connections[id].stream.id).outerHTML = ''; // Remove video
   if (connections[id].dataChannel) connections[id].dataChannel.close(); // Close DataChannel
