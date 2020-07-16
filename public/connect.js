@@ -170,7 +170,7 @@ async function sendAnswer(id, offerDescription) {
       answer: description
     });
   }, function (e) {
-    console.log("Failed to create answer: " + e);
+    console.error("Failed to create answer: " + e);
     return;
   });
 }
@@ -271,13 +271,13 @@ async function createPeerConnection(id) {
           offer: description
         });
       }, function (e) {
-        console.log("Failed to create offer: " + e);
+        console.error("Failed to create offer: " + e);
         return;
       });
     };
 
   } catch (e) {
-    console.log('Failed to create PeerConnection. Exception: ' + e.message);
+    console.error('Failed to create PeerConnection. Exception: ' + e.message);
     alert('Cannot create RTCPeerConnection.');
     return;
   }

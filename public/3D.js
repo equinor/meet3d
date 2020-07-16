@@ -289,8 +289,6 @@ function newUserJoined(id, name) {
 	UserMap[id] = newUser;
 	userCount++;
 
-	//scene.add(newUser.avatar.model);
-
 	updateVideoList(id);
 }
 
@@ -394,7 +392,6 @@ function shiftVideoList(id) {
  * user in the 3D space.
  */
 function getDistance(id) {
-	console.log(id);
 	let otherUser = findUser(id);
 	return (otherUser.avatar.model.position.x - camera.position.x) ** 2 +
 		(otherUser.avatar.model.position.z - camera.position.z) ** 2;
@@ -406,10 +403,9 @@ function userGotMedia(id, mediaStream) {
 	posAudio.setRefDistance(20);
 	posAudio.setRolloffFactor(2);
 
-	let n = document.createElement("audio");
-
+	let n = document.createElement("audio"); // Create HTML element to store audio stream
 	n.srcObject = mediaStream;
-	n.muted = true;
+	n.muted = true; // We only want audio from the positional audio
 	findUser(id).audioElement = n;
 
 	const audio1 = posAudio.context.createMediaStreamSource(n.srcObject);
@@ -418,7 +414,7 @@ function userGotMedia(id, mediaStream) {
 		posAudio.setNodeSource(audio1);
 		findUser(id).avatar.model.add(posAudio);
 	} catch(err) {
-		console.log(err);
+		console.error(err);
 	};
 }
 
@@ -438,7 +434,7 @@ function userLeft3D(id) {
 
 // Load 3D-object from file "resource" and add it to scene
 function loadNewObject(resource){
-	console.log("loading object from: " + resource);
+	console.log("Loading object from: " + resource);
 	let avatar = {};
 	avatar['model'] = new THREE.Object3D();
 
@@ -523,10 +519,14 @@ function onWindowResize() {
 
 	camera.aspect = window.innerWidth / window.innerHeight;
 	camera.updateProjectionMatrix();
-
 	resizeCanvas(-1);
 }
 
+/**
+ * Resizes the 3D scene, whilst making sure to include the video streams if there
+ * are any. The parameter specifies how much space to leave on the right side.
+ * If it is -1 then the previously used value of videoWidth will be used.
+ */
 function resizeCanvas(newWidth) {
 	if (newWidth >= 0)
 		videoWidth = newWidth;
@@ -541,12 +541,13 @@ function update() {
 		var time = performance.now();
 		var delta = ( time - prevUpdateTime ) / 1000;
 
+		// Only call costly functions if we have moved and some time has passed since the last time we called them
 		if (moved && time - prevPosTime > 100 ) {
-			changePos(camera.position.x, 0, camera.position.z);
-			updateVideoList(ourID);
+			changePos(camera.position.x, 0, camera.position.z); // Update our position for others
+			updateVideoList(ourID); // Update which videos to show
 			prevPosTime = time;
 
-			for (let keyId in UserMap) {
+			for (let keyId in UserMap) { // Makes the usernames point towards the user
 				UserMap[keyId].avatar.model.getObjectByName('text').lookAt(camera.position.x, 0, camera.position.z);
 			}
 
