@@ -114,6 +114,8 @@ function init3D() {
 		scene.add(table);
 	});
 
+	console.log("blir oppdatert");
+
 	window.addEventListener( 'resize', onWindowResize, false );
 	document.addEventListener( 'keydown', onDocumentKeyDown, false );
 	document.addEventListener( 'keyup', onDocumentKeyUp, false );
