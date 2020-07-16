@@ -32,6 +32,7 @@ var moveForward = false;
 var moveBackward = false;
 var moveLeft = false;
 var moveRight = false;
+var moved = false;
 
 var prevUpdateTime = performance.now();
 var prevPosTime = performance.now();
@@ -69,6 +70,9 @@ function init3D() {
 	scene.add( light );
 	scene.add( ambientLight );
 	scene.add( directionalLight );
+	allObjects.push(light);
+	allObjects.push(ambientLight);
+	allObjects.push(directionalLight);
 
 	// RENDERER
 	renderer = new THREE.WebGLRenderer();
@@ -105,26 +109,7 @@ function init3D() {
 
 	controls = new THREE.PointerLockControls( camera, document.body );
 	scene.add(controls.getObject());
-
-	//addPlant
-	const plant = new THREE.Object3D();
-	loader.load('objects/obj/planten.glb', function(gltf) {
-		plant.add(gltf.scene);
-		plant.scale.x = 20; plant.scale.y = 20; plant.scale.z = 20;
-		plant.position.x= 0; plant.position.y = 7; plant.position.z = 10;
-		scene.add(plant);
-	});
-
-	//add table
-	const table = new THREE.Object3D();
-	loader.load('objects/obj/table.glb', function(gltf) {
-		table.add(gltf.scene);
-		table.scale.x = 20; table.scale.y = 20; table.scale.z = 20;
-		table.rotation.y += Math.PI / 2;
-		scene.add(table);
-	});
-
-	console.log("blir oppdatert");
+	allObjects.push(controls.getObject());
 
 	window.addEventListener( 'resize', onWindowResize, false );
 	document.addEventListener( 'keydown', onDocumentKeyDown, false );
@@ -165,6 +150,7 @@ function updateShareScreen3D(screenObject) {
 	wallFront.position.z = -maxZ;
 	wallFront.position.y += wallHeight / 2;
 	scene.add( wallFront );
+	allObjects.push( wallFront );
 }
 
 function addWalls() {
@@ -231,10 +217,10 @@ function addDecoration() {
 		table.add(gltf.scene);
 		table.scale.x = 20; table.scale.y = 20; table.scale.z = 20;
 		table.rotation.y += Math.PI / 2;
-		scene.add(table);
+		//scene.add(table);
 	});
 
-	allObjects.push(table);
+	//allObjects.push(table);
 	allObjects.push(plant);
 }
 
@@ -297,14 +283,11 @@ function newUserJoined(id, name) {
 	resourceIndex++;
 	resourceIndex %= resourceList.length; // Make sure the index never exceeds the size of the list
 
-	//newUser['text'] = addText(name, newUser.avatar.model);
 	addText(name, newUser.avatar.model);
 
 	// Add new user to UserMap
 	UserMap[id] = newUser;
 	userCount++;
-
-	//scene.add(newUser.avatar.model);
 
 	updateVideoList(id);
 }
@@ -410,8 +393,8 @@ function shiftVideoList(id) {
  */
 function getDistance(id) {
 	let otherUser = findUser(id);
-	return Math.pow(Math.abs(otherUser.avatar.model.position.x - camera.position.x), 2) +
-		Math.pow(Math.abs(otherUser.avatar.model.position.z - camera.position.z), 2);
+	return (otherUser.avatar.model.position.x - camera.position.x) ** 2 +
+		(otherUser.avatar.model.position.z - camera.position.z) ** 2;
 }
 
 function userGotMedia(id, mediaStream) {
@@ -419,29 +402,42 @@ function userGotMedia(id, mediaStream) {
 	var posAudio = new THREE.PositionalAudio(listener);
 	posAudio.setRefDistance(20);
 	posAudio.setRolloffFactor(2);
-	const audio1 = posAudio.context.createMediaStreamSource(mediaStream);
+
+	let n = document.createElement("audio"); // Create HTML element to store audio stream
+	n.srcObject = mediaStream;
+	n.muted = true; // We only want audio from the positional audio
+	findUser(id).audioElement = n;
+
+	const audio1 = posAudio.context.createMediaStreamSource(n.srcObject);
 
 	try {
 		posAudio.setNodeSource(audio1);
 		findUser(id).avatar.model.add(posAudio);
 	} catch(err) {
-		console.log(err);
+		console.error(err);
 	};
 }
 
 function userLeft3D(id) {
 	scene.remove(findUser(id).avatar.model);
-	if(removeUser(id)) {
+	if (UserMap[id].audioElement.srcObject) {
+		UserMap[id].audioElement.srcObject.getTracks().forEach(track => track.stop());
+	}
+	UserMap[id].audioElement.srcObject = null;
+	UserMap[id].audioElement = null;
+	if (removeUser(id)) {
 		userCount--;
+		updateVideoList();
 	}
 }
 
 
 // Load 3D-object from file "resource" and add it to scene
 function loadNewObject(resource){
-	console.log("loading object from: " + resource);
+	console.log("Loading object from: " + resource);
 	let avatar = {};
 	avatar['model'] = new THREE.Object3D();
+
 	loader.load(resource, function(gltf) { // this could probably be vastly improved
 		avatar.model.add(gltf.scene);
 		avatar.model.scale.x = objectScale;
@@ -460,7 +456,6 @@ function loadNewObject(resource){
 		scene.add(avatar.model);
 		allObjects.push(avatar.model);
 	});
-	//listAvatars.push(avatar); // DELETE ME Probably not needed
 	return avatar;
 }
 
@@ -469,18 +464,22 @@ function onDocumentKeyDown(event) {
 
 		case 87: //w
 			moveForward = true;
+			moved = true;
 			break;
 
 		case 65: // a
 			moveLeft = true;
+			moved = true;
 			break;
 
 		case 83: // s
 			moveBackward = true;
+			moved = true;
 			break;
 
 		case 68: // d
 			moveRight = true;
+			moved = true;
 			break;
 
 		case 38://up
@@ -520,10 +519,14 @@ function onWindowResize() {
 
 	camera.aspect = window.innerWidth / window.innerHeight;
 	camera.updateProjectionMatrix();
-
 	resizeCanvas(-1);
 }
 
+/**
+ * Resizes the 3D scene, whilst making sure to include the video streams if there
+ * are any. The parameter specifies how much space to leave on the right side.
+ * If it is -1 then the previously used value of videoWidth will be used.
+ */
 function resizeCanvas(newWidth) {
 	if (newWidth >= 0)
 		videoWidth = newWidth;
@@ -534,17 +537,17 @@ function resizeCanvas(newWidth) {
 //function to update frame
 function update() {
 	requestID = requestAnimationFrame(update);
-	if (controls.isLocked === true){
+	if (controls.isLocked === true) {
 		var time = performance.now();
 		var delta = ( time - prevUpdateTime ) / 1000;
 
-		// Only do this if position is changed?
-		if ( time - prevPosTime > 100 ) {
-			changePos(camera.position.x, 0, camera.position.z);
-			updateVideoList(ourID);
+		// Only call costly functions if we have moved and some time has passed since the last time we called them
+		if (moved && time - prevPosTime > 100 ) {
+			changePos(camera.position.x, 0, camera.position.z); // Update our position for others
+			updateVideoList(ourID); // Update which videos to show
 			prevPosTime = time;
 
-			for(let keyId in UserMap) {
+			for (let keyId in UserMap) { // Makes the usernames point towards the user
 				UserMap[keyId].avatar.model.getObjectByName('text').lookAt(camera.position.x, 0, camera.position.z);
 			}
 
@@ -565,12 +568,21 @@ function update() {
 		controls.moveForward( - velocity.z * delta );
 
 		prevUpdateTime = time;
+		moved = false;
 	}
-
 	renderer.render(scene, camera);
 }
 
 function leave3D() {
+
+	for (let id in UserMap) {
+		if (UserMap[id].audioElement.srcObject) {
+			UserMap[id].audioElement.srcObject.getTracks().forEach(track => track.stop());
+		}
+		UserMap[id].audioElement.srcObject = null;
+		UserMap[id].audioElement = null;
+		delete UserMap[id];
+	}
 
 	for (let i in allObjects) {
 		if (allObjects[i]) scene.remove(allObjects[i]);
@@ -594,6 +606,7 @@ function leave3D() {
 	UserMap = {};
 	allObjects = [];
 	videoList = [];
+	videoListLength = 0;
 	listAvatars = [];
 	resourceIndex = 0;
 }

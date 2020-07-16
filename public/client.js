@@ -128,7 +128,7 @@ async function getLocalTrack(constraint) {
     } else if (e.name === "NotFoundError") {
       alert('No relevant device was detected.')
     } else {
-      console.log(e);
+      console.error(e);
       alert('Unable to access local media: ' + e.name);
     }
     return null;
@@ -252,7 +252,7 @@ async function shareScreen(button) {
       'Permissions for this webpage can be updated in the settings for your browser, ' +
       'or by refreshing the page and trying again.');
     } else {
-      console.log(e);
+      console.error(e);
       alert('Unable to access local media: ' + e.name);
     }
     return;
