@@ -264,7 +264,7 @@ async function shareScreen(button) {
   shareUser = ourID; // We are the one sharing our screen
   screenShare.srcObject = screenCapture;
   sharing = true;
-  addWalls(); // Add the stream to the 3D environment
+  updateShareScreen3D(screenShare); // Add the stream to the 3D environment
 
   addScreenCapture(null);
 }
@@ -319,7 +319,7 @@ function stopShareScreen(button) {
   screenShare.hidden = true;
   sharing = false; // This indicates that noone is sharing their screen
   shareUser = null;
-  addWalls(); // Re-add the 3D walls without the video texture
+  updateShareScreen3D(null); // Re-add the 3D walls without the video texture
 
   let shareJSON = JSON.stringify({
     type: "share",
@@ -390,7 +390,7 @@ function dataChannelReceive(id, data) {
       shareUser = null;
       shareButton.hidden = false; // Unhide the share screen button
       screenShare.srcObject = null;
-      addWalls(); // Re-add the 3D walls without the video texture
+      updateShareScreen3D(null); // Re-add the 3D walls without the video texture
     }
     sharing = message.sharing; // This boolean stores whether or not someone is streaming
   }
@@ -624,12 +624,9 @@ function receiveFile(id, data) {
  */
 function addVideoStream(id, track) {
 
-  let stream;
+  let stream = new MediaStream([track]);
   if (id !== ourID) {
-    stream = new MediaStream([track]);
     connections[id].stream = stream; // Update the 'stream' attribute for the connection
-  } else {
-    stream = localStream;
   }
 
   let streamElement = document.createElement("video"); // Create an element to place the stream in
@@ -788,8 +785,9 @@ function userLeft(id) {
   if (id == shareUser) { // If they were sharing their screen then remove it
     shareUser = null;
     screenShare.hidden = true;
+    screenShare.srcObject = null;
     shareButton.hidden = false;
-    addWalls();
+    updateShareScreen3D(null);
   }
   if (connections[id].stream) document.getElementById(connections[id].stream.id).outerHTML = ''; // Remove video
   if (connections[id].dataChannel) connections[id].dataChannel.close(); // Close DataChannel
