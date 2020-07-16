@@ -35,6 +35,7 @@ var moveRight = false;
 
 var prevUpdateTime = performance.now();
 var prevPosTime = performance.now();
+var lastPosShared = { x: 0, z: 0 }; // The last position shared to the server using changePos()
 var velocity = new THREE.Vector3();
 var direction = new THREE.Vector3();
 
@@ -47,7 +48,7 @@ var allObjects = []; // Stores all 3D objects so that they can be removed later
 var videoList = []; // The list of remote videos to display
 var videoListLength = 0; // The number of videos to show at a time, not including our own
 
-listAvatars = [];
+listAvatars = []; // FIXME Do we need this?
 
 const resourceList = ['objects/obj/pawn.glb']; //List of 3D-object-files
 var resourceIndex = 0;
@@ -123,8 +124,6 @@ function init3D() {
 		table.rotation.y += Math.PI / 2;
 		scene.add(table);
 	});
-
-	console.log("blir oppdatert");
 
 	window.addEventListener( 'resize', onWindowResize, false );
 	document.addEventListener( 'keydown', onDocumentKeyDown, false );
@@ -297,14 +296,11 @@ function newUserJoined(id, name) {
 	resourceIndex++;
 	resourceIndex %= resourceList.length; // Make sure the index never exceeds the size of the list
 
-	//newUser['text'] = addText(name, newUser.avatar.model);
 	addText(name, newUser.avatar.model);
 
 	// Add new user to UserMap
 	UserMap[id] = newUser;
 	userCount++;
-
-	//scene.add(newUser.avatar.model);
 
 	updateVideoList(id);
 }
@@ -405,13 +401,19 @@ function shiftVideoList(id) {
 }
 
 /**
- * Gets a number representing the distance between the user with ID 'id' and our
+ * Returns the squared distance between the user with ID 'id' and our
  * user in the 3D space.
  */
 function getDistance(id) {
-	let otherUser = findUser(id);
-	return Math.pow(Math.abs(otherUser.avatar.model.position.x - camera.position.x), 2) +
-		Math.pow(Math.abs(otherUser.avatar.model.position.z - camera.position.z), 2);
+	let otherUserPos = findUser(id).avatar.model.position;
+	return getDistanceBetween(camera.position.x, camera.position.z, otherUserPos.x, otherUserPos.z);
+}
+
+/**
+ * Returns the squared distance between two points in the xz-plane.
+ */
+function getDistanceBetween(fromX, fromZ, toX, toZ) {
+	return (toX - fromX)**2 + (toZ - fromZ)**2;
 }
 
 function userGotMedia(id, mediaStream) {
@@ -532,15 +534,26 @@ function update() {
 		var time = performance.now();
 		var delta = ( time - prevUpdateTime ) / 1000;
 
-		// Only do this if position is changed?
 		if ( time - prevPosTime > 100 ) {
-			changePos(camera.position.x, 0, camera.position.z);
-			updateVideoList(ourID);
-			prevPosTime = time;
-
+			let currentPos = {
+				x: camera.position.x,
+				z: camera.position.z
+			};
+			
+			// Only share our position if we have moved
+			if( getDistanceBetween(lastPosShared.x, lastPosShared.z, currentPos.x, currentPos.z) > 1.0 ) {
+				console.log("Update position and videoList because currentPos = " + currentPos.x + currentPos.z
+				+ " != lastPosShared = " + lastPosShared.x + lastPosShared.z);
+				changePos(currentPos[0], 0, currentPos[1]);
+				updateVideoList(ourID);
+				lastPosShared = currentPos;
+			}
+			
 			for(let keyId in UserMap) {
 				UserMap[keyId].avatar.model.getObjectByName('text').lookAt(camera.position.x, 0, camera.position.z);
 			}
+			
+			prevPosTime = time;
 
 			// Add functionality to update direction based on camera direction OR movement direction
 		}
