@@ -106,6 +106,26 @@ function init3D() {
 	controls = new THREE.PointerLockControls( camera, document.body );
 	scene.add(controls.getObject());
 
+	//addPlant
+	const plant = new THREE.Object3D();
+	loader.load('objects/obj/planten.glb', function(gltf) {
+		plant.add(gltf.scene);
+		plant.scale.x = 20; plant.scale.y = 20; plant.scale.z = 20;
+		plant.position.x= 0; plant.position.y = 7; plant.position.z = 10;
+		scene.add(plant);
+	});
+
+	//add table
+	const table = new THREE.Object3D();
+	loader.load('objects/obj/table.glb', function(gltf) {
+		table.add(gltf.scene);
+		table.scale.x = 20; table.scale.y = 20; table.scale.z = 20;
+		table.rotation.y += Math.PI / 2;
+		scene.add(table);
+	});
+
+	console.log("blir oppdatert");
+
 	window.addEventListener( 'resize', onWindowResize, false );
 	document.addEventListener( 'keydown', onDocumentKeyDown, false );
 	document.addEventListener( 'keyup', onDocumentKeyUp, false );
