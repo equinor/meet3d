@@ -24,7 +24,7 @@ spec:
       dockerfileName: static.Dockerfile
       ports:
         - name: http
-          port: 80
+          port: 8080
       publicPort: http
   dnsAppAlias:
     environment: latest
