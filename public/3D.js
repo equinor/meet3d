@@ -419,7 +419,8 @@ function userLeft3D(id) {
 	scene.remove(findUser(id).avatar.model);
 	if (removeUser(id)) {
 		userCount--;
-	}
+		updateVideoList();
+	} 
 }
 
 

@@ -55,7 +55,7 @@ function initSignaling(room, name) {
     connections[startInfo.id] = {};
     connections[startInfo.id].name = startInfo.name;
 
-    console.log('User ', startInfo.name, ' joined room ', room);
+    console.log('User ' + startInfo.name + ' joined room ' + room);
 
     sendOffer(startInfo.id); // Send the user your local description in order to create a connection
     newUserJoined(startInfo.id, startInfo.name); // Add the new user to the 3D environment
