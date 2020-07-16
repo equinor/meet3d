@@ -15,6 +15,7 @@ var receivedFiles = document.getElementById("receivedFiles");
 var screenShare = document.getElementById("screenShare");
 var notification = document.getElementById("notification");
 var sceneDiv = document.getElementById("3D");
+var videoDiv = document.getElementById("videos")
 var videoElement = document.getElementById("remoteVideo");
 var buttons = document.getElementById("buttons");
 var shareButton = document.getElementById("shareButton");
@@ -713,6 +714,7 @@ function initChat() {
   }
 
   sceneDiv.style.display = "none"; // Hide the 3D scene
+  videoDiv.style.display = "none"; //Hide videopage
 }
 
 /**
@@ -724,6 +726,7 @@ function openChat() {
 
   chatDiv.style.display = "inline-block"; // Open the chat
   sceneDiv.style.display = "none"; // Hide the 3D scene
+  videoDiv.style.display = "none"; //Hide video
 
   unreadMessages = 0; // We have now seen the received chat messages
   notification.innerHTML = "";
@@ -742,12 +745,29 @@ function open3D() {
 	document.addEventListener("keyup", onDocumentKeyUp, false);
 
   chatDiv.style.display = "none"; // Hide the chat
+  videoDiv.style.display = "none"; //Hide video
   sceneDiv.style.display = "inline-block"; // Open the 3D scene
 
   changeModeButton.onclick = function() { openChat() };
   changeModeButton.value = "Open Chat";
 
   document.body.style.backgroundColor = "grey";
+}
+
+/**
+ * Open the videopage and hide chat and 3D scene
+ */
+function openVideoPage(){
+
+  document.addEventListener("keydown", onDocumentKeyDown, false);
+  document.addEventListener("keyup", onDocumentKeyUp, false);
+
+  chatDiv.style.display = "none"; // Hide the chat
+  sceneDiv.style.display = "none"; //Hide 3D scene
+  videoDiv.style.display = "inline-block"; //Open videopage
+  document.body.style.backgroundColor = "grey";
+
+  
 }
 
 /**
