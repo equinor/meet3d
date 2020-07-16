@@ -773,13 +773,10 @@ function initSwapView() {
  */
 function swapViewOnC(event) {
   if (event.key == 'c') {
-    if (changeModeButton.value == "Open 3D") {
-      open3D();
-    } else if (changeModeButton.value == "Open Chat") {
-      openChat();
-    } else {
-      console.log("Could not swap view: changeModeButton.value = " + changeModeButton.value);
-    }
+    if (controls.isLocked === true) controls.unlock(); // Unlocks the mouse if you swap view while moving in the 3D-space
+
+    if (changeModeButton.value == "Open 3D") open3D();
+    else openChat();
   }
 }
 
