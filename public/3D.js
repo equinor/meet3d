@@ -224,7 +224,6 @@ function addText(name, model) {
 
 		text.geometry = textGeometry;
 		text.material =  textMaterial;
-		text.name = "text"; // DELETE ME Probably do not need this
 		model.add(text);
 	});
 	return text;
