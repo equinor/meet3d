@@ -274,28 +274,23 @@ async function shareScreen(button) {
  * 'id', or to all connections if 'id' is null.
  */
 function addScreenCapture(id) {
-  if (sharing && shareUser == ourID) {
+  if (sharing && shareUser == ourID) { // If we are sharing
 
     let shareJSON = JSON.stringify({
       type: "share",
       sharing: true
     });
 
-    if (id) {
+    if (id) { // Share it with one user
       connections[id].dataChannel.send(shareJSON); // Notify everyone that we want to share our screen
-      setTimeout(function() { // Wait 1 second to allow people to process the previous message
-        connections[id].connection.addTrack(screenCapture.getVideoTracks()[0]); // Update our media stream
-      }, 1000);
-
-    } else {
+      connections[id].connection.addTrack(screenCapture.getVideoTracks()[0]); // Update our media stream
+    } else { // Share it with all users
       for (let i in connections) {
         connections[i].dataChannel.send(shareJSON); // Notify everyone that we want to share our screen
       }
-      setTimeout(function() { // Wait 1 second to allow people to process the previous message
-        for (let i in connections) {
-          connections[i].connection.addTrack(screenCapture.getVideoTracks()[0]); // Update our media stream
-        }
-      }, 1000);
+      for (let i in connections) {
+        connections[i].connection.addTrack(screenCapture.getVideoTracks()[0]); // Update our media stream
+      }
     }
   }
 }

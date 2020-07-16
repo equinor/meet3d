@@ -233,8 +233,6 @@ function createPeerConnection(id) {
         if (event.streams.length == 0) { // Screen capture video
           screenShare.srcObject = newStream; // Create a new stream containing the received track
 
-          if (document.getElementById(newStream.id)) return; // Ignore if there already is screen sharing
-
           screenShare.srcObject = null;
           screenShare.autoplay = true;
           screenShare.srcObject = newStream;
