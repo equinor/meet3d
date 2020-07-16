@@ -368,7 +368,7 @@ function dataChannelReceive(id, data) {
 
   if (message.type == "pos") { // It is 3D positional data
     changeUserPosition(id, message.x, message.y, message.z); // Change position of user
-    //setUserRotation(id, message.angleY);
+    setUserRotation(id, message.angle);
   } else if (message.type == "file") { // It is a list of advertised files
     clearFileList(id); // Remove previous file options
     for (let i in message.files) {
@@ -689,8 +689,8 @@ function updateVideoVisibility() {
 /**
  * Function which tells other users our new 3D position.
  */
-function changePos(x, y, z, angleY) {
-  let jsonPos = JSON.stringify({type: "pos", x: x, y: y, z: z, angleY: angleY});
+function changePos(x, y, z, angle) {
+  let jsonPos = JSON.stringify({type: "pos", x: x, y: y, z: z, angle: angle});
   for (let id in connections) { // Send it to everyone
     connections[id].dataChannel.send(jsonPos);
   }

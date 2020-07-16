@@ -542,10 +542,8 @@ function update() {
 			
 			// Only share our position if we have moved
 			if( getDistanceBetween(lastPosShared.x, lastPosShared.z, currentPos.x, currentPos.z) > 1.0 ) {
-				console.log("Update position and videoList because currentPos = " + currentPos.x + currentPos.z
-				+ " != lastPosShared = " + lastPosShared.x + lastPosShared.z);
 				let angle = camera.rotation.y;
-				changePos(currentPos[0], 0, currentPos[1], angle);
+				changePos(currentPos.x, 0, currentPos.z, angle);
 				updateVideoList(ourID);
 				lastPosShared = currentPos;
 			}
