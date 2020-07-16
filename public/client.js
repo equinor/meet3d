@@ -10,6 +10,7 @@ var chatBox = document.getElementById("chatBox");
 var chatSend = document.getElementById("chatSend");
 var chatDiv = document.getElementById("chatSection");
 var changeModeButton = document.getElementById("changeMode");
+var videosButton = document.getElementById("videosButton")
 var files = document.getElementById("files");
 var receivedFiles = document.getElementById("receivedFiles");
 var screenShare = document.getElementById("screenShare");
@@ -759,15 +760,28 @@ function open3D() {
  */
 function openVideoPage(){
 
-  document.addEventListener("keydown", onDocumentKeyDown, false);
-  document.addEventListener("keyup", onDocumentKeyUp, false);
+  document.removeEventListener("keydown", onDocumentKeyDown, false);
+  document.removeEventListener("keyup", onDocumentKeyUp, false);
 
   chatDiv.style.display = "none"; // Hide the chat
   sceneDiv.style.display = "none"; //Hide 3D scene
   videoDiv.style.display = "inline-block"; //Open videopage
   document.body.style.backgroundColor = "grey";
 
-  
+  videosButton.onclick = () => { closeVideoPage() }
+  videosButton.value = "Close Videos";
+
+}
+
+/**
+ * Close the videopage and go back to chat/scene
+ */
+function closeVideoPage(){
+
+  videosButton.onclick = () => { openVideoPage() }
+  videosButton.value = "Open Videos";
+  if(changeModeButton.value == "Open Chat") open3D();
+  else openChat();
 }
 
 /**
