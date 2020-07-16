@@ -365,10 +365,10 @@ function shiftVideoList(id) {
  * user in the 3D space.
  */
 function getDistanceSquared(id) {
-	let otherUser = findUser(id);
-	return Math.abs(otherUser.getxPosition() - camera.position.x) ** 2 +
-		Math.abs(otherUser.getyPosition() - camera.position.y) ** 2 +
-		Math.abs(otherUser.getzPosition() - camera.position.z) ** 2;
+	let position = findUser(id).avatar.model.position;
+	let distanceSquared = Math.abs(position.x - camera.position.x) ** 2 +
+		Math.abs(position.z - camera.position.z) ** 2;
+	return distanceSquared;
 }
 
 function userGotMedia(id, mediaStream) {
@@ -395,11 +395,11 @@ function userLeft3D(id) {
 
 
 // Load 3D-object from file "resource" and add it to scene
-function loadNewObject(ressource){
-	console.log("loading object from: " + ressource);
+function loadNewObject(resource){
+	console.log("loading object from: " + resource);
 	let avatar = {};
 	avatar['model'] = new THREE.Object3D();
-	loader.load(ressource, function(gltf) { // this could probably be vastly improved
+	loader.load(resource, function(gltf) { // this could probably be vastly improved
 		avatar.model.add(gltf.scene);
 		avatar.model.scale.x = objectScale;
 		avatar.model.scale.y = objectScale;
@@ -441,13 +441,10 @@ function onDocumentKeyDown(event) {
 			break;
 
 		case 38://up
-			console.log("locking mouse");
 			controls.lock();
-			document.removeEventListener("keyup", swapViewOnC);
 			break;
 
 		case 40: // down
-			console.log("unlocking mouse");
 			controls.unlock();
 			break;
 	}
@@ -487,7 +484,6 @@ function onWindowResize() {
 function update() {
 	requestID = requestAnimationFrame(update);
 	if (controls.isLocked === true){
-		document.removeEventListener("keyup", swapViewOnC); // this is not looking too great at the moment
 		var time = performance.now();
 		var delta = ( time - prevUpdateTime ) / 1000;
 
@@ -517,8 +513,6 @@ function update() {
 		controls.moveForward( - velocity.z * delta );
 
 		prevUpdateTime = time;
-	} else {
-		document.addEventListener("keyup", swapViewOnC);
 	}
 
 	renderer.render(scene, camera);
