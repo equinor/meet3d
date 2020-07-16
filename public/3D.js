@@ -362,11 +362,11 @@ function shiftVideoList(id) {
  * Gets a number representing the distance between the user with ID 'id' and our
  * user in the 3D space.
  */
-function getDistance(id) {
-	let otherUser = findUser(id);
-	return Math.abs(otherUser.getxPosition() - camera.position.x) ** 2 +
-		Math.abs(otherUser.getyPosition() - camera.position.y) ** 2 +
-		Math.abs(otherUser.getzPosition() - camera.position.z) ** 2;
+function getDistanceSquared(id) {
+	let position = findUser(id).avatar.model.position;
+	let distanceSquared = Math.abs(position.x - camera.position.x) ** 2 +
+		Math.abs(position.z - camera.position.z) ** 2;
+	return distanceSquared;
 }
 
 function userGotMedia(id, mediaStream) {
