@@ -390,8 +390,8 @@ function shiftVideoList(id) {
  */
 function getDistance(id) {
 	let otherUser = findUser(id);
-	return Math.pow(otherUser.avatar.model.position.x - camera.position.x, 2) +
-		Math.pow(otherUser.avatar.model.position.z - camera.position.z, 2);
+	return Math.pow(Math.abs(otherUser.avatar.model.position.x - camera.position.x), 2) +
+		Math.pow(Math.abs(otherUser.avatar.model.position.z - camera.position.z), 2);
 }
 
 function userGotMedia(id, mediaStream) {
