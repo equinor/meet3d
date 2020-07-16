@@ -544,7 +544,8 @@ function update() {
 			if( getDistanceBetween(lastPosShared.x, lastPosShared.z, currentPos.x, currentPos.z) > 1.0 ) {
 				console.log("Update position and videoList because currentPos = " + currentPos.x + currentPos.z
 				+ " != lastPosShared = " + lastPosShared.x + lastPosShared.z);
-				changePos(currentPos[0], 0, currentPos[1]);
+				let angle = camera.rotation.y;
+				changePos(currentPos[0], 0, currentPos[1], angle);
 				updateVideoList(ourID);
 				lastPosShared = currentPos;
 			}
