@@ -793,7 +793,7 @@ function initSwapView() {
 function swapViewOnC(event) {
   if (event.key == 'c') {
     if (controls.isLocked === true) controls.unlock(); // Unlocks the mouse if you swap view while moving in the 3D-space
-
+    if (videoButton.hidden ==true) return;
     if (roomButton.hidden == false) open3D();
     else openChat();
   }
