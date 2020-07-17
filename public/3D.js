@@ -1,15 +1,14 @@
 // GLOBAL CONSTANTS
-const distance = 15; // This is currently not used
 const maxX = 100;
 const maxY = 100; // This is probably not needed
 const maxZ = 100;
-const speed = 3;
 const wallHeight = 100;
 const objectScale = 7;
 const videoCount = 3;
-const objectWidth = 10; // Probably not needed
-const objectHeight = 20; // Probably not needed
-
+const maxXcam = maxX - 1;
+const minXcam = -maxX + 1;
+const maxZcam = maxZ - 1;
+const minZcam = -maxZ + 1;
 
 // GLOBAL VARIABLES
 var scene;
@@ -37,6 +36,7 @@ var prevPosTime = performance.now();
 var velocity = new THREE.Vector3();
 var direction = new THREE.Vector3();
 var videoWidth = 0; // The width that is used up by videos on the side
+var speed = 400.0;
 
 // GLOBAL CONTAINERS
 var UserMap = {}; //json-object to store the Users
@@ -52,7 +52,7 @@ function init3D() {
 
 	// CAMERA
 	camera = new THREE.PerspectiveCamera(100, (window.innerWidth / window.outerWidth), 0.1, 1000);
-	camera.position.y = 30;
+	camera.position.y = wallHeight / 3;
 
 	// LIGHT
 	let light = new THREE.PointLight( 0xff0000, 1, 100 );
@@ -111,8 +111,6 @@ function init3D() {
 	addWalls();
 	addDecoration();
 
-	changeModeButton.hidden = false; // Allows the user to open the 3D environment
-
 	listener = new THREE.AudioListener();
 
 	controls.getObject().add(listener)
@@ -122,6 +120,10 @@ function init3D() {
 	update();
 }
 
+/**
+ * Places the given video stream in the 3D environment. If it is null, then we
+ * only remove the existing one.
+ */
 function updateShareScreen3D(screenObject) {
 	scene.remove(tv);
 	if (screenObject) { // If someone is sharing their screen, display it
@@ -133,10 +135,6 @@ function updateShareScreen3D(screenObject) {
 			let height = screenObject.srcObject.getVideoTracks()[0].getSettings().height;
 			let width = screenObject.srcObject.getVideoTracks()[0].getSettings().width;
 			let ratio = width / height;
-
-			//console.log(screenObject.srcObject.getVideoTracks()[0].getSettings())
-
-			//console.log("Height: " + height + " width: " + width + " ratio: " + ratio + " hmax: " + wallHeight + " wmax: " + (maxX * 2));
 
 			if (height > wallHeight) {
 				var width2 = wallHeight * ratio;
@@ -158,25 +156,25 @@ function updateShareScreen3D(screenObject) {
 				}
 			}
 
-			//console.log("Height: " + height + " width: " + width + " ratio: " + ratio + " w2: " + width2 + " h2: " + height2);
-
 			tv = new THREE.Mesh(
 				new THREE.PlaneBufferGeometry(width, height, 1, 1),
 				new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: texture } )
 			);
 
-			tv.position.z = -(maxZ - 10);
+			tv.position.z = -(maxZ - 1);
 			tv.position.y += wallHeight / 2;
 
 			scene.add( tv );
 			allObjects.push( tv );
+	} else {
+		screenObject.srcObject.getTracks().forEach(track => track.stop());
 	}
 }
 
 function addWalls() {
 
 	wallLeft = new THREE.Mesh(
-		new THREE.PlaneGeometry(maxY * 2, wallHeight, 1, 1),
+		new THREE.PlaneGeometry(maxX * 2, wallHeight, 1, 1),
 		new THREE.MeshBasicMaterial( { color: "cadetblue", side: THREE.DoubleSide } )
 	);
 
@@ -185,7 +183,7 @@ function addWalls() {
 	wallLeft.position.y += wallHeight / 2;
 
 	wallRight = new THREE.Mesh(
-		new THREE.PlaneGeometry(maxY * 2, wallHeight, 1, 1),
+		new THREE.PlaneGeometry(maxX * 2, wallHeight, 1, 1),
 		new THREE.MeshBasicMaterial( { color: "cadetblue", side: THREE.DoubleSide } )
 	);
 
@@ -194,7 +192,7 @@ function addWalls() {
 	wallRight.position.y += wallHeight / 2;
 
 	wallBack = new THREE.Mesh(
-		new THREE.PlaneGeometry(maxY * 2, wallHeight, 1, 1),
+		new THREE.PlaneGeometry(maxX * 2, wallHeight, 1, 1),
 		new THREE.MeshBasicMaterial( { color: "cadetblue", side: THREE.DoubleSide } )
 	);
 
@@ -313,9 +311,10 @@ function newUserJoined(id, name) {
 }
 
 function changeUserPosition(id, x, y, z) {
-	findUser(id).avatar.model.position.x = x;
-	findUser(id).avatar.model.position.y = y;
-	findUser(id).avatar.model.position.z = z;
+	let user = findUser(id);
+	user.avatar.model.position.x = x;
+	user.avatar.model.position.y = y;
+	user.avatar.model.position.z = z;
 	if (connections[id].stream) {
 		updateVideoList(id);
 	}
@@ -561,8 +560,26 @@ function update() {
 		var time = performance.now();
 		var delta = ( time - prevUpdateTime ) / 1000;
 
+		velocity.x -= velocity.x * 10.0 * delta;
+		velocity.z -= velocity.z * 10.0 * delta;
+
+		direction.z = Number( moveForward ) - Number( moveBackward );
+		direction.x = Number( moveRight ) - Number( moveLeft );
+		direction.normalize(); // this ensures consistent movements in all directions
+
+		if ( moveForward || moveBackward ) velocity.z -= direction.z * speed * delta;
+		if ( moveLeft || moveRight ) velocity.x -= direction.x * speed * delta;
+
+		controls.moveRight( - velocity.x * delta );
+		controls.moveForward( - velocity.z * delta );
+
+		if (camera.position.x > maxXcam) camera.position.x = maxXcam;
+		else if (camera.position.x < minXcam) camera.position.x = minXcam;
+		if (camera.position.z > maxZcam) camera.position.z = maxZcam;
+		else if (camera.position.z < minZcam) camera.position.z = minZcam;
+
 		// Only call costly functions if we have moved and some time has passed since the last time we called them
-		if (moved && time - prevPosTime > 100 ) {
+		if (moved && time - prevPosTime > 50 ) {
 			changePos(camera.position.x, 0, camera.position.z); // Update our position for others
 			updateVideoList(ourID); // Update which videos to show
 			prevPosTime = time;
@@ -574,26 +591,23 @@ function update() {
 			// Add functionality to update direction based on camera direction OR movement direction
 		}
 
-		velocity.x -= velocity.x * 10.0 * delta;
-		velocity.z -= velocity.z * 10.0 * delta;
-
-		direction.z = Number( moveForward ) - Number( moveBackward );
-		direction.x = Number( moveRight ) - Number( moveLeft );
-		direction.normalize(); // this ensures consistent movements in all directions
-
-		if ( moveForward || moveBackward ) velocity.z -= direction.z * 400.0 * delta;
-		if ( moveLeft || moveRight ) velocity.x -= direction.x * 400.0 * delta;
-
-		controls.moveRight( - velocity.x * delta );
-		controls.moveForward( - velocity.z * delta );
-
 		prevUpdateTime = time;
 		moved = false;
 	}
 	renderer.render(scene, camera);
 }
 
+/**
+ * This is a wrapper function which can be used to update our current position
+ * for other users without needing to access 3D.js variables. 
+ */
+function changePos3D() {
+	changePos(camera.position.x, 0, camera.position.z);
+}
+
 function leave3D() {
+
+	updateShareScreen3D(null);
 
 	for (let id in UserMap) {
 		if (UserMap[id].audioElement.srcObject) {

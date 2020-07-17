@@ -45,9 +45,6 @@ function initSignaling(room, name) {
   socket.on('created', function(connectionInfo) {
     console.log('Created room ' + connectionInfo.room);
     ourID = connectionInfo.id;
-
-    init3D(name); // Renders the 3D environment
-    initSwapView();
   });
 
   // The room we tried to join is full
@@ -74,9 +71,6 @@ function initSignaling(room, name) {
   socket.on('joined', function(connectionInfo) {
     console.log('We joined: ' + connectionInfo.room);
     ourID = connectionInfo.id;
-
-    init3D(name); // Renders the 3D environment
-    initSwapView(); // Lets the user quickly switch between chat mode and 3D mode
   });
 
   // A user moved in the 3D space
@@ -303,6 +297,7 @@ function createDataChannel(id) {
     console.log("Datachannel established to " + connections[id].name);
     advertiseFile();
     addScreenCapture(id);
+    changePos3D();
   };
 
   tempConnection.onclose = function () {

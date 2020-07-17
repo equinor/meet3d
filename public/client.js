@@ -40,17 +40,17 @@ chatSend.addEventListener("keyup", function(event) {
     }
   });
 
-  // These two variables are present in both client.js and connect.js
-  var ourID; // This is our unique ID
-  var connections = {}; // The key is the socket id, and the value is:
-  /*    {
-   *      name: String,
-   *      stream: MediaStream,
-   *      connection: PeerConnection,
-   *      audio: RTCRtpSender,
-   *      video: RTCRtpSender
-   *    }
-   */
+// These two variables are present in both client.js and connect.js
+var ourID; // This is our unique ID
+var connections = {}; // The key is the socket id, and the value is:
+/*    {
+ *      name: String,
+ *      stream: MediaStream,
+ *      connection: PeerConnection,
+ *      audio: RTCRtpSender,
+ *      video: RTCRtpSender
+ *    }
+ */
 
 var localStream = null; // This is our local media stream
 var textFile = null; // This stores any downloaded file
@@ -111,6 +111,9 @@ async function init(button) {
 
   initChat(); // Show the chat
   initSignaling(roomName.value, username.value); // Connect to the conference room
+  init3D(name); // Renders the 3D environment
+  initSwapView(); // Allows users to switch between the chat and the 3D space using 'c'
+  changeModeButton.hidden = false; // Allows the user to open the 3D environment
 }
 
 /**
