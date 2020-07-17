@@ -658,6 +658,8 @@ function addVideoStream(id, track) {
 function videoDisplay(){
   if (videoButton.hidden == true) {
     videoElement.hidden = true;
+    //FIXME place the videostreams here.
+
   }
   else{
     videoElement.hidden = false;
@@ -774,9 +776,6 @@ function open3D() {
  */
 function openVideoPage(){
 
-  document.addEventListener("keydown", onDocumentKeyDown, false);
-  document.addEventListener("keyup", onDocumentKeyUp, false);
-  
   chatDiv.style.display = "none"; // Hide the chat
   sceneDiv.style.display = "none"; //Hide 3D scene
   videoDiv.style.display = "inline-block"; //Open videopage
