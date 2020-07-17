@@ -74,7 +74,7 @@
 			<input type="button" id="chatMode" onclick="openChat()" value="Open Chat" hidden />
 			<input type="button" id="shareButton" onclick="shareScreen(this)" value="Share Screen" hidden />
 			<input type="button" id="cameraButton" onclick="shareCamera(this)" value="Add video" />
-			<input type="button" id="videoPage" onclick="openVideoPage()" value="VideoPage" hidden />
+			<input type="button" id="videoButton" onclick="openVideoPage()" value="Open Videos"  />
 
 		</buttons>
 
@@ -83,9 +83,11 @@
 			<!-- This is where the 3D canvas goes -->
 		</div>
 		
-		<div id="videos">
+		<videopage id="videopage">
+			<ul>
 			<!-- This is where the video canvas goes -->
-		</div>
+			</ul>
+		</videopage>
 
 
 		<video id="screenShare" style="border: 1px solid #999; width: 98%; max-width: 860px;" hidden autoplay></video>

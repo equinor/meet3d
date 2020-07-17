@@ -107,6 +107,16 @@ videos ul {
   top: 0%;
 }
 
+videopage ul {
+  list-style-type: none;
+  padding-left: 0px;
+  display: inline-block;
+  vertical-align: super;
+  position: absolute;
+  position: absolute;
+  
+}
+
 videos ul li {
   list-style-type: none;
   padding-bottom: 0px;

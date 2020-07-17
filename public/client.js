@@ -11,14 +11,15 @@ var chatSend = document.getElementById("chatSend");
 var chatDiv = document.getElementById("chatSection");
 var roomButton = document.getElementById("3Droom");
 var chatButton = document.getElementById("chatMode");
-var videoButton = document.getElementById("videoPage")
+var videoButton = document.getElementById("videoButton")
 var files = document.getElementById("files");
 var receivedFiles = document.getElementById("receivedFiles");
 var screenShare = document.getElementById("screenShare");
 var notification = document.getElementById("notification");
 var sceneDiv = document.getElementById("3D");
-var videoDiv = document.getElementById("videos")
+var videoDiv = document.getElementById("videopage")
 var videoElement = document.getElementById("remoteVideo");
+var videoPageElement = document.getElementById("videopage");
 var buttons = document.getElementById("buttons");
 var shareButton = document.getElementById("shareButton");
 
@@ -629,40 +630,50 @@ function addVideoStream(id, track) {
 
   var streamElement = document.createElement("video"); // Create an element to place the stream in
   var streamElementLi = document.createElement("li"); // Create a list entry to store it in
-
+  
+  var streamElementLi2 = document.createElement("li");
   if (id !== ourID) {
     streamElementLi.hidden = true;
     streamElement.autoplay = false;
+    streamElementLi2.hidden = true;
     streamElementLi.id = stream.id; // The ID of the list entry is the ID of the stream
+    streamElementLi2.id = stream.id;
   } else {
     streamElement.autoplay = true;
     streamElementLi.id = "ourVideo";
+    streamElementLi2.id = "ourVideo";
   }
+
+  streamElement.srcObject = stream;
+  streamElementLi2.appendChild(streamElement);
 
   streamElement.width = cameraConstraints.video.width;
   streamElement.height = cameraConstraints.video.height;
-  streamElement.srcObject = stream;
+
   streamElementLi.appendChild(streamElement);
- 
-  videoDisplay()
+
+  videoPageElement.children[0].appendChild(streamElementLi2);
+  
 
   if (id == ourID && videoElement.children[0].children.length > 0) {
     videoElement.children[0].insertBefore(streamElementLi, videoElement.children[0].firstChild); // Display our video at the top
   } else {
     videoElement.children[0].appendChild(streamElementLi);
   }
-
+  videoDisplay()
   resizeCanvas(cameraConstraints.video.width); // Make space for the videos on the screen
   updateVideoList(id); // Update the list of what videos to show, in 3D.js
 }
 function videoDisplay(){
   if (videoButton.hidden == true) {
     videoElement.hidden = true;
+    videoPageElement.hidden = false;
+    }
     //FIXME place the videostreams here.
 
-  }
   else{
     videoElement.hidden = false;
+    videoPageElement.hidden = true;
   }
 };
 /**
@@ -780,13 +791,27 @@ function openVideoPage(){
   sceneDiv.style.display = "none"; //Hide 3D scene
   videoDiv.style.display = "inline-block"; //Open videopage
   document.body.style.backgroundColor = "grey";
-  roomButton.hidden = false;
+
   chatButton.hidden = false;
-  videoButton.hidden =true; 
+  videoButton.hidden = true;
+  roomButton.hidden = false;
+
   videoDisplay();
-  
+
 }
 
+/**
+ * Close the videopage and go back to chat/scene
+ */
+/*
+function closeVideoPage(){
+
+  videosButton.onclick = () => { openVideoPage() }
+  videosButton.value = "Open Videos";
+  if(changeModeButton.value == "Open Chat") open3D();
+  else openChat();
+}
+*/
 /**
  * Make 'c'-keypress swap between chat and 3D-space.
  */
