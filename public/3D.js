@@ -74,29 +74,6 @@ function init3D() {
 	renderer.domElement.id = "scene"; // Adds an ID to the canvas element
 	document.getElementById("3D").appendChild(renderer.domElement);
 
-	// FLOOR
-	let floortext = new THREE.TextureLoader().load( "objects/obj/floor.jpg" );
-
-	let floor = new THREE.Mesh(
-		new THREE.PlaneGeometry(maxX * 2, maxZ * 2, maxX * 2, maxZ * 2),
-		new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: floortext })
-	);
-	floor.rotation.x += Math.PI / 2; //can rotate the floor/plane
-	scene.add(floor);
-	allObjects.push(floor);
-
-	// ROOF
-	let rooftext = new THREE.TextureLoader().load( "objects/obj/floor.jpg" );
-
-	let roof = new THREE.Mesh(
-		new THREE.PlaneGeometry(maxX * 2, maxZ * 2, maxX * 2, maxZ * 2),
-		new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: rooftext })
-	);
-	roof.rotation.x += Math.PI / 2; //can rotate the floor/plane
-	roof.position.y += wallHeight;
-	scene.add(roof);
-	allObjects.push(roof);
-
 	//load models
 	loader = new THREE.GLTFLoader();
 
@@ -173,9 +150,34 @@ function updateShareScreen3D(screenObject) {
 
 function addWalls() {
 
+	// FLOOR
+	let floortext = new THREE.TextureLoader().load( "objects/obj/floor.jpg" );
+
+	let floor = new THREE.Mesh(
+		new THREE.PlaneGeometry(maxX * 2, maxZ * 2, maxX * 2, maxZ * 2),
+		new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: floortext })
+	);
+	floor.rotation.x += Math.PI / 2; //can rotate the floor/plane
+	scene.add(floor);
+	allObjects.push(floor);
+
+	// CEILING
+	let ceilingtext = new THREE.TextureLoader().load( "objects/obj/ceiling2.jpg" );
+
+	let ceiling = new THREE.Mesh(
+		new THREE.PlaneGeometry(maxX * 2, maxZ * 2, maxX * 2, maxZ * 2),
+		new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: ceilingtext })
+	);
+	ceiling.rotation.x += Math.PI / 2; //can rotate the floor/plane
+	ceiling.position.y += wallHeight;
+	scene.add(ceiling);
+	allObjects.push(ceiling);
+
+	let walltext = new THREE.TextureLoader().load( "objects/obj/wall1.jpg" );
+
 	wallLeft = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, wallHeight, 1, 1),
-		new THREE.MeshBasicMaterial( { color: "cadetblue", side: THREE.DoubleSide } )
+		new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: walltext } )
 	);
 
 	wallLeft.rotation.y += Math.PI / 2;
@@ -184,7 +186,7 @@ function addWalls() {
 
 	wallRight = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, wallHeight, 1, 1),
-		new THREE.MeshBasicMaterial( { color: "cadetblue", side: THREE.DoubleSide } )
+		new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: walltext } )
 	);
 
 	wallRight.rotation.y += Math.PI / 2;
@@ -193,7 +195,7 @@ function addWalls() {
 
 	wallBack = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, wallHeight, 1, 1),
-		new THREE.MeshBasicMaterial( { color: "cadetblue", side: THREE.DoubleSide } )
+		new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: walltext } )
 	);
 
 	wallBack.position.z = maxZ;
@@ -201,7 +203,7 @@ function addWalls() {
 
 	wallFront = new THREE.Mesh(
 		new THREE.PlaneBufferGeometry(maxX * 2, wallHeight, 1, 1),
-		new THREE.MeshBasicMaterial( { color: "cadetblue", side: THREE.DoubleSide } )
+		new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: walltext } )
 	);
 
 	wallFront.position.z = -maxZ;
@@ -599,7 +601,7 @@ function update() {
 
 /**
  * This is a wrapper function which can be used to update our current position
- * for other users without needing to access 3D.js variables. 
+ * for other users without needing to access 3D.js variables.
  */
 function changePos3D() {
 	changePos(camera.position.x, 0, camera.position.z);
