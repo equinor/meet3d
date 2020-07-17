@@ -19,7 +19,7 @@ var notification = document.getElementById("notification");
 var sceneDiv = document.getElementById("3D");
 var videoDiv = document.getElementById("videopage")
 var videoElement = document.getElementById("remoteVideo");
-var videoPageElement = document.getElementById("videopage");
+var videoPageElement = document.getElementById("pageVideo");
 var buttons = document.getElementById("buttons");
 var shareButton = document.getElementById("shareButton");
 
