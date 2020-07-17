@@ -19,7 +19,7 @@ var notification = document.getElementById("notification");
 var sceneDiv = document.getElementById("3D");
 var videoDiv = document.getElementById("videopage")
 var videoElement = document.getElementById("remoteVideo");
-var videoPageElement = document.getElementById("pageVideo");
+var videoPageElement = document.getElementById("remoteVideoPage");
 var buttons = document.getElementById("buttons");
 var shareButton = document.getElementById("shareButton");
 
@@ -628,24 +628,27 @@ function addVideoStream(id, track) {
     connections[id].stream = stream; // Update the 'stream' attribute for the connection
   }
 
-  var streamElement = document.createElement("video"); // Create an element to place the stream in
-  var streamElementLi = document.createElement("li"); // Create a list entry to store it in
-  
-  var streamElementLi2 = document.createElement("li");
+  let streamElement = document.createElement("video"); // Create an element to place the stream in
+  let streamElementLi = document.createElement("li"); // Create a list entry to store it in
+  let streamElement2 = document.createElement("video"); 
+  let streamElementLi2 = document.createElement("li");
+
   if (id !== ourID) {
     streamElementLi.hidden = true;
+    streamElementLi2.hidden = false;
     streamElement.autoplay = false;
-    streamElementLi2.hidden = true;
+    streamElement2.autoplay = true;
     streamElementLi.id = stream.id; // The ID of the list entry is the ID of the stream
     streamElementLi2.id = stream.id;
   } else {
     streamElement.autoplay = true;
+    streamElement2.autoplay = true;
     streamElementLi.id = "ourVideo";
     streamElementLi2.id = "ourVideo";
   }
-
+  streamElement2.srcObject = stream;
   streamElement.srcObject = stream;
-  streamElementLi2.appendChild(streamElement);
+  streamElementLi2.appendChild(streamElement2);
 
   streamElement.width = cameraConstraints.video.width;
   streamElement.height = cameraConstraints.video.height;
