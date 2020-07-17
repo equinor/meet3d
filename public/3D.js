@@ -16,14 +16,13 @@ var camera;
 var renderer;
 var controls;
 
-var requestID = undefined;
-var userCount = 0; // FIXME Do we need this?
+var requestID;
 var listener;
 var loader;
 
 var objectSize = new THREE.Vector3(); // A Vector3 representing size of each 3D-object
 
-var tv;
+var tv; // The object which stores the screen sharing video
 
 var moveForward = false;
 var moveBackward = false;
@@ -36,7 +35,7 @@ var prevPosTime = performance.now();
 var velocity = new THREE.Vector3();
 var direction = new THREE.Vector3();
 var videoWidth = 0; // The width that is used up by videos on the side
-var speed = 400.0;
+var speed = 400.0; // The speed at which we move
 
 // GLOBAL CONTAINERS
 var UserMap = {}; //json-object to store the Users
@@ -67,6 +66,12 @@ function init3D() {
 	allObjects.push(ambientLight);
 	allObjects.push(directionalLight);
 
+	//load models
+	loader = new THREE.GLTFLoader();
+
+	addWalls();
+	addDecoration();
+
 	// RENDERER
 	renderer = new THREE.WebGLRenderer();
 	renderer.setPixelRatio( window.devicePixelRatio );
@@ -74,25 +79,18 @@ function init3D() {
 	renderer.domElement.id = "scene"; // Adds an ID to the canvas element
 	document.getElementById("3D").appendChild(renderer.domElement);
 
-	//load models
-	loader = new THREE.GLTFLoader();
-
 	controls = new THREE.PointerLockControls( camera, document.body );
 	scene.add(controls.getObject());
 	allObjects.push(controls.getObject());
+
+	listener = new THREE.AudioListener();
+	controls.getObject().add(listener)
 
 	window.addEventListener( 'resize', onWindowResize, false );
 	document.addEventListener( 'keydown', onDocumentKeyDown, false );
 	document.addEventListener( 'keyup', onDocumentKeyUp, false );
 
-	addWalls();
-	addDecoration();
-
-	listener = new THREE.AudioListener();
-
-	controls.getObject().add(listener)
-
-	userCount++;
+	renderer.render(scene, camera);
 
 	update();
 }
@@ -104,55 +102,54 @@ function init3D() {
 function updateShareScreen3D(screenObject) {
 	scene.remove(tv);
 	if (screenObject) { // If someone is sharing their screen, display it
-			texture = new THREE.VideoTexture(screenObject);
-			texture.minFilter = THREE.LinearFilter;
-			texture.magFilter = THREE.LinearFilter;
-			texture.format = THREE.RGBFormat;
+		texture = new THREE.VideoTexture(screenObject);
+		texture.minFilter = THREE.LinearFilter;
+		texture.magFilter = THREE.LinearFilter;
+		texture.format = THREE.RGBFormat;
 
-			let height = screenObject.srcObject.getVideoTracks()[0].getSettings().height;
-			let width = screenObject.srcObject.getVideoTracks()[0].getSettings().width;
-			let ratio = width / height;
+		let height = screenObject.srcObject.getVideoTracks()[0].getSettings().height;
+		let width = screenObject.srcObject.getVideoTracks()[0].getSettings().width;
+		let ratio = width / height;
 
-			if (height > wallHeight) {
-				var width2 = wallHeight * ratio;
-				if (width2 > maxX * 2) {
-					height = (maxX * 2) / ratio;
-					width = maxX * 2
-				} else {
-					width = width2;
-					height = wallHeight;
-				}
-			}	else if (width > maxX * 2) {
-				var height2 = (maxX * 2) / ratio;
-				if (height2 > wallHeight) {
-					width = wallHeight / ratio;
-					height = wallHeight;
-				} else {
-					width = maxX * 2;
-					height = height2;
-				}
+		// This block of code makes the video fit the screen whilst maintaining the original aspect ratio
+		if (height > wallHeight) {
+			var width2 = wallHeight * ratio;
+			if (width2 > maxX * 2) {
+				height = (maxX * 2) / ratio;
+				width = maxX * 2
+			} else {
+				width = width2;
+				height = wallHeight;
 			}
+		}	else if (width > maxX * 2) {
+			var height2 = (maxX * 2) / ratio;
+			if (height2 > wallHeight) {
+				width = wallHeight / ratio;
+				height = wallHeight;
+			} else {
+				width = maxX * 2;
+				height = height2;
+			}
+		}
 
-			tv = new THREE.Mesh(
-				new THREE.PlaneBufferGeometry(width, height, 1, 1),
-				new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: texture } )
-			);
+		tv = new THREE.Mesh(
+			new THREE.PlaneBufferGeometry(width, height, 1, 1),
+			new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: texture } )
+		);
+		tv.position.z = -(maxZ - 1);
+		tv.position.y += wallHeight / 2;
 
-			tv.position.z = -(maxZ - 1);
-			tv.position.y += wallHeight / 2;
-
-			scene.add( tv );
-			allObjects.push( tv );
-	} else {
-		screenObject.srcObject.getTracks().forEach(track => track.stop());
+		scene.add(tv);
+		allObjects.push(tv);
 	}
 }
 
 function addWalls() {
 
-	// FLOOR
-	let floortext = new THREE.TextureLoader().load( "objects/obj/floor.jpg" );
+	let textureLoader = new THREE.TextureLoader();
 
+	// FLOOR
+	let floortext = textureLoader.load( "objects/obj/floor.jpg" );
 	let floor = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, maxZ * 2, maxX * 2, maxZ * 2),
 		new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: floortext })
@@ -162,8 +159,7 @@ function addWalls() {
 	allObjects.push(floor);
 
 	// CEILING
-	let ceilingtext = new THREE.TextureLoader().load( "objects/obj/ceiling2.jpg" );
-
+	let ceilingtext = textureLoader.load( "objects/obj/ceiling2.jpg" );
 	let ceiling = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, maxZ * 2, maxX * 2, maxZ * 2),
 		new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: ceilingtext })
@@ -173,8 +169,8 @@ function addWalls() {
 	scene.add(ceiling);
 	allObjects.push(ceiling);
 
-	let walltext = new THREE.TextureLoader().load( "objects/obj/wall1.jpg" );
-
+	// WALLS
+	let walltext = textureLoader.load( "objects/obj/wall1.jpg" );
 	wallLeft = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, wallHeight, 1, 1),
 		new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: walltext } )
@@ -217,12 +213,10 @@ function addWalls() {
 	allObjects.push( wallRight );
 	allObjects.push( wallBack );
 	allObjects.push( wallFront );
-
-	renderer.render(scene, camera);
 }
 
 function addDecoration() {
-	//add plant
+	// PLANT
 	const plant = new THREE.Object3D();
 	loader.load('objects/obj/planten.glb', function(gltf) {
 		plant.add(gltf.scene);
@@ -231,7 +225,7 @@ function addDecoration() {
 		scene.add(plant);
 	});
 
-	//add table
+	// TABLE
 	const table = new THREE.Object3D();
 	loader.load('objects/obj/table.glb', function(gltf) {
 		table.add(gltf.scene);
@@ -244,6 +238,9 @@ function addDecoration() {
 	allObjects.push(plant);
 }
 
+/**
+ * Returns a list containing the currently displayed videos.
+ */
 function getVideoList() {
 	return videoList.slice(0, videoListLength);
 }
@@ -251,8 +248,8 @@ function getVideoList() {
 // Add username as text on top of 3D-object
 function addText(name, model) {
 	var text = new THREE.Mesh();
-	var loader = new THREE.FontLoader();
-	loader.load('helvetiker_regular.typeface.json', function(font) {
+	var fontLoader = new THREE.FontLoader();
+	fontLoader.load('helvetiker_regular.typeface.json', function(font) {
 
 		let color = 0x990000;
 
@@ -283,17 +280,6 @@ function addText(name, model) {
 	});
 } // end of function addText()
 
-
-//return true if a User with the id passed in parameter was a part of the UserMap and removed, false otherwise
-function removeUser(id) {
-	delete UserMap[id];
-}
-
-// Returns the user object corresponding to the given user ID
-function findUser(id) {
-	return UserMap[id];
-}
-
 function newUserJoined(id, name) {
 	console.log("Adding new user to the 3D environment: " + name);
 	let newUser = {};
@@ -307,13 +293,12 @@ function newUserJoined(id, name) {
 
 	// Add new user to UserMap
 	UserMap[id] = newUser;
-	userCount++;
 
 	updateVideoList(id);
 }
 
 function changeUserPosition(id, x, y, z) {
-	let user = findUser(id);
+	let user = UserMap[id];
 	user.avatar.model.position.x = x;
 	user.avatar.model.position.y = y;
 	user.avatar.model.position.z = z;
@@ -323,7 +308,7 @@ function changeUserPosition(id, x, y, z) {
 }
 
 function setUserRotation(id, angleY) {
-	findUser(id).avatar.model.rotation.y = angleY;
+	UserMap[id].avatar.model.rotation.y = angleY;
 }
 
 /**
@@ -413,13 +398,13 @@ function shiftVideoList(id) {
  * user in the 3D space.
  */
 function getDistance(id) {
-	let otherUser = findUser(id);
+	let otherUser = UserMap[id];
 	return (otherUser.avatar.model.position.x - camera.position.x) ** 2 +
 		(otherUser.avatar.model.position.z - camera.position.z) ** 2;
 }
 
 function userGotMedia(id, mediaStream) {
-	findUser(id)["media"] = mediaStream;
+	UserMap[id]["media"] = mediaStream;
 	var posAudio = new THREE.PositionalAudio(listener);
 	posAudio.setRefDistance(20);
 	posAudio.setRolloffFactor(2);
@@ -427,29 +412,27 @@ function userGotMedia(id, mediaStream) {
 	let n = document.createElement("audio"); // Create HTML element to store audio stream
 	n.srcObject = mediaStream;
 	n.muted = true; // We only want audio from the positional audio
-	findUser(id).audioElement = n;
+	UserMap[id].audioElement = n;
 
 	const audio1 = posAudio.context.createMediaStreamSource(n.srcObject);
 
 	try {
 		posAudio.setNodeSource(audio1);
-		findUser(id).avatar.model.add(posAudio);
+		UserMap[id].avatar.model.add(posAudio);
 	} catch(err) {
 		console.error(err);
 	};
 }
 
 function userLeft3D(id) {
-	scene.remove(findUser(id).avatar.model);
+	scene.remove(UserMap[id].avatar.model);
 	if (UserMap[id].audioElement.srcObject) {
 		UserMap[id].audioElement.srcObject.getTracks().forEach(track => track.stop());
 	}
 	UserMap[id].audioElement.srcObject = null;
 	UserMap[id].audioElement = null;
-	if (removeUser(id)) {
-		userCount--;
-		updateVideoList();
-	}
+	delete UserMap[id];
+	updateVideoList(ourID);
 }
 
 
@@ -636,7 +619,6 @@ function leave3D() {
 	renderer = null;
 	controls = null;
 	requestID = undefined;
-	userCount = 0;
 	listener = null;
 	loader = null;
 	UserMap = {};
