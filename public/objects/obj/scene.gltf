@@ -1,0 +1,589 @@
+{
+  "accessors": [
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 867,
+      "max": [
+        39.370079040527344,
+        27.559059143066406,
+        14.960630416870117
+      ],
+      "min": [
+        -1.6639470076346261e-18,
+        -2.7755578924351364e-17,
+        -8.8817841970012523e-16
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 10404,
+      "componentType": 5126,
+      "count": 867,
+      "max": [
+        1,
+        1,
+        1
+      ],
+      "min": [
+        -1,
+        -1,
+        -1
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 3,
+      "componentType": 5126,
+      "count": 867,
+      "max": [
+        1,
+        1,
+        2.3927228539832868e-05,
+        1
+      ],
+      "min": [
+        -1,
+        -1,
+        -6.1230457504279912e-05,
+        -1
+      ],
+      "type": "VEC4"
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 867,
+      "max": [
+        9.8425197601318359,
+        6.8897638320922852
+      ],
+      "min": [
+        -9.8425197601318359,
+        -2.2204460492503131e-16
+      ],
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 0,
+      "componentType": 5125,
+      "count": 1866,
+      "max": [
+        866
+      ],
+      "min": [
+        0
+      ],
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 20808,
+      "componentType": 5126,
+      "count": 44,
+      "max": [
+        39.173229217529297,
+        27.362199783325195,
+        14.960630416870117
+      ],
+      "min": [
+        0.19685040414333344,
+        0.15748029947280884,
+        0.78740161657333374
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 21336,
+      "componentType": 5126,
+      "count": 44,
+      "max": [
+        1,
+        0,
+        1
+      ],
+      "min": [
+        -1,
+        -1,
+        -1
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 0,
+      "byteOffset": 7464,
+      "componentType": 5125,
+      "count": 66,
+      "max": [
+        43
+      ],
+      "min": [
+        0
+      ],
+      "type": "SCALAR"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 21864,
+      "componentType": 5126,
+      "count": 64,
+      "max": [
+        39.370079040527344,
+        0.866141676902771,
+        27.559059143066406
+      ],
+      "min": [
+        0,
+        0,
+        0
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "byteOffset": 22632,
+      "componentType": 5126,
+      "count": 64,
+      "max": [
+        1,
+        1,
+        1
+      ],
+      "min": [
+        -1,
+        -1,
+        -1
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 3,
+      "byteOffset": 13872,
+      "componentType": 5126,
+      "count": 64,
+      "max": [
+        1,
+        1,
+        9.001316357171163e-05,
+        1
+      ],
+      "min": [
+        -1,
+        -1,
+        -9.4408955192193389e-05,
+        1
+      ],
+      "type": "VEC4"
+    },
+    {
+      "bufferView": 1,
+      "byteOffset": 6936,
+      "componentType": 5126,
+      "count": 64,
+      "max": [
+        0.82020998001098633,
+        0.57414698600769043
+      ],
+      "min": [
+        -0.82020998001098633,
+        -7.312823824862377e-34
+      ],
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 0,
+      "byteOffset": 7728,
+      "componentType": 5125,
+      "count": 108,
+      "max": [
+        63
+      ],
+      "min": [
+        0
+      ],
+      "type": "SCALAR"
+    }
+  ],
+  "asset": {
+    "extras": {
+      "author": "alexandro.g (https://sketchfab.com/alexandro.g)",
+      "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+      "source": "https://sketchfab.com/models/9691492c3f534afd91719a97c0ff84da",
+      "title": "Modern Table with Steel and Carrara Marble"
+    },
+    "generator": "Sketchfab-3.19.6",
+    "version": "2.0"
+  },
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteLength": 8160,
+      "byteOffset": 0,
+      "name": "floatBufferViews",
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteLength": 7448,
+      "byteOffset": 8160,
+      "byteStride": 8,
+      "name": "floatBufferViews",
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 23400,
+      "byteOffset": 15608,
+      "byteStride": 12,
+      "name": "floatBufferViews",
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteLength": 14896,
+      "byteOffset": 39008,
+      "byteStride": 16,
+      "name": "floatBufferViews",
+      "target": 34962
+    }
+  ],
+  "buffers": [
+    {
+      "byteLength": 53904,
+      "uri": "scene.bin"
+    }
+  ],
+  "images": [
+    {
+      "uri": "textures/Stone_Vein_Gray_normal.png"
+    },
+    {
+      "uri": "textures/Stone_Vein_Gray_metallicRoughness.png"
+    },
+    {
+      "uri": "textures/Stone_Vein_Gray_baseColor.png"
+    },
+    {
+      "uri": "textures/Metal_Corrugated_Shiny_normal.png"
+    },
+    {
+      "uri": "textures/Metal_Corrugated_Shiny_metallicRoughness.png"
+    },
+    {
+      "uri": "textures/Metal_Corrugated_Shiny_baseColor.png"
+    }
+  ],
+  "materials": [
+    {
+      "doubleSided": false,
+      "emissiveFactor": [
+        0,
+        0,
+        0
+      ],
+      "name": "Metal_Corrugated_Shiny",
+      "normalTexture": {
+        "index": 3,
+        "scale": 1,
+        "texCoord": 0
+      },
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "baseColorTexture": {
+          "index": 5,
+          "texCoord": 0
+        },
+        "metallicFactor": 1,
+        "metallicRoughnessTexture": {
+          "index": 4,
+          "texCoord": 0
+        },
+        "roughnessFactor": 1
+      }
+    },
+    {
+      "doubleSided": false,
+      "emissiveFactor": [
+        0,
+        0,
+        0
+      ],
+      "name": "material",
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          0.019912744100000001,
+          0.019912744100000001,
+          0.019912744100000001,
+          1
+        ],
+        "metallicFactor": 0,
+        "roughnessFactor": 0.59999999999999998
+      }
+    },
+    {
+      "doubleSided": false,
+      "emissiveFactor": [
+        0,
+        0,
+        0
+      ],
+      "name": "Stone_Vein_Gray",
+      "normalTexture": {
+        "index": 0,
+        "scale": 1,
+        "texCoord": 0
+      },
+      "pbrMetallicRoughness": {
+        "baseColorFactor": [
+          1,
+          1,
+          1,
+          1
+        ],
+        "baseColorTexture": {
+          "index": 2,
+          "texCoord": 0
+        },
+        "metallicFactor": 0,
+        "metallicRoughnessTexture": {
+          "index": 1,
+          "texCoord": 0
+        },
+        "roughnessFactor": 1
+      }
+    }
+  ],
+  "meshes": [
+    {
+      "name": "Material2",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 1,
+            "POSITION": 0,
+            "TANGENT": 2,
+            "TEXCOORD_0": 3
+          },
+          "indices": 4,
+          "material": 0,
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "Material3",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 6,
+            "POSITION": 5
+          },
+          "indices": 7,
+          "material": 1,
+          "mode": 4
+        }
+      ]
+    },
+    {
+      "name": "Material2",
+      "primitives": [
+        {
+          "attributes": {
+            "NORMAL": 9,
+            "POSITION": 8,
+            "TANGENT": 10,
+            "TEXCOORD_0": 11
+          },
+          "indices": 12,
+          "material": 2,
+          "mode": 4
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "children": [
+        1
+      ],
+      "name": "RootNode (gltf orientation matrix)",
+      "rotation": [
+        -0.70710678118654746,
+        -0,
+        -0,
+        0.70710678118654757
+      ]
+    },
+    {
+      "children": [
+        2
+      ],
+      "name": "RootNode (model correction matrix)"
+    },
+    {
+      "children": [
+        3
+      ],
+      "name": "Collada visual scene group"
+    },
+    {
+      "children": [
+        4,
+        6,
+        10
+      ],
+      "name": "SketchUp"
+    },
+    {
+      "children": [
+        5
+      ],
+      "matrix": [
+        -0.6759231,
+        -0.73697219999999997,
+        5.5511149999999998e-17,
+        0,
+        0.26282939999999999,
+        -0.2410572,
+        0.93424419999999997,
+        0,
+        -0.68851189999999995,
+        0.63147719999999996,
+        0.35663410000000001,
+        0,
+        -16.626149999999999,
+        53.701500000000003,
+        35.092790000000001,
+        1
+      ],
+      "name": "skp_camera_Last_Saved_SketchUp_View"
+    },
+    {
+      "name": "ID1"
+    },
+    {
+      "children": [
+        7
+      ],
+      "matrix": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0,
+        7.8740160000000001,
+        1
+      ],
+      "name": "instance_0"
+    },
+    {
+      "children": [
+        8,
+        9
+      ],
+      "name": "Patas"
+    },
+    {
+      "mesh": 0,
+      "name": "Material2"
+    },
+    {
+      "mesh": 1,
+      "name": "Material3"
+    },
+    {
+      "children": [
+        11
+      ],
+      "matrix": [
+        1,
+        0,
+        0,
+        0,
+        0,
+        0,
+        1,
+        0,
+        0,
+        -1,
+        0,
+        0,
+        -1.7763569999999999e-14,
+        27.559059999999999,
+        22.83465,
+        1
+      ],
+      "name": "instance_1"
+    },
+    {
+      "children": [
+        12
+      ],
+      "name": "Superficie_de_m��rmol"
+    },
+    {
+      "mesh": 2,
+      "name": "Material2"
+    }
+  ],
+  "samplers": [
+    {
+      "magFilter": 9729,
+      "minFilter": 9987,
+      "wrapS": 10497,
+      "wrapT": 10497
+    }
+  ],
+  "scene": 0,
+  "scenes": [
+    {
+      "name": "OSG_Scene",
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "textures": [
+    {
+      "sampler": 0,
+      "source": 0
+    },
+    {
+      "sampler": 0,
+      "source": 1
+    },
+    {
+      "sampler": 0,
+      "source": 2
+    },
+    {
+      "sampler": 0,
+      "source": 3
+    },
+    {
+      "sampler": 0,
+      "source": 4
+    },
+    {
+      "sampler": 0,
+      "source": 5
+    }
+  ]
+}
+

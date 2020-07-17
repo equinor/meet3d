@@ -24,9 +24,7 @@ var loader;
 
 var objectSize = new THREE.Vector3(); // A Vector3 representing size of each 3D-object
 
-let wallLeft;
-let wallRight;
-let wallFront;
+var tv;
 
 var moveForward = false;
 var moveBackward = false;
@@ -42,14 +40,9 @@ var videoWidth = 0; // The width that is used up by videos on the side
 
 // GLOBAL CONTAINERS
 var UserMap = {}; //json-object to store the Users
-
 var allObjects = []; // Stores all 3D objects so that they can be removed later
-
 var videoList = []; // The list of remote videos to display
 var videoListLength = 0; // The number of videos to show at a time, not including our own
-
-listAvatars = [];
-
 const resourceList = ['objects/obj/pawn.glb']; //List of 3D-object-files
 var resourceIndex = 0;
 
@@ -130,27 +123,54 @@ function init3D() {
 }
 
 function updateShareScreen3D(screenObject) {
-	scene.remove(wallFront);
+	scene.remove(tv);
 	if (screenObject) { // If someone is sharing their screen, display it
-			texture = new THREE.VideoTexture(screenObject); // TODO: make screenShare not global
+			texture = new THREE.VideoTexture(screenObject);
 			texture.minFilter = THREE.LinearFilter;
 			texture.magFilter = THREE.LinearFilter;
 			texture.format = THREE.RGBFormat;
 
-			wallFront = new THREE.Mesh(
-				new THREE.PlaneBufferGeometry(maxX * 2, wallHeight, 1, 1),
+			let height = screenObject.srcObject.getVideoTracks()[0].getSettings().height;
+			let width = screenObject.srcObject.getVideoTracks()[0].getSettings().width;
+			let ratio = width / height;
+
+			//console.log(screenObject.srcObject.getVideoTracks()[0].getSettings())
+
+			//console.log("Height: " + height + " width: " + width + " ratio: " + ratio + " hmax: " + wallHeight + " wmax: " + (maxX * 2));
+
+			if (height > wallHeight) {
+				var width2 = wallHeight * ratio;
+				if (width2 > maxX * 2) {
+					height = (maxX * 2) / ratio;
+					width = maxX * 2
+				} else {
+					width = width2;
+					height = wallHeight;
+				}
+			}	else if (width > maxX * 2) {
+				var height2 = (maxX * 2) / ratio;
+				if (height2 > wallHeight) {
+					width = wallHeight / ratio;
+					height = wallHeight;
+				} else {
+					width = maxX * 2;
+					height = height2;
+				}
+			}
+
+			//console.log("Height: " + height + " width: " + width + " ratio: " + ratio + " w2: " + width2 + " h2: " + height2);
+
+			tv = new THREE.Mesh(
+				new THREE.PlaneBufferGeometry(width, height, 1, 1),
 				new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: texture } )
 			);
-	} else {
-		wallFront = new THREE.Mesh(
-			new THREE.PlaneBufferGeometry(maxX * 2, wallHeight, 1, 1),
-			new THREE.MeshBasicMaterial( { color: "cadetblue", side: THREE.DoubleSide } )
-		);
+
+			tv.position.z = -(maxZ - 10);
+			tv.position.y += wallHeight / 2;
+
+			scene.add( tv );
+			allObjects.push( tv );
 	}
-	wallFront.position.z = -maxZ;
-	wallFront.position.y += wallHeight / 2;
-	scene.add( wallFront );
-	allObjects.push( wallFront );
 }
 
 function addWalls() {
@@ -202,7 +222,7 @@ function addWalls() {
 }
 
 function addDecoration() {
-	//addPlant
+	//add plant
 	const plant = new THREE.Object3D();
 	loader.load('objects/obj/planten.glb', function(gltf) {
 		plant.add(gltf.scene);
@@ -217,10 +237,10 @@ function addDecoration() {
 		table.add(gltf.scene);
 		table.scale.x = 20; table.scale.y = 20; table.scale.z = 20;
 		table.rotation.y += Math.PI / 2;
-		//scene.add(table);
+		scene.add(table);
 	});
 
-	//allObjects.push(table);
+	allObjects.push(table);
 	allObjects.push(plant);
 }
 
@@ -607,6 +627,5 @@ function leave3D() {
 	allObjects = [];
 	videoList = [];
 	videoListLength = 0;
-	listAvatars = [];
 	resourceIndex = 0;
 }
