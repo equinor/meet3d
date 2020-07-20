@@ -49,7 +49,15 @@ chatSend.addEventListener("keyup", function(event) {
 
 // These two variables are present in both client.js and connect.js
 var ourID; // This is our unique ID
-var connections = {}; // The key is the socket id, and the value is {name: username, stream: mediastream, connection: PeerConnection}
+var connections = {}; // The key is the socket id, and the value is:
+/*    {
+ *      name: String,
+ *      stream: MediaStream,
+ *      connection: PeerConnection,
+ *      audio: RTCRtpSender,
+ *      video: RTCRtpSender
+ *    }
+ */
 
 var localStream = null; // This is our local media stream
 var textFile = null; // This stores any downloaded file
@@ -110,6 +118,9 @@ async function init(button) {
 
   initChat(); // Show the chat
   initSignaling(roomName.value, username.value); // Connect to the conference room
+  init3D(name); // Renders the 3D environment
+  initSwapView(); // Allows users to switch between the chat and the 3D space using 'c'
+  changeModeButton.hidden = false; // Allows the user to open the 3D environment
 }
 
 /**
@@ -135,7 +146,7 @@ async function getLocalTrack(constraint) {
     } else if (e.name === "NotFoundError") {
       alert('No relevant device was detected.')
     } else {
-      console.log(e);
+      console.error(e);
       alert('Unable to access local media: ' + e.name);
     }
     return null;
@@ -255,11 +266,11 @@ async function shareScreen(button) {
     screenCapture = await navigator.mediaDevices.getDisplayMedia(screenShareConstraints); // Ask for the screen capture
   } catch(e) {
     if (e.name === "NotAllowedError") { // We were not given permission to use the screen capture
-      alert('Unfortunately, access to the microphone is necessary in order to use the program. ' +
+      alert('Unfortunately, access to the screen is necessary in order to use the program. ' +
       'Permissions for this webpage can be updated in the settings for your browser, ' +
       'or by refreshing the page and trying again.');
     } else {
-      console.log(e);
+      console.error(e);
       alert('Unable to access local media: ' + e.name);
     }
     return;

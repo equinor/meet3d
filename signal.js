@@ -3,27 +3,27 @@
 var os = require('os');
 
 const maxUsers = 10; // TODO: determine a good value for this
-var rooms = {}
-var users = {}
+var rooms = {};
+var users = {};
 
 const io = require('socket.io')(3000, { cookie: false });
 
 io.sockets.on('connection', function(socket) {
 
   socket.on('chat', function(message) {
-    io.sockets.in(users[socket.id].room).emit('chat', {id: socket.id, message: message})
+    io.sockets.in(users[socket.id].room).emit('chat', {id: socket.id, message: message});
   });
 
   socket.on('offer', function(data) {
-    users[data.id].socket.emit('offer', {id: socket.id, offer: data.offer, name: data.name})
+    users[data.id].socket.emit('offer', {id: socket.id, offer: data.offer, name: data.name});
   });
 
   socket.on('answer', function(data) {
-    users[data.id].socket.emit('answer', {id: socket.id, answer: data.answer})
+    users[data.id].socket.emit('answer', {id: socket.id, answer: data.answer});
   });
 
   socket.on('candidate', function(data) {
-    users[data.id].socket.emit('candidate', {id: socket.id, candidateData: data.info})
+    users[data.id].socket.emit('candidate', {id: socket.id, candidateData: data.info});
   });
 
   socket.on('disconnect', function() {
@@ -40,14 +40,6 @@ io.sockets.on('connection', function(socket) {
     }
   })
 
-  socket.on('newOffer', function(data) {
-    users[data.id].socket.emit('newOffer', {id: socket.id, offer: data.offer})
-  })
-
-  socket.on('newAnswer', function(data) {
-    users[data.id].socket.emit('newAnswer', {id: socket.id, answer: data.answer})
-  });
-
   socket.on('join', function(startInfo) {
 
     let room = startInfo.room;
@@ -58,17 +50,17 @@ io.sockets.on('connection', function(socket) {
 
     if (numClients === 0) { // Room created
 
-      rooms[room] = [] // Create a new entry for this room in the dictionary storing the rooms
-      rooms[room].push(socket) // Add the client ID to the list of clients in the room
-      users[socket.id] = new User(room, socket) // Add the User object to the list of users
+      rooms[room] = []; // Create a new entry for this room in the dictionary storing the rooms
+      rooms[room].push(socket); // Add the client ID to the list of clients in the room
+      users[socket.id] = new User(room, socket); // Add the User object to the list of users
 
       socket.join(room); // Add this user to the room
       socket.emit('created', {room: room, id: socket.id});
 
     } else if (numClients > 0 && numClients < maxUsers) { // Existing room joined
 
-      rooms[room].push(socket) // Add the client ID to the list of clients in the room
-      users[socket.id] = new User(room, socket) // Add the User object to the list of users
+      rooms[room].push(socket); // Add the client ID to the list of clients in the room
+      users[socket.id] = new User(room, socket); // Add the User object to the list of users
 
       socket.emit('joined', {room: room, id: socket.id});
 
@@ -103,11 +95,11 @@ class User {
   }
 
   set room(room) {
-    this._room = room
+    this._room = room;
   }
 
   set socket(socket) {
-    this._socket = socket
+    this._socket = socket;
   }
 
   get room() {
