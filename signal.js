@@ -52,7 +52,7 @@ io.sockets.on('connection', function(socket) {
 
       rooms[room] = []; // Create a new entry for this room in the dictionary storing the rooms
       rooms[room].push(socket); // Add the client ID to the list of clients in the room
-      users[socket.id] = new User(room, socket); // Add the User object to the list of users
+      users[socket.id] = { room: room, socket: socket }; // Add the User object to the list of users
 
       socket.join(room); // Add this user to the room
       socket.emit('created', {room: room, id: socket.id});
@@ -60,7 +60,7 @@ io.sockets.on('connection', function(socket) {
     } else if (numClients > 0 && numClients < maxUsers) { // Existing room joined
 
       rooms[room].push(socket); // Add the client ID to the list of clients in the room
-      users[socket.id] = new User(room, socket); // Add the User object to the list of users
+      users[socket.id] = { room: room, socket: socket }; // Add the User object to the list of users
 
       socket.emit('joined', {room: room, id: socket.id});
 
@@ -70,7 +70,7 @@ io.sockets.on('connection', function(socket) {
       socket.join(room); // Add this user to the room
 
     } else { // Someone tried to join a full room
-      io.sockets.in(room).emit('full', room);
+      socket.emit('full', room);
     }
   });
 
@@ -86,27 +86,3 @@ io.sockets.on('connection', function(socket) {
   });
 
 });
-
-
-class User {
-  constructor(room, socket) {
-    this._room = room;
-    this._socket = socket;
-  }
-
-  set room(room) {
-    this._room = room;
-  }
-
-  set socket(socket) {
-    this._socket = socket;
-  }
-
-  get room() {
-    return this._room;
-  }
-
-  get socket() {
-    return this._socket;
-  }
-}
