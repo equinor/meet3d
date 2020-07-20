@@ -22,6 +22,9 @@ var videoElement = document.getElementById("remoteVideo");
 var videoPageElement = document.getElementById("remoteVideoPage");
 var buttons = document.getElementById("buttons");
 var shareButton = document.getElementById("shareButton");
+var columnN = 4;
+var streamcount = 0;
+var allvideotable = document.getElementById("allvideotable")
 
 username.addEventListener("keyup", function(event) {
     if (event.keyCode === 13) { // This is the 'enter' key-press
@@ -627,35 +630,39 @@ function addVideoStream(id, track) {
   if (id !== ourID) {
     connections[id].stream = stream; // Update the 'stream' attribute for the connection
   }
-
+  streamcount++;
   let streamElement = document.createElement("video"); // Create an element to place the stream in
   let streamElementLi = document.createElement("li"); // Create a list entry to store it in
   let streamElement2 = document.createElement("video"); 
-  let streamElementLi2 = document.createElement("li");
+  let row = getTablePosition(columnN, streamcount).second
+  let cell = getTablePosition(columnN, streamcount).first
+ 
 
   if (id !== ourID) {
     streamElementLi.hidden = true;
-    streamElementLi2.hidden = false;
+    allvideotable.hidden = false;
     streamElement.autoplay = false;
     streamElement2.autoplay = true;
     streamElementLi.id = stream.id; // The ID of the list entry is the ID of the stream
-    streamElementLi2.id = stream.id;
+    allvideotable.rows[row].cells[cell].id = stream.id;
+  
   } else {
     streamElement.autoplay = true;
     streamElement2.autoplay = true;
     streamElementLi.id = "ourVideo";
-    streamElementLi2.id = "ourVideo";
+    allvideotable.rows[row].cells[cell].id = "ourVideo"
+    
   }
   streamElement2.srcObject = stream;
   streamElement.srcObject = stream;
-  streamElementLi2.appendChild(streamElement2);
+  
+  allvideotable.rows[row].cells[cell].appendChild(streamElement2);
+ 
 
   streamElement.width = cameraConstraints.video.width;
   streamElement.height = cameraConstraints.video.height;
 
   streamElementLi.appendChild(streamElement);
-
-  videoPageElement.children[0].appendChild(streamElementLi2);
   
 
   if (id == ourID && videoElement.children[0].children.length > 0) {
@@ -667,18 +674,29 @@ function addVideoStream(id, track) {
   resizeCanvas(cameraConstraints.video.width); // Make space for the videos on the screen
   updateVideoList(id); // Update the list of what videos to show, in 3D.js
 }
+
+//function to choose which videoElement to display in videopage and chat/3D
 function videoDisplay(){
   if (videoButton.hidden == true) {
     videoElement.hidden = true;
     videoPageElement.hidden = false;
     }
-    //FIXME place the videostreams here.
-
+    
   else{
     videoElement.hidden = false;
     videoPageElement.hidden = true;
   }
 };
+
+
+function getTablePosition(columnN, index) {
+  let row = index / columnN;
+  let column = (index % columnN)-1;
+  return {
+          first: column, 
+          second: Math.floor(row)}
+}
+
 /**
  * Removes the video stream belonging to the user with ID 'id' from the HTML.
  */
