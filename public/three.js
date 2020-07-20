@@ -18084,8 +18084,6 @@
 
 		var gl = renderer.getContext();
 
-		console.log(parameters)
-
 		var defines = parameters.defines;
 
 		var vertexShader = parameters.vertexShader;

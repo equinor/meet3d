@@ -123,7 +123,7 @@ function initSignaling(room, name) {
 
     let id = message.id;
     let candidates = message.candidateData;
-    if (id === ourID) return;
+    if (id === ourID || !connections[id]) return;
 
     console.log("Receiving candidates from " + connections[id].name);
 
@@ -218,15 +218,8 @@ async function createPeerConnection(id) {
 
       if (event.track.kind == "video") {
         if (event.streams.length == 0) { // Screen capture video
-          screenShare.srcObject = newStream; // Create a new stream containing the received track
-
-          screenShare.srcObject = null;
-          screenShare.autoplay = true;
-          screenShare.srcObject = newStream;
-          updateShareScreen3D(screenShare); // Add the video track to the 3D environment
-
+          updateShareScreen(newStream); // Add the video track to the 3D environment
         } else { // Web camera video
-
           // Web camera videos should always be in a stream
           addVideoStream(id, event.track);
         }
@@ -253,7 +246,9 @@ async function createPeerConnection(id) {
       });
 
       event.channel.addEventListener("close", () => {
-        console.log("A DataChannel closed");
+        console.log("DataChannel to " + connections[id].name + " has closed");
+        userLeft3D(id); // Removes the user from the 3D environment
+        userLeft(id);
       });
 
       event.channel.addEventListener("message", (message) => {
@@ -278,6 +273,14 @@ async function createPeerConnection(id) {
       });
     };
 
+    pc.onconnectionstatechange = function (event) {
+      if (pc.connectionState == "closed") {
+        console.log("Lost connection to " + connections[id].name);
+        userLeft3D(id); // Removes the user from the 3D environment
+        userLeft(id);
+      }
+    }
+
   } catch (e) {
     console.error('Failed to create PeerConnection. Exception: ' + e.message);
     alert('Cannot create RTCPeerConnection.');
@@ -301,7 +304,9 @@ function createDataChannel(id) {
   };
 
   tempConnection.onclose = function () {
-    console.log("A DataChannel closed");
+    console.log("DataChannel to " + connections[id].name + " has closed");
+    userLeft3D(id); // Removes the user from the 3D environment
+    userLeft(id);
   };
 
   tempConnection.onmessage = function (event) {

@@ -99,7 +99,7 @@ function init3D() {
  * Places the given video stream in the 3D environment. If it is null, then we
  * only remove the existing one.
  */
-function updateShareScreen3D(screenObject) {
+function updateShareScreen3D(screenObject, details) {
 	scene.remove(tv);
 	if (screenObject) { // If someone is sharing their screen, display it
 		texture = new THREE.VideoTexture(screenObject);
@@ -107,9 +107,13 @@ function updateShareScreen3D(screenObject) {
 		texture.magFilter = THREE.LinearFilter;
 		texture.format = THREE.RGBFormat;
 
-		let height = screenObject.srcObject.getVideoTracks()[0].getSettings().height;
-		let width = screenObject.srcObject.getVideoTracks()[0].getSettings().width;
+		let height = details.height;
+		let width = details.width;
 		let ratio = width / height;
+
+		console.log(screenObject.srcObject.getVideoTracks()[0].getSettings())
+
+		console.log("h:", height, "w:", width);
 
 		// This block of code makes the video fit the screen whilst maintaining the original aspect ratio
 		if (height > wallHeight) {
@@ -131,6 +135,8 @@ function updateShareScreen3D(screenObject) {
 				height = height2;
 			}
 		}
+
+		console.log("h:", height, "w:", width, "h2:", height2, "w2:", width2);
 
 		tv = new THREE.Mesh(
 			new THREE.PlaneBufferGeometry(width, height, 1, 1),
