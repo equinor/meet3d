@@ -526,9 +526,6 @@ function onDocumentKeyUp(event) {
 }
 
 function onWindowResize() {
-
-	camera.aspect = window.innerWidth / window.innerHeight;
-	camera.updateProjectionMatrix();
 	resizeCanvas(-1);
 }
 
@@ -538,6 +535,8 @@ function onWindowResize() {
  * If it is -1 then the previously used value of videoWidth will be used.
  */
 function resizeCanvas(newWidth) {
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
 	if (newWidth >= 0)
 		videoWidth = newWidth;
 	renderer.setSize( window.innerWidth - videoWidth, window.innerHeight - 30 );
