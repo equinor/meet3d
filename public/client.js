@@ -268,6 +268,12 @@ async function shareScreen(button) {
     return;
   }
 
+  if (sharing.id) { // If someone else starts sharing whilst we select our screen, use theirs
+    let tracks = screenCapture.getTracks();
+    tracks.forEach(track => track.stop());
+    return;
+  }
+
   button.value = "Stop Sharing Screen";
   button.onclick = function () { stopShareScreen(button) };
 
@@ -407,6 +413,10 @@ function dataChannelReceive(id, data) {
   }
 }
 
+/**
+ * Adds the given stream to the 3D environment, passing along the video width
+ * and height as it does so.
+ */
 function updateShareScreen(videoStream) {
   let shareHTML = document.getElementById("screenShare");
   shareHTML.srcObject = videoStream; // Create a new stream containing the received track

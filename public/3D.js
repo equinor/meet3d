@@ -525,6 +525,10 @@ function onDocumentKeyUp(event) {
 	}
 }
 
+/**
+ * Called when the width or height of the webpage is changed. The 3D scene is
+ * reshaped as a result.
+ */
 function onWindowResize() {
 	resizeCanvas(-1);
 }
@@ -541,7 +545,6 @@ function resizeCanvas(newWidth) {
 		videoWidth = newWidth;
 	renderer.setSize( window.innerWidth - videoWidth, window.innerHeight - 30 );
 }
-
 
 //function to update frame
 function update() {
