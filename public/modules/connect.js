@@ -1,9 +1,11 @@
-var socket; // This is the SocketIO connection to the signalling server
-const signalServer = 'signaling-server-meet3d-master.radix.equinor.com'; // The signaling server
+'use strict';
 
-/*  These variables are present on both client.js and connect.js:
- *  ourID: This is our unique ID
- *  connections: The key is the socket id, and the value is:
+import { newUserJoined, userGotMedia, changePos3D } from './3D.js';
+import { appendConnectionHTMLList, addLocalTracksToConnection, addVideoStream, addScreenCapture, advertiseFile, dataChannelReceive } from '../main.js';
+
+var socket; // This is the SocketIO connection to the signalling server
+var connections;
+/*
  *    {
  *      name: String,
  *      stream: MediaStream,
@@ -12,6 +14,8 @@ const signalServer = 'signaling-server-meet3d-master.radix.equinor.com'; // The 
  *      video: RTCRtpSender
  *    }
  */
+var ourID;
+const signalServer = 'signaling-server-meet3d-master.radix.equinor.com'; // The signaling server
 
 // The configuration containing our STUN and TURN servers.
 const pcConfig = {
@@ -29,8 +33,9 @@ const pcConfig = {
  * with the signal server which helps create PeerConnection and DataChannel
  * connections with the other users in the conference.
  */
-function initSignaling(room, name) {
+function initSignaling(room, name, cons) {
   socket = io(signalServer); // Connect to the signaling server
+  connections = cons;
 
   let startInfo = {
     room: room, // The room we want to join
@@ -83,7 +88,6 @@ function initSignaling(room, name) {
   socket.on('left', function(id) {
     if (connections[id]) {
       console.log("User " + connections[id].name + " left");
-      userLeft3D(id); // Removes the user from the 3D environment
       userLeft(id);
     }
   });
@@ -134,6 +138,8 @@ function initSignaling(room, name) {
 
     connections[id].connection.addIceCandidate(candidate);
   });
+
+  return ourID;
 }
 
 /**
@@ -333,3 +339,5 @@ function leaveRoom() {
   socket.emit('left');
   socket.disconnect(true);
 }
+
+export { initSignaling, leaveRoom };

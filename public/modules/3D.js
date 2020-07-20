@@ -1,3 +1,5 @@
+import { changePos, updateVideoVisibility } from '../main.js';
+
 // GLOBAL CONSTANTS
 const maxX = 100;
 const maxY = 100; // This is probably not needed
@@ -19,6 +21,7 @@ var controls;
 var requestID;
 var listener;
 var loader;
+var time;
 
 var objectSize = new THREE.Vector3(); // A Vector3 representing size of each 3D-object
 
@@ -44,8 +47,13 @@ var videoList = []; // The list of remote videos to display
 var videoListLength = 0; // The number of videos to show at a time, not including our own
 const resourceList = ['objects/obj/pawn.glb']; //List of 3D-object-files
 var resourceIndex = 0;
+var connections;
+var ourID;
 
-function init3D() {
+function init3D(id, connectionsObject) {
+	ourID = id;
+	connections = connectionsObject;
+
 	scene = new THREE.Scene();
 	scene.background = new THREE.Color(0xf0f0f0);
 
@@ -102,7 +110,7 @@ function init3D() {
 function updateShareScreen3D(screenObject) {
 	scene.remove(tv);
 	if (screenObject) { // If someone is sharing their screen, display it
-		texture = new THREE.VideoTexture(screenObject);
+		let texture = new THREE.VideoTexture(screenObject);
 		texture.minFilter = THREE.LinearFilter;
 		texture.magFilter = THREE.LinearFilter;
 		texture.format = THREE.RGBFormat;
@@ -171,7 +179,7 @@ function addWalls() {
 
 	// WALLS
 	let walltext = textureLoader.load( "objects/obj/wall1.jpg" );
-	wallLeft = new THREE.Mesh(
+	let wallLeft = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, wallHeight, 1, 1),
 		new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: walltext } )
 	);
@@ -180,7 +188,7 @@ function addWalls() {
 	wallLeft.position.x = -maxX;
 	wallLeft.position.y += wallHeight / 2;
 
-	wallRight = new THREE.Mesh(
+	let wallRight = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, wallHeight, 1, 1),
 		new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: walltext } )
 	);
@@ -189,7 +197,7 @@ function addWalls() {
 	wallRight.position.x = maxX;
 	wallRight.position.y += wallHeight / 2;
 
-	wallBack = new THREE.Mesh(
+	let wallBack = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, wallHeight, 1, 1),
 		new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: walltext } )
 	);
@@ -197,7 +205,7 @@ function addWalls() {
 	wallBack.position.z = maxZ;
 	wallBack.position.y += wallHeight / 2;
 
-	wallFront = new THREE.Mesh(
+	let wallFront = new THREE.Mesh(
 		new THREE.PlaneBufferGeometry(maxX * 2, wallHeight, 1, 1),
 		new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: walltext } )
 	);
@@ -403,10 +411,6 @@ function getDistance(id) {
 		(otherUser.avatar.model.position.z - camera.position.z) ** 2;
 }
 
-function getDistanceBetween(fromX, fromZ, toX, toZ) {
-	return (toX - fromX) ** 2 + (toZ - fromZ) ** 2;
-}
-
 function userGotMedia(id, mediaStream) {
 	UserMap[id]["media"] = mediaStream;
 	var posAudio = new THREE.PositionalAudio(listener);
@@ -546,7 +550,7 @@ function resizeCanvas(newWidth) {
 function update() {
 	requestID = requestAnimationFrame(update);
 	if (controls.isLocked === true) {
-		var time = performance.now();
+		time = performance.now();
 		var delta = ( time - prevUpdateTime ) / 1000;
 
 		velocity.x -= velocity.x * 10.0 * delta;
@@ -632,4 +636,4 @@ function leave3D() {
 	resourceIndex = 0;
 }
 
-export { getDistanceBetween };
+export { newUserJoined, userGotMedia, changePos3D, init3D, updateShareScreen3D, getVideoList, updateVideoList, resizeCanvas, leave3D, onDocumentKeyDown, onDocumentKeyUp, changeUserPosition };

@@ -1,4 +1,5 @@
-'use strict';
+import { init3D, updateShareScreen3D, getVideoList, updateVideoList, resizeCanvas, leave3D, onDocumentKeyDown, onDocumentKeyUp, changeUserPosition } from './modules/3D.js';
+import { initSignaling, leaveRoom } from './modules/connect.js';
 
 var roomName = document.getElementById("roomName");
 var startButton = document.getElementById("start/leave");
@@ -18,18 +19,23 @@ var sceneDiv = document.getElementById("3D");
 var videoElement = document.getElementById("remoteVideo");
 var buttons = document.getElementById("buttons");
 var shareButton = document.getElementById("shareButton");
+var cameraButton = document.getElementById("cameraButton");
+
+startButton.onclick = function () { init(startButton) };
+cameraButton.onclick = function () { shareCamera(cameraButton) };
+shareButton.onclick = function () { shareScreen(shareButton) };
 
 username.addEventListener("keyup", function(event) {
     if (event.keyCode === 13) { // This is the 'enter' key-press
       event.preventDefault();
-      init(document.getElementById("start/leave")); // Join the conference by pressing enter in the username input box
+      init(startButton); // Join the conference by pressing enter in the username input box
     }
   });
 
 roomName.addEventListener("keyup", function(event) {
     if (event.keyCode === 13) { // This is the 'enter' key-press
       event.preventDefault();
-      init(document.getElementById("start/leave")); // Join the conference by pressing enter in the room name input box
+      init(startButton); // Join the conference by pressing enter in the room name input box
     }
   });
 
@@ -110,8 +116,8 @@ async function init(button) {
   roomName.readOnly = true; // Do not allow the user to edit the room name, but show it
 
   initChat(); // Show the chat
-  initSignaling(roomName.value, username.value); // Connect to the conference room
-  init3D(name); // Renders the 3D environment
+  initSignaling(roomName.value, username.value, connections); // Connect to the conference room
+  init3D(ourID, connections); // Renders the 3D environment
   initSwapView(); // Allows users to switch between the chat and the 3D space using 'c'
   changeModeButton.hidden = false; // Allows the user to open the 3D environment
 }
@@ -788,6 +794,7 @@ function swapViewOnC(event) {
  */
 function userLeft(id) {
   removeConnectionHTMLList(id);
+  userLeft3D(id); // Removes the user from the 3D environment
   if (id == shareUser) { // If they were sharing their screen then remove it
     shareUser = null;
     screenShare.hidden = true;
@@ -846,3 +853,5 @@ function leave(button) {
   button.value = "Join";
   button.onclick = function() { init(button) };
 }
+
+export { appendConnectionHTMLList, addLocalTracksToConnection, addVideoStream, addScreenCapture, advertiseFile, dataChannelReceive, changePos, updateVideoVisibility };
