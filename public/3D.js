@@ -403,6 +403,10 @@ function getDistance(id) {
 		(otherUser.avatar.model.position.z - camera.position.z) ** 2;
 }
 
+function getDistanceBetween(fromX, fromZ, toX, toZ) {
+	return (toX - fromX) ** 2 + (toZ - fromZ) ** 2;
+}
+
 function userGotMedia(id, mediaStream) {
 	UserMap[id]["media"] = mediaStream;
 	var posAudio = new THREE.PositionalAudio(listener);
@@ -627,3 +631,5 @@ function leave3D() {
 	videoListLength = 0;
 	resourceIndex = 0;
 }
+
+export { getDistanceBetween };
