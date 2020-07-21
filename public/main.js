@@ -1,4 +1,14 @@
-import { init3D, updateShareScreen3D, getVideoList, updateVideoList, resizeCanvas, leave3D, onDocumentKeyDown, onDocumentKeyUp, changeUserPosition } from './modules/3D.js';
+import {
+  init3D,
+  updateShareScreen3D,
+  getVideoList,
+  updateVideoList,
+  resizeCanvas,
+  leave3D,
+  onDocumentKeyDown,
+  onDocumentKeyUp,
+  changeUserPosition
+} from './modules/3D.js';
 import { initSignaling, leaveRoom } from './modules/connect.js';
 
 var roomName = document.getElementById("roomName");
@@ -854,4 +864,13 @@ function leave(button) {
   button.onclick = function() { init(button) };
 }
 
-export { appendConnectionHTMLList, addLocalTracksToConnection, addVideoStream, addScreenCapture, advertiseFile, dataChannelReceive, changePos, updateVideoVisibility };
+export {
+  appendConnectionHTMLList,
+  addLocalTracksToConnection,
+  addVideoStream,
+  addScreenCapture,
+  advertiseFile,
+  dataChannelReceive,
+  changePos,
+  updateVideoVisibility
+};

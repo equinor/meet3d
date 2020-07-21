@@ -410,6 +410,12 @@ function getDistance(id) {
 	return (otherUser.avatar.model.position.x - camera.position.x) ** 2 +
 		(otherUser.avatar.model.position.z - camera.position.z) ** 2;
 }
+/**
+ * Returns the squared distance between 'from' and 'to'.
+ */
+function getDistanceBetween(fromX, fromZ, toX, toZ) {
+	return (toX - fromX) ** 2 + (toZ - fromZ) ** 2;
+}
 
 function userGotMedia(id, mediaStream) {
 	UserMap[id]["media"] = mediaStream;
@@ -636,4 +642,18 @@ function leave3D() {
 	resourceIndex = 0;
 }
 
-export { newUserJoined, userGotMedia, changePos3D, init3D, updateShareScreen3D, getVideoList, updateVideoList, resizeCanvas, leave3D, onDocumentKeyDown, onDocumentKeyUp, changeUserPosition };
+export {
+	newUserJoined,
+	userGotMedia,
+	changePos3D,
+	init3D,
+	updateShareScreen3D,
+	getVideoList,
+	updateVideoList,
+	resizeCanvas,
+	leave3D,
+	onDocumentKeyDown,
+	onDocumentKeyUp,
+	changeUserPosition,
+	getDistanceBetween
+};
