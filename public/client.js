@@ -54,8 +54,7 @@ var connections = {}; // The key is the socket id, and the value is:
 
 var localStream = null; // This is our local media stream
 var textFile = null; // This stores any downloaded file
-var sharing = false; // Is someone sharing their screen
-var shareUser = null; // Which user is sharing their screen
+var sharing = {}; // Information about the screen sharing: { id: Number, width: Number, height: Number }
 var screenCapture = null; // The stream containing the video capture of our screen
 var unreadMessages = 0; // The number of messages we have received whilst not in 'chat mode'
 const maxChatLength = 20; // The chat will only hold this many messages at a time
@@ -253,7 +252,7 @@ function stopShareCamera(button) {
  */
 async function shareScreen(button) {
 
-  if (shareUser) return; // Someone else is sharing their screen
+  if (sharing.id) return; // Someone else is sharing their screen
 
   try {
     screenCapture = await navigator.mediaDevices.getDisplayMedia(screenShareConstraints); // Ask for the screen capture
@@ -269,15 +268,21 @@ async function shareScreen(button) {
     return;
   }
 
+  if (sharing.id) { // If someone else starts sharing whilst we select our screen, use theirs
+    let tracks = screenCapture.getTracks();
+    tracks.forEach(track => track.stop());
+    return;
+  }
+
   button.value = "Stop Sharing Screen";
   button.onclick = function () { stopShareScreen(button) };
 
-  shareUser = ourID; // We are the one sharing our screen
+  sharing.id = ourID; // We are the one sharing our screen
+  sharing.width = screenCapture.getVideoTracks()[0].getSettings().width;
+  sharing.height = screenCapture.getVideoTracks()[0].getSettings().height;
   screenShare.srcObject = screenCapture;
-  sharing = true;
-  updateShareScreen3D(screenShare); // Add the stream to the 3D environment
-
-  addScreenCapture(null);
+  updateShareScreen3D(screenShare, sharing); // Add the stream to the 3D environment
+  addScreenCapture(null); // Notify other users
 }
 
 /**
@@ -285,11 +290,13 @@ async function shareScreen(button) {
  * 'id', or to all connections if 'id' is null.
  */
 function addScreenCapture(id) {
-  if (sharing && shareUser == ourID) { // If we are sharing
+  if (sharing.id && sharing.id == ourID) { // If we are sharing
 
     let shareJSON = JSON.stringify({
       type: "share",
-      sharing: true
+      sharing: true,
+      height: screenCapture.getVideoTracks()[0].getSettings().height,
+      width: screenCapture.getVideoTracks()[0].getSettings().width,
     });
 
     if (id) { // Share it with one user
@@ -311,7 +318,7 @@ function addScreenCapture(id) {
  */
 function stopShareScreen(button) {
 
-  if (!screenShare.srcObject || shareUser !== ourID) {
+  if (!screenShare.srcObject || sharing.id !== ourID) {
     return; // We are not sharing our screen, so we do not need to close anything
   }
 
@@ -322,10 +329,10 @@ function stopShareScreen(button) {
 
   tracks.forEach(track => track.stop()); // Stop the video track
   screenShare.srcObject = null;
-  screenShare.hidden = true;
-  sharing = false; // This indicates that noone is sharing their screen
-  shareUser = null;
-  updateShareScreen3D(null); // Re-add the 3D walls without the video texture
+  sharing.id = null; // This indicates that noone is sharing their screen
+  sharing.width = 0;
+  sharing.height = 0;
+  updateShareScreen3D(null, sharing); // Re-add the 3D walls without the video texture
 
   let shareJSON = JSON.stringify({
     type: "share",
@@ -391,14 +398,30 @@ function dataChannelReceive(id, data) {
   } else if (message.type == "share") { // Someone is sharing their screen
     if (message.sharing) { // If the person has started sharing
       shareButton.hidden = true; // Hide the share screen button
-      shareUser = id; // Save the ID of the sharing user
+      sharing.id = id; // Save the ID of the sharing user
+      sharing.width = message.width;
+      sharing.height = message.height;
     } else { // If they have stopped sharing
-      shareUser = null;
+      sharing.id = null;
+      sharing.width = 0;
+      sharing.height = 0;
+
       shareButton.hidden = false; // Unhide the share screen button
       screenShare.srcObject = null;
-      updateShareScreen3D(null); // Re-add the 3D walls without the video texture
+      updateShareScreen3D(null, sharing); // Re-add the 3D walls without the video texture
     }
-    sharing = message.sharing; // This boolean stores whether or not someone is streaming
+  }
+}
+
+/**
+ * Adds the given stream to the 3D environment, passing along the video width
+ * and height as it does so.
+ */
+function updateShareScreen(videoStream) {
+  let shareHTML = document.getElementById("screenShare");
+  shareHTML.srcObject = videoStream; // Create a new stream containing the received track
+  if (sharing.id) {
+    updateShareScreen3D(shareHTML, sharing);
   }
 }
 
@@ -669,7 +692,6 @@ function addVideoStream(id, track) {
 function removeVideoStream(id) {
   let cameraLi = document.getElementById(connections[id].stream.id);
   cameraLi.children[0].srcObject = null;
-  screenShare.hidden = true;
   cameraLi.innerHTML = '';
   videoElement.children[0].removeChild(cameraLi);
 
@@ -719,7 +741,7 @@ function initChat() {
   receivedFiles.style.display = "none";
   buttons.hidden = false;
 
-  if ((sharing && shareUser == ourID) || !sharing) {
+  if ((sharing.id && sharing.id == ourID) || !sharing.id) {
     shareButton.hidden = false;
   }
 
@@ -788,12 +810,13 @@ function swapViewOnC(event) {
  */
 function userLeft(id) {
   removeConnectionHTMLList(id);
-  if (id == shareUser) { // If they were sharing their screen then remove it
-    shareUser = null;
-    screenShare.hidden = true;
+  if (id == sharing.id) { // If they were sharing their screen then remove it
+    sharing.id = null;
+    sharing.width = 0;
+    sharing.height = 0;
     screenShare.srcObject = null;
     shareButton.hidden = false;
-    updateShareScreen3D(null);
+    updateShareScreen3D(null, sharing);
   }
   if (connections[id].stream) document.getElementById(connections[id].stream.id).outerHTML = ''; // Remove video
   if (connections[id].dataChannel) connections[id].dataChannel.close(); // Close DataChannel

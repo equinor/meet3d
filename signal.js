@@ -2,7 +2,7 @@
 
 var os = require('os');
 
-const maxUsers = 10; // TODO: determine a good value for this
+const maxUsers = 16; // TODO: determine a good value for this
 var rooms = {};
 var users = {};
 
@@ -38,7 +38,7 @@ io.sockets.on('connection', function(socket) {
       io.sockets.in(users[socket.id].room).emit('left', socket.id);
       socket.leave(users[socket.id].room);
     }
-  })
+  });
 
   socket.on('join', function(startInfo) {
 
@@ -52,61 +52,24 @@ io.sockets.on('connection', function(socket) {
 
       rooms[room] = []; // Create a new entry for this room in the dictionary storing the rooms
       rooms[room].push(socket); // Add the client ID to the list of clients in the room
-      users[socket.id] = new User(room, socket); // Add the User object to the list of users
+      users[socket.id] = { room: room, socket: socket }; // Add the User object to the list of users
 
       socket.join(room); // Add this user to the room
-      socket.emit('created', {room: room, id: socket.id});
+      socket.emit('created', { room: room, id: socket.id } );
 
     } else if (numClients > 0 && numClients < maxUsers) { // Existing room joined
 
       rooms[room].push(socket); // Add the client ID to the list of clients in the room
-      users[socket.id] = new User(room, socket); // Add the User object to the list of users
+      users[socket.id] = { room: room, socket: socket }; // Add the User object to the list of users
 
-      socket.emit('joined', {room: room, id: socket.id});
+      socket.emit('joined', { room: room, id: socket.id } ); // Let the user know they joined the room
 
       // Let everyone in the room know that a new user has joined
-      io.sockets.in(room).emit('join', {name: name, id: socket.id});
-
+      io.sockets.in(room).emit('join', { name: name, id: socket.id } );
       socket.join(room); // Add this user to the room
 
     } else { // Someone tried to join a full room
-      io.sockets.in(room).emit('full', room);
+      socket.emit('full', room);
     }
   });
-
-  socket.on('ipaddr', function() {
-    let ifaces = os.networkInterfaces();
-    for (let dev in ifaces) {
-      ifaces[dev].forEach(function(details) {
-        if (details.family === 'IPv4' && details.address !== '127.0.0.1') {
-          socket.emit('ipaddr', details.address);
-        }
-      });
-    }
-  });
-
 });
-
-
-class User {
-  constructor(room, socket) {
-    this._room = room;
-    this._socket = socket;
-  }
-
-  set room(room) {
-    this._room = room;
-  }
-
-  set socket(socket) {
-    this._socket = socket;
-  }
-
-  get room() {
-    return this._room;
-  }
-
-  get socket() {
-    return this._socket;
-  }
-}
