@@ -1,7 +1,7 @@
 'use strict';
 
-import { newUserJoined3D, userGotMedia, updatePos, updateShareScreen3D } from './3D.js';
-import { appendConnectionHTMLList, addLocalTracksToConnection, addVideoStream, addScreenCapture, advertiseFile, dataChannelReceive, removeVideoStream } from '../main.js';
+import { newUserJoined3D, userGotMedia, updatePos, updateShareScreen3D, userLeft3D } from './3D.js';
+import { appendConnectionHTMLList, addLocalTracksToConnection, addVideoStream, addScreenCapture, advertiseFile, dataChannelReceive, removeVideoStream, userLeft } from '../main.js';
 
 var socket; // This is the SocketIO connection to the signalling server
 var connections;
@@ -259,7 +259,9 @@ async function createPeerConnection(id) {
       });
 
       event.channel.addEventListener("close", () => {
-        console.log("A DataChannel closed");
+        console.log("DataChannel to " + connections[id].name + " has closed");
+        userLeft3D(id); // Removes the user from the 3D environment
+        userLeft(id);
       });
 
       event.channel.addEventListener("message", (message) => {
@@ -282,6 +284,14 @@ async function createPeerConnection(id) {
         console.error("Failed to create offer: " + e);
         return;
       });
+    };
+
+    pc.onconnectionstatechange = function (event) {
+      if (pc.connectionState == "closed") {
+        console.log("Lost connection to " + connections[id].name);
+        userLeft3D(id); // Removes the user from the 3D environment
+        userLeft(id);
+      }
     };
 
   } catch (e) {
