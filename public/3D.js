@@ -47,10 +47,10 @@ var resourceIndex = 0;
 
 function init3D() {
 	scene = new THREE.Scene();
-	scene.background = new THREE.Color(0xf0f0f0);
+	
 
 	// CAMERA
-	camera = new THREE.PerspectiveCamera(100, (window.innerWidth / window.outerWidth), 0.1, 1000);
+	camera = new THREE.PerspectiveCamera(100, (window.innerWidth / window.outerWidth), 0.1, 300000);
 	camera.position.y = wallHeight / 3;
 
 	// LIGHT
@@ -68,7 +68,7 @@ function init3D() {
 
 	//load models
 	loader = new THREE.GLTFLoader();
-
+	addSkyBox();
 	addWalls();
 	addDecoration();
 
@@ -99,6 +99,21 @@ function init3D() {
  * Places the given video stream in the 3D environment. If it is null, then we
  * only remove the existing one.
  */
+
+function addSkyBox(){
+
+	let urls = [
+		"objects/obj/sh_ft.png", "objects/obj/sh_bk.png ",
+		"objects/obj/sh_up.png", "objects/obj/sh_dn.png", 
+		"objects/obj/sh_rt.png", "objects/obj/sh_lf.png", 
+
+	]
+
+	let loader = new THREE.CubeTextureLoader();
+	scene.background = loader.load(urls);
+	
+};
+
 function updateShareScreen3D(screenObject) {
 	scene.remove(tv);
 	if (screenObject) { // If someone is sharing their screen, display it
@@ -558,11 +573,7 @@ function update() {
 		controls.moveRight( - velocity.x * delta );
 		controls.moveForward( - velocity.z * delta );
 
-		if (camera.position.x > maxXcam) camera.position.x = maxXcam;
-		else if (camera.position.x < minXcam) camera.position.x = minXcam;
-		if (camera.position.z > maxZcam) camera.position.z = maxZcam;
-		else if (camera.position.z < minZcam) camera.position.z = minZcam;
-
+	
 		// Only call costly functions if we have moved and some time has passed since the last time we called them
 		if (moved && time - prevPosTime > 50 ) {
 			changePos(camera.position.x, 0, camera.position.z); // Update our position for others
