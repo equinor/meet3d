@@ -1,7 +1,7 @@
 'use strict';
 
-import { newUserJoined3D, userGotMedia, updatePos } from './3D.js';
-import { appendConnectionHTMLList, addLocalTracksToConnection, addVideoStream, addScreenCapture, advertiseFile, dataChannelReceive } from '../main.js';
+import { newUserJoined3D, userGotMedia, updatePos, updateShareScreen3D } from './3D.js';
+import { appendConnectionHTMLList, addLocalTracksToConnection, addVideoStream, addScreenCapture, advertiseFile, dataChannelReceive, removeVideoStream } from '../main.js';
 
 var socket; // This is the SocketIO connection to the signalling server
 var connections;

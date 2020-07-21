@@ -1,4 +1,14 @@
-import { init3D, updateShareScreen3D, getVideoList, updateVideoList, resizeCanvas, leave3D, onDocumentKeyDown, onDocumentKeyUp, changeUserPosition } from './modules/3D.js';
+import {
+  init3D,
+  updateShareScreen3D,
+  getVideoList,
+  updateVideoList,
+  resizeCanvas,
+  leave3D,
+  onDocumentKeyDown,
+  onDocumentKeyUp,
+  changeUserPosition
+} from './modules/3D.js';
 import { initSignaling, leaveRoom } from './modules/connect.js';
 
 var roomName = document.getElementById("roomName");
@@ -106,9 +116,7 @@ async function init(button) {
   }
 
   let audio = await shareAudio(null); // We need audio to start
-  if (!audio) {
-    return;
-  }
+  if (!audio) return;
 
   button.value = "Leave";
   button.onclick = function() { leave(button) };
@@ -844,4 +852,4 @@ function leave(button) {
   button.onclick = function() { init(button) };
 }
 
-export { appendConnectionHTMLList, addLocalTracksToConnection, addVideoStream, addScreenCapture, advertiseFile, dataChannelReceive, updateVideoVisibility };
+export { appendConnectionHTMLList, addLocalTracksToConnection, addVideoStream, addScreenCapture, advertiseFile, dataChannelReceive, removeVideoStream };

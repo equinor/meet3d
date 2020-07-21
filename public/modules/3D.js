@@ -1,5 +1,3 @@
-import { updateVideoVisibility } from '../main.js';
-
 // GLOBAL CONSTANTS
 const maxX = 100;
 const maxY = 100; // This is probably not needed
@@ -411,6 +409,20 @@ function getDistance(id) {
 		(otherUser.avatar.model.position.z - camera.position.z) ** 2;
 }
 
+/**
+ * This function updates which videos are visible on the screen. The list of
+ * videos to display is 'videoList' in 3D.js.
+ */
+function updateVideoVisibility() {
+	for (let i = 0; i < videoListLength; i++) {
+    let id = videoList[i];
+    if (id == 0 || !connections[id].stream.id) continue;
+
+    document.getElementById(connections[id].stream.id).hidden = false;
+    document.getElementById(connections[id].stream.id).children[0].autoplay = true;
+  }
+}
+
 function userGotMedia(id, mediaStream) {
 	UserMap[id]["media"] = mediaStream;
 	var posAudio = new THREE.PositionalAudio(listener);
@@ -646,4 +658,4 @@ function leave3D() {
 	resourceIndex = 0;
 }
 
-export { newUserJoined3D, userGotMedia, changePos3D, init3D, updateShareScreen3D, getVideoList, updateVideoList, resizeCanvas, leave3D, onDocumentKeyDown, onDocumentKeyUp, changeUserPosition };
+export { newUserJoined3D, userGotMedia, updatePos, init3D, updateShareScreen3D, getVideoList, updateVideoList, resizeCanvas, leave3D, onDocumentKeyDown, onDocumentKeyUp, changeUserPosition };
