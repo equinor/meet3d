@@ -1,15 +1,14 @@
 // GLOBAL CONSTANTS
-const distance = 15; // This is currently not used
 const maxX = 100;
 const maxY = 100; // This is probably not needed
 const maxZ = 100;
-const speed = 3;
 const wallHeight = 100;
 const objectScale = 7;
 const videoCount = 3;
-const objectWidth = 10; // Probably not needed
-const objectHeight = 20; // Probably not needed
-
+const maxXcam = maxX - 1;
+const minXcam = -maxX + 1;
+const maxZcam = maxZ - 1;
+const minZcam = -maxZ + 1;
 
 // GLOBAL VARIABLES
 var scene;
@@ -17,38 +16,32 @@ var camera;
 var renderer;
 var controls;
 
-var requestID = undefined;
-var userCount = 0; // FIXME Do we need this?
+var requestID;
 var listener;
 var loader;
 
 var objectSize = new THREE.Vector3(); // A Vector3 representing size of each 3D-object
 
-let wallLeft;
-let wallRight;
-let wallFront;
+var tv; // The object which stores the screen sharing video
 
 var moveForward = false;
 var moveBackward = false;
 var moveLeft = false;
 var moveRight = false;
+var moved = false;
 
 var prevUpdateTime = performance.now();
 var prevPosTime = performance.now();
 var velocity = new THREE.Vector3();
 var direction = new THREE.Vector3();
 var videoWidth = 0; // The width that is used up by videos on the side
+var speed = 400.0; // The speed at which we move
 
 // GLOBAL CONTAINERS
 var UserMap = {}; //json-object to store the Users
-
 var allObjects = []; // Stores all 3D objects so that they can be removed later
-
 var videoList = []; // The list of remote videos to display
 var videoListLength = 0; // The number of videos to show at a time, not including our own
-
-listAvatars = [];
-
 const resourceList = ['objects/obj/pawn.glb']; //List of 3D-object-files
 var resourceIndex = 0;
 
@@ -58,7 +51,7 @@ function init3D() {
 
 	// CAMERA
 	camera = new THREE.PerspectiveCamera(100, (window.innerWidth / window.outerWidth), 0.1, 1000);
-	camera.position.y = 30;
+	camera.position.y = wallHeight / 3;
 
 	// LIGHT
 	let light = new THREE.PointLight( 0xff0000, 1, 100 );
@@ -69,6 +62,15 @@ function init3D() {
 	scene.add( light );
 	scene.add( ambientLight );
 	scene.add( directionalLight );
+	allObjects.push(light);
+	allObjects.push(ambientLight);
+	allObjects.push(directionalLight);
+
+	//load models
+	loader = new THREE.GLTFLoader();
+
+	addWalls();
+	addDecoration();
 
 	// RENDERER
 	renderer = new THREE.WebGLRenderer();
@@ -77,9 +79,77 @@ function init3D() {
 	renderer.domElement.id = "scene"; // Adds an ID to the canvas element
 	document.getElementById("3D").appendChild(renderer.domElement);
 
-	// FLOOR
-	let floortext = new THREE.TextureLoader().load( "objects/obj/floor.jpg" );
+	controls = new THREE.PointerLockControls( camera, document.body );
+	scene.add(controls.getObject());
+	allObjects.push(controls.getObject());
 
+	listener = new THREE.AudioListener();
+	controls.getObject().add(listener)
+
+	window.addEventListener( 'resize', onWindowResize, false );
+	document.addEventListener( 'keydown', onDocumentKeyDown, false );
+	document.addEventListener( 'keyup', onDocumentKeyUp, false );
+
+	renderer.render(scene, camera);
+
+	update();
+}
+
+/**
+ * Places the given video stream in the 3D environment. If it is null, then we
+ * only remove the existing one.
+ */
+function updateShareScreen3D(screenObject) {
+	scene.remove(tv);
+	if (screenObject) { // If someone is sharing their screen, display it
+		texture = new THREE.VideoTexture(screenObject);
+		texture.minFilter = THREE.LinearFilter;
+		texture.magFilter = THREE.LinearFilter;
+		texture.format = THREE.RGBFormat;
+
+		let height = screenObject.srcObject.getVideoTracks()[0].getSettings().height;
+		let width = screenObject.srcObject.getVideoTracks()[0].getSettings().width;
+		let ratio = width / height;
+
+		// This block of code makes the video fit the screen whilst maintaining the original aspect ratio
+		if (height > wallHeight) {
+			var width2 = wallHeight * ratio;
+			if (width2 > maxX * 2) {
+				height = (maxX * 2) / ratio;
+				width = maxX * 2
+			} else {
+				width = width2;
+				height = wallHeight;
+			}
+		}	else if (width > maxX * 2) {
+			var height2 = (maxX * 2) / ratio;
+			if (height2 > wallHeight) {
+				width = wallHeight / ratio;
+				height = wallHeight;
+			} else {
+				width = maxX * 2;
+				height = height2;
+			}
+		}
+
+		tv = new THREE.Mesh(
+			new THREE.PlaneBufferGeometry(width, height, 1, 1),
+			new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: texture } )
+		);
+		tv.position.z = -(maxZ - 1);
+		tv.position.y += wallHeight / 2;
+
+		scene.add(tv);
+		allObjects.push(tv);
+	}
+}
+
+function addWalls() {
+
+	let textureLoader = new THREE.TextureLoader();
+
+	// FLOOR
+	let floortext = textureLoader.load( "objects/obj/floor.jpg" );
 	let floor = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, maxZ * 2, maxX * 2, maxZ * 2),
 		new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: floortext })
@@ -88,90 +158,22 @@ function init3D() {
 	scene.add(floor);
 	allObjects.push(floor);
 
-	// ROOF
-	let rooftext = new THREE.TextureLoader().load( "objects/obj/floor.jpg" );
-
-	let roof = new THREE.Mesh(
+	// CEILING
+	let ceilingtext = textureLoader.load( "objects/obj/ceiling2.jpg" );
+	let ceiling = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, maxZ * 2, maxX * 2, maxZ * 2),
-		new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: rooftext })
+		new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: ceilingtext })
 	);
-	roof.rotation.x += Math.PI / 2; //can rotate the floor/plane
-	roof.position.y += wallHeight;
-	scene.add(roof);
-	allObjects.push(roof);
+	ceiling.rotation.x += Math.PI / 2; //can rotate the floor/plane
+	ceiling.position.y += wallHeight;
+	scene.add(ceiling);
+	allObjects.push(ceiling);
 
-	//load models
-	loader = new THREE.GLTFLoader();
-
-	controls = new THREE.PointerLockControls( camera, document.body );
-	scene.add(controls.getObject());
-
-	//addPlant
-	const plant = new THREE.Object3D();
-	loader.load('objects/obj/planten.glb', function(gltf) {
-		plant.add(gltf.scene);
-		plant.scale.x = 20; plant.scale.y = 20; plant.scale.z = 20;
-		plant.position.x= 0; plant.position.y = 7; plant.position.z = 10;
-		scene.add(plant);
-	});
-
-	//add table
-	const table = new THREE.Object3D();
-	loader.load('objects/obj/table.glb', function(gltf) {
-		table.add(gltf.scene);
-		table.scale.x = 20; table.scale.y = 20; table.scale.z = 20;
-		table.rotation.y += Math.PI / 2;
-		scene.add(table);
-	});
-
-	console.log("blir oppdatert");
-
-	window.addEventListener( 'resize', onWindowResize, false );
-	document.addEventListener( 'keydown', onDocumentKeyDown, false );
-	document.addEventListener( 'keyup', onDocumentKeyUp, false );
-
-	addWalls();
-	addDecoration();
-
-	roomButton.hidden = false; // Allows the user to open the 3D environment
-
-	listener = new THREE.AudioListener();
-
-	controls.getObject().add(listener)
-
-	userCount++;
-
-	update();
-}
-
-function updateShareScreen3D(screenObject) {
-	scene.remove(wallFront);
-	if (screenObject) { // If someone is sharing their screen, display it
-			texture = new THREE.VideoTexture(screenObject); // TODO: make screenShare not global
-			texture.minFilter = THREE.LinearFilter;
-			texture.magFilter = THREE.LinearFilter;
-			texture.format = THREE.RGBFormat;
-
-			wallFront = new THREE.Mesh(
-				new THREE.PlaneBufferGeometry(maxX * 2, wallHeight, 1, 1),
-				new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: texture } )
-			);
-	} else {
-		wallFront = new THREE.Mesh(
-			new THREE.PlaneBufferGeometry(maxX * 2, wallHeight, 1, 1),
-			new THREE.MeshBasicMaterial( { color: "cadetblue", side: THREE.DoubleSide } )
-		);
-	}
-	wallFront.position.z = -maxZ;
-	wallFront.position.y += wallHeight / 2;
-	scene.add( wallFront );
-}
-
-function addWalls() {
-
+	// WALLS
+	let walltext = textureLoader.load( "objects/obj/wall1.jpg" );
 	wallLeft = new THREE.Mesh(
-		new THREE.PlaneGeometry(maxY * 2, wallHeight, 1, 1),
-		new THREE.MeshBasicMaterial( { color: "cadetblue", side: THREE.DoubleSide } )
+		new THREE.PlaneGeometry(maxX * 2, wallHeight, 1, 1),
+		new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: walltext } )
 	);
 
 	wallLeft.rotation.y += Math.PI / 2;
@@ -179,8 +181,8 @@ function addWalls() {
 	wallLeft.position.y += wallHeight / 2;
 
 	wallRight = new THREE.Mesh(
-		new THREE.PlaneGeometry(maxY * 2, wallHeight, 1, 1),
-		new THREE.MeshBasicMaterial( { color: "cadetblue", side: THREE.DoubleSide } )
+		new THREE.PlaneGeometry(maxX * 2, wallHeight, 1, 1),
+		new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: walltext } )
 	);
 
 	wallRight.rotation.y += Math.PI / 2;
@@ -188,8 +190,8 @@ function addWalls() {
 	wallRight.position.y += wallHeight / 2;
 
 	wallBack = new THREE.Mesh(
-		new THREE.PlaneGeometry(maxY * 2, wallHeight, 1, 1),
-		new THREE.MeshBasicMaterial( { color: "cadetblue", side: THREE.DoubleSide } )
+		new THREE.PlaneGeometry(maxX * 2, wallHeight, 1, 1),
+		new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: walltext } )
 	);
 
 	wallBack.position.z = maxZ;
@@ -197,7 +199,7 @@ function addWalls() {
 
 	wallFront = new THREE.Mesh(
 		new THREE.PlaneBufferGeometry(maxX * 2, wallHeight, 1, 1),
-		new THREE.MeshBasicMaterial( { color: "cadetblue", side: THREE.DoubleSide } )
+		new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: walltext } )
 	);
 
 	wallFront.position.z = -maxZ;
@@ -211,12 +213,10 @@ function addWalls() {
 	allObjects.push( wallRight );
 	allObjects.push( wallBack );
 	allObjects.push( wallFront );
-
-	renderer.render(scene, camera);
 }
 
 function addDecoration() {
-	//addPlant
+	// PLANT
 	const plant = new THREE.Object3D();
 	loader.load('objects/obj/planten.glb', function(gltf) {
 		plant.add(gltf.scene);
@@ -225,7 +225,7 @@ function addDecoration() {
 		scene.add(plant);
 	});
 
-	//add table
+	// TABLE
 	const table = new THREE.Object3D();
 	loader.load('objects/obj/table.glb', function(gltf) {
 		table.add(gltf.scene);
@@ -238,6 +238,9 @@ function addDecoration() {
 	allObjects.push(plant);
 }
 
+/**
+ * Returns a list containing the currently displayed videos.
+ */
 function getVideoList() {
 	return videoList.slice(0, videoListLength);
 }
@@ -245,8 +248,8 @@ function getVideoList() {
 // Add username as text on top of 3D-object
 function addText(name, model) {
 	var text = new THREE.Mesh();
-	var loader = new THREE.FontLoader();
-	loader.load('helvetiker_regular.typeface.json', function(font) {
+	var fontLoader = new THREE.FontLoader();
+	fontLoader.load('helvetiker_regular.typeface.json', function(font) {
 
 		let color = 0x990000;
 
@@ -277,17 +280,6 @@ function addText(name, model) {
 	});
 } // end of function addText()
 
-
-//return true if a User with the id passed in parameter was a part of the UserMap and removed, false otherwise
-function removeUser(id) {
-	delete UserMap[id];
-}
-
-// Returns the user object corresponding to the given user ID
-function findUser(id) {
-	return UserMap[id];
-}
-
 function newUserJoined(id, name) {
 	console.log("Adding new user to the 3D environment: " + name);
 	let newUser = {};
@@ -297,29 +289,26 @@ function newUserJoined(id, name) {
 	resourceIndex++;
 	resourceIndex %= resourceList.length; // Make sure the index never exceeds the size of the list
 
-	//newUser['text'] = addText(name, newUser.avatar.model);
 	addText(name, newUser.avatar.model);
 
 	// Add new user to UserMap
 	UserMap[id] = newUser;
-	userCount++;
-
-	//scene.add(newUser.avatar.model);
 
 	updateVideoList(id);
 }
 
 function changeUserPosition(id, x, y, z) {
-	findUser(id).avatar.model.position.x = x;
-	findUser(id).avatar.model.position.y = y;
-	findUser(id).avatar.model.position.z = z;
+	let user = UserMap[id];
+	user.avatar.model.position.x = x;
+	user.avatar.model.position.y = y;
+	user.avatar.model.position.z = z;
 	if (connections[id].stream) {
 		updateVideoList(id);
 	}
 }
 
 function setUserRotation(id, angleY) {
-	findUser(id).avatar.model.rotation.y = angleY;
+	UserMap[id].avatar.model.rotation.y = angleY;
 }
 
 /**
@@ -409,39 +398,50 @@ function shiftVideoList(id) {
  * user in the 3D space.
  */
 function getDistance(id) {
-	let otherUser = findUser(id);
-	return Math.pow(Math.abs(otherUser.avatar.model.position.x - camera.position.x), 2) +
-		Math.pow(Math.abs(otherUser.avatar.model.position.z - camera.position.z), 2);
+	let otherUser = UserMap[id];
+	return (otherUser.avatar.model.position.x - camera.position.x) ** 2 +
+		(otherUser.avatar.model.position.z - camera.position.z) ** 2;
 }
 
 function userGotMedia(id, mediaStream) {
-	findUser(id)["media"] = mediaStream;
+	UserMap[id]["media"] = mediaStream;
 	var posAudio = new THREE.PositionalAudio(listener);
 	posAudio.setRefDistance(20);
 	posAudio.setRolloffFactor(2);
-	const audio1 = posAudio.context.createMediaStreamSource(mediaStream);
+
+	let n = document.createElement("audio"); // Create HTML element to store audio stream
+	n.srcObject = mediaStream;
+	n.muted = true; // We only want audio from the positional audio
+	UserMap[id].audioElement = n;
+
+	const audio1 = posAudio.context.createMediaStreamSource(n.srcObject);
 
 	try {
 		posAudio.setNodeSource(audio1);
-		findUser(id).avatar.model.add(posAudio);
+		UserMap[id].avatar.model.add(posAudio);
 	} catch(err) {
-		console.log(err);
+		console.error(err);
 	};
 }
 
 function userLeft3D(id) {
-	scene.remove(findUser(id).avatar.model);
-	if(removeUser(id)) {
-		userCount--;
+	scene.remove(UserMap[id].avatar.model);
+	if (UserMap[id].audioElement.srcObject) {
+		UserMap[id].audioElement.srcObject.getTracks().forEach(track => track.stop());
 	}
+	UserMap[id].audioElement.srcObject = null;
+	UserMap[id].audioElement = null;
+	delete UserMap[id];
+	updateVideoList(ourID);
 }
 
 
 // Load 3D-object from file "resource" and add it to scene
 function loadNewObject(resource){
-	console.log("loading object from: " + resource);
+	console.log("Loading object from: " + resource);
 	let avatar = {};
 	avatar['model'] = new THREE.Object3D();
+
 	loader.load(resource, function(gltf) { // this could probably be vastly improved
 		avatar.model.add(gltf.scene);
 		avatar.model.scale.x = objectScale;
@@ -460,7 +460,6 @@ function loadNewObject(resource){
 		scene.add(avatar.model);
 		allObjects.push(avatar.model);
 	});
-	//listAvatars.push(avatar); // DELETE ME Probably not needed
 	return avatar;
 }
 
@@ -469,18 +468,22 @@ function onDocumentKeyDown(event) {
 
 		case 87: //w
 			moveForward = true;
+			moved = true;
 			break;
 
 		case 65: // a
 			moveLeft = true;
+			moved = true;
 			break;
 
 		case 83: // s
 			moveBackward = true;
+			moved = true;
 			break;
 
 		case 68: // d
 			moveRight = true;
+			moved = true;
 			break;
 
 		case 38://up
@@ -520,10 +523,14 @@ function onWindowResize() {
 
 	camera.aspect = window.innerWidth / window.innerHeight;
 	camera.updateProjectionMatrix();
-
 	resizeCanvas(-1);
 }
 
+/**
+ * Resizes the 3D scene, whilst making sure to include the video streams if there
+ * are any. The parameter specifies how much space to leave on the right side.
+ * If it is -1 then the previously used value of videoWidth will be used.
+ */
 function resizeCanvas(newWidth) {
 	if (newWidth >= 0)
 		videoWidth = newWidth;
@@ -534,22 +541,9 @@ function resizeCanvas(newWidth) {
 //function to update frame
 function update() {
 	requestID = requestAnimationFrame(update);
-	if (controls.isLocked === true){
+	if (controls.isLocked === true) {
 		var time = performance.now();
 		var delta = ( time - prevUpdateTime ) / 1000;
-
-		// Only do this if position is changed?
-		if ( time - prevPosTime > 100 ) {
-			changePos(camera.position.x, 0, camera.position.z);
-			updateVideoList(ourID);
-			prevPosTime = time;
-
-			for(let keyId in UserMap) {
-				UserMap[keyId].avatar.model.getObjectByName('text').lookAt(camera.position.x, 0, camera.position.z);
-			}
-
-			// Add functionality to update direction based on camera direction OR movement direction
-		}
 
 		velocity.x -= velocity.x * 10.0 * delta;
 		velocity.z -= velocity.z * 10.0 * delta;
@@ -558,19 +552,56 @@ function update() {
 		direction.x = Number( moveRight ) - Number( moveLeft );
 		direction.normalize(); // this ensures consistent movements in all directions
 
-		if ( moveForward || moveBackward ) velocity.z -= direction.z * 400.0 * delta;
-		if ( moveLeft || moveRight ) velocity.x -= direction.x * 400.0 * delta;
+		if ( moveForward || moveBackward ) velocity.z -= direction.z * speed * delta;
+		if ( moveLeft || moveRight ) velocity.x -= direction.x * speed * delta;
 
 		controls.moveRight( - velocity.x * delta );
 		controls.moveForward( - velocity.z * delta );
 
-		prevUpdateTime = time;
-	}
+		if (camera.position.x > maxXcam) camera.position.x = maxXcam;
+		else if (camera.position.x < minXcam) camera.position.x = minXcam;
+		if (camera.position.z > maxZcam) camera.position.z = maxZcam;
+		else if (camera.position.z < minZcam) camera.position.z = minZcam;
 
+		// Only call costly functions if we have moved and some time has passed since the last time we called them
+		if (moved && time - prevPosTime > 50 ) {
+			changePos(camera.position.x, 0, camera.position.z); // Update our position for others
+			updateVideoList(ourID); // Update which videos to show
+			prevPosTime = time;
+
+			for (let keyId in UserMap) { // Makes the usernames point towards the user
+				UserMap[keyId].avatar.model.getObjectByName('text').lookAt(camera.position.x, 0, camera.position.z);
+			}
+
+			// Add functionality to update direction based on camera direction OR movement direction
+		}
+
+		prevUpdateTime = time;
+		moved = false;
+	}
 	renderer.render(scene, camera);
 }
 
+/**
+ * This is a wrapper function which can be used to update our current position
+ * for other users without needing to access 3D.js variables.
+ */
+function changePos3D() {
+	changePos(camera.position.x, 0, camera.position.z);
+}
+
 function leave3D() {
+
+	updateShareScreen3D(null);
+
+	for (let id in UserMap) {
+		if (UserMap[id].audioElement.srcObject) {
+			UserMap[id].audioElement.srcObject.getTracks().forEach(track => track.stop());
+		}
+		UserMap[id].audioElement.srcObject = null;
+		UserMap[id].audioElement = null;
+		delete UserMap[id];
+	}
 
 	for (let i in allObjects) {
 		if (allObjects[i]) scene.remove(allObjects[i]);
@@ -588,12 +619,11 @@ function leave3D() {
 	renderer = null;
 	controls = null;
 	requestID = undefined;
-	userCount = 0;
 	listener = null;
 	loader = null;
 	UserMap = {};
 	allObjects = [];
 	videoList = [];
-	listAvatars = [];
+	videoListLength = 0;
 	resourceIndex = 0;
 }
