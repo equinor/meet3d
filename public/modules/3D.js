@@ -340,7 +340,7 @@ function updateVideoList(id) {
 		videoList = []; // Reset the list of videos to display
 		videoListLength = 0;
 		for (const testID in UserMap) {
-			if (testID == ourID || !connections[testID].stream || videoList.includes(testID)) {
+			if (testID == ourID || !connections[testID] || !connections[testID].stream || videoList.includes(testID)) {
 				continue; // Ignore our own user, those who do not have video and those already in the list
 			}
 
@@ -625,11 +625,11 @@ function leave3D() {
 	updateShareScreen3D(null);
 
 	for (let id in UserMap) {
-		if (UserMap[id].audioElement.srcObject) {
+		if (UserMap[id].audioElement) {
 			UserMap[id].audioElement.srcObject.getTracks().forEach(track => track.stop());
+			UserMap[id].audioElement.srcObject = null;
+			UserMap[id].audioElement = null;
 		}
-		UserMap[id].audioElement.srcObject = null;
-		UserMap[id].audioElement = null;
 		delete UserMap[id];
 	}
 

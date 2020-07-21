@@ -55,7 +55,7 @@ io.sockets.on('connection', function(socket) {
       users[socket.id] = { room: room, socket: socket }; // Add the User object to the list of users
 
       socket.join(room); // Add this user to the room
-      socket.emit('created', { room: room, id: socket.id } );
+      socket.emit('joined', { room: room, id: socket.id } );
 
     } else if (numClients > 0 && numClients < maxUsers) { // Existing room joined
 

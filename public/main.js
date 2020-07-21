@@ -1,39 +1,38 @@
-import {
-  init3D,
-  updateShareScreen3D,
-  getVideoList,
-  updateVideoList,
-  resizeCanvas,
-  leave3D,
-  onDocumentKeyDown,
-  onDocumentKeyUp,
-  changeUserPosition
-} from './modules/3D.js';
-import { initSignaling, leaveRoom } from './modules/connect.js';
+'use strict';
+
+import { newUserJoined3D, userGotMedia, updatePos, updateShareScreen3D, userLeft3D, init3D, leave3D } from './modules/3D.js';
+import { clearHTML, appendConnectionHTMLList, addLocalTracksToConnection, addVideoStream, addScreenCapture, advertiseFile, dataChannelReceive, removeVideoStream, userLeft, updateShareScreen, initChat } from './modules/client.js';
 
 var roomName = document.getElementById("roomName");
-var startButton = document.getElementById("start/leave");
-var connectionList = document.getElementById("connectionList");
-var users = document.getElementById("users");
 var username = document.getElementById("username");
-var chatReceive = document.getElementById("chatReceive");
-var chatBox = document.getElementById("chatBox");
-var chatSend = document.getElementById("chatSend");
-var chatDiv = document.getElementById("chatSection");
-var changeModeButton = document.getElementById("changeMode");
-var files = document.getElementById("files");
-var receivedFiles = document.getElementById("receivedFiles");
-var screenShare = document.getElementById("screenShare");
-var notification = document.getElementById("notification");
-var sceneDiv = document.getElementById("3D");
-var videoElement = document.getElementById("remoteVideo");
-var buttons = document.getElementById("buttons");
-var shareButton = document.getElementById("shareButton");
-var cameraButton = document.getElementById("cameraButton");
+var startButton = document.getElementById("start/leave");
+var socket; // This is the SocketIO connection to the signalling server
+var connections = {};
+/*
+ *    {
+ *      name: String,
+ *      stream: MediaStream,
+ *      connection: PeerConnection,
+ *      audio: RTCRtpSender,
+ *      video: RTCRtpSender
+ *    }
+ */
+var ourID;
+//const signalServer = 'signaling-server-meet3d-master.radix.equinor.com'; // The signaling server
+const signalServer = 'localhost:3000'; // The signaling server
+
+// The configuration containing our STUN and TURN servers.
+const pcConfig = {
+  iceServers: [
+    {
+      urls: 'turn:51.120.91.82:3478',
+      username: 'default_turn_user',
+      credential: 'lime_mercury_hammerkop'
+    }
+  ]
+};
 
 startButton.onclick = function () { init(startButton) };
-cameraButton.onclick = function () { shareCamera(cameraButton) };
-shareButton.onclick = function () { shareScreen(shareButton) };
 
 username.addEventListener("keyup", function(event) {
     if (event.keyCode === 13) { // This is the 'enter' key-press
@@ -49,61 +48,14 @@ roomName.addEventListener("keyup", function(event) {
     }
   });
 
-chatSend.addEventListener("keyup", function(event) {
-    if (event.keyCode === 13) { // This is the 'enter' key-press
-      event.preventDefault();
-      sendChat(); // Send chat message by pressing enter in the chat
-    }
-  });
-
-// These two variables are present in both client.js and connect.js
-var ourID; // This is our unique ID
-var connections = {}; // The key is the socket id, and the value is:
-/*    {
- *      name: String,
- *      stream: MediaStream,
- *      connection: PeerConnection,
- *      audio: RTCRtpSender,
- *      video: RTCRtpSender
- *    }
- */
-
-var localStream = null; // This is our local media stream
-var textFile = null; // This stores any downloaded file
-var sharing = {};
-var screenCapture = null; // The stream containing the video capture of our screen
-var unreadMessages = 0; // The number of messages we have received whilst not in 'chat mode'
-const maxChatLength = 20; // The chat will only hold this many messages at a time
-
-// Our local audio constraints
-const audioConstraints = {
-  audio: true,
-  video: false
-};
-
-// Our share screen constraints
-const screenShareConstraints = {
-  video: {
-    cursor: "always"
-  },
-  audio: false
-};
-
-// Our local camera video constraints
-const cameraConstraints = {
-  audio: false,
-  video: {
-    width: 250,
-    height: 200,
-    resizeMode: "crop-and-scale"
-  }
-};
-
 /**
- * Initialises the conference by first getting an audio stream from the user
- * and then using that stream to connect to the other users in the given room.
+ * This function is run in order to join a conference. It establishes contact
+ * with the signal server which helps create PeerConnection and DataChannel
+ * connections with the other users in the conference. The HTML and 3D canvas
+ * are then updated to reflect this.
  */
 async function init(button) {
+
   if (username.value === '') { // No username given
     alert('Please enter a username');
     return;
@@ -114,760 +66,317 @@ async function init(button) {
     return;
   }
 
-  let audio = await shareAudio(null); // We need audio to start
-  if (!audio) return;
-
   button.value = "Leave";
   button.onclick = function() { leave(button) };
   username.readOnly = true; // Do not allow the user to edit their name, but show it
   roomName.readOnly = true; // Do not allow the user to edit the room name, but show it
 
-  initChat(); // Show the chat
-  initSignaling(roomName.value, username.value, connections); // Connect to the conference room
-  init3D(ourID, connections); // Renders the 3D environment
-  initSwapView(); // Allows users to switch between the chat and the 3D space using 'c'
-  changeModeButton.hidden = false; // Allows the user to open the 3D environment
-}
-
-/**
- * Requests media from the user with the given constraints. Returns the returned
- * track if there was only one medium, or a stream if several were requested.
- */
-async function getLocalTrack(constraint) {
-  try {
-    let stream = await navigator.mediaDevices.getUserMedia(constraint); // Requests the webcamera stream
-
-    if (constraint.video && !constraint.audio) {
-      return stream.getVideoTracks()[0];
-    } else if (!constraint.video && constraint.audio) {
-      return stream.getAudioTracks()[0];
-    } else {
-      return stream;
-    }
-  } catch(e) {
-    if (e.name === "NotAllowedError") {
-      alert('Unfortunately, access to your device is necessary in order to use this feature. ' +
-      'Permissions for this webpage can be updated in the settings for your browser, ' +
-      'or by refreshing the page and trying again.');
-    } else if (e.name === "NotFoundError") {
-      alert('No relevant device was detected.')
-    } else {
-      console.error(e);
-      alert('Unable to access local media: ' + e.name);
-    }
-    return null;
-  }
-}
-
-/**
- * Requests media from the user with the given constraints and adds the result
- * to the PeerConnections.
- */
-async function addLocalTrack(constraint) {
-  let media = await getLocalTrack(constraint);
-
-  if (!media) return null;
-
-  if (!localStream) {
-    localStream = new MediaStream([media]);
-  } else {
-    localStream.addTrack(media);
-  }
-
-  let trackID = null;
-  for (let id in connections) {
-    if (media.kind == "video") {
-      connections[id].video = connections[id].connection.addTrack(media, localStream); // Update our media stream
-    } else {
-      connections[id].audio = connections[id].connection.addTrack(media, localStream); // Update our media stream
-    }
-  }
-  return media;
-}
-
-/**
- * Adds all local streams to the PeerConnection to the user with the given ID.
- */
-function addLocalTracksToConnection(id) {
-  if (!localStream || localStream.getTracks().length == 0) {
-    console.error("There is no track to add to the new connection.");
-    return;
-  }
-  for (let i in localStream.getTracks()) {
-    let track = localStream.getTracks()[i];
-    if (track.kind == "video") {
-      connections[id].video = connections[id].connection.addTrack(track, localStream);
-    } else if (track.kind == "audio") {
-      connections[id].audio = connections[id].connection.addTrack(track, localStream);
-    }
-  }
-}
-
-/**
- * Requests an audio track from the user and then adds it to the local stream.
- */
-async function shareAudio(button) {
-  let audioTrack = await addLocalTrack(audioConstraints);
-
-  if (!audioTrack) return false;
-  return true;
-}
-
-/**
- * Shares our camera stream with the other users.
- */
-async function shareCamera(button) {
-  let cameraCapture = await addLocalTrack(cameraConstraints);
-
-  if (!cameraCapture) return;
-
-  addVideoStream(ourID, cameraCapture); // Adds the video to the side of the screen
-
-  button.value = "Stop Sharing Camera";
-  button.onclick = function () { stopShareCamera(button) };
-}
-
-/**
- * This function stops us from sharing our webcamera video with other users,
- * and ourselves.
- */
-function stopShareCamera(button) {
-
-  let cameraLi = document.getElementById("ourVideo");
-  if (!cameraLi) {
-    return; // We are not sharing our camera anyways
-  }
-
-  for (let id in connections) {
-    connections[id].connection.removeTrack(connections[id].video); // Update our media stream for the other users
-  }
-
-  button.onclick = function () { shareCamera(button) };
-  button.value = "Add video";
-
-  localStream.getVideoTracks()[0].stop();
-  localStream.removeTrack(localStream.getVideoTracks()[0]);
-
-  let videoSrc = cameraLi.children[0].srcObject; // Get the stream
-  let tracks = videoSrc.getTracks();
-  tracks.forEach(track => track.stop()); // Stop the webcamera video track
-  cameraLi.children[0].srcObject = null;
-  cameraLi.innerHTML = ''; // Delete the video element
-
-  videoElement.children[0].removeChild(cameraLi);
-  if (videoElement.children[0].children.length == 0) {
-    // There are no videos to show, so resize the 3D scene
-    resizeCanvas(0); // Make space for the videos on the screen
-  }
-}
-
-/**
- * Shares our screen with the other users, if noone is doing so already.
- */
-async function shareScreen(button) {
-
-  if (sharing.id) return; // Someone else is sharing their screen
-
-  try {
-    screenCapture = await navigator.mediaDevices.getDisplayMedia(screenShareConstraints); // Ask for the screen capture
-  } catch(e) {
-    if (e.name === "NotAllowedError") { // We were not given permission to use the screen capture
-      alert('Unfortunately, access to the screen is necessary in order to use the program. ' +
-      'Permissions for this webpage can be updated in the settings for your browser, ' +
-      'or by refreshing the page and trying again.');
-    } else {
-      console.error(e);
-      alert('Unable to access local media: ' + e.name);
-    }
-    return;
-  }
-
-  console.log(sharing)
-
-  if (sharing.id) { // If someone else starts sharing whilst we select our screen, use theirs
-    let tracks = screenCapture.getTracks();
-    tracks.forEach(track => track.stop());
-    return;
-  }
-
-  button.value = "Stop Sharing Screen";
-  button.onclick = function () { stopShareScreen(button) };
-
-  sharing.id = ourID; // We are the one sharing our screen
-  sharing.width = screenCapture.getVideoTracks()[0].getSettings().width;
-  sharing.height = screenCapture.getVideoTracks()[0].getSettings().height;
-  screenShare.srcObject = screenCapture;
-  console.log(sharing)
-  updateShareScreen3D(screenShare, sharing); // Add the stream to the 3D environment
-  addScreenCapture(null); // Notify other users
-}
-
-/**
- * Adds our screen capture stream to the PeerConnection with the user with ID
- * 'id', or to all connections if 'id' is null.
- */
-function addScreenCapture(id) {
-  if (sharing.id && sharing.id == ourID) { // If we are sharing
-
-    let shareJSON = JSON.stringify({
-      type: "share",
-      sharing: true,
-      height: screenCapture.getVideoTracks()[0].getSettings().height,
-      width: screenCapture.getVideoTracks()[0].getSettings().width,
-    });
-
-    console.log(shareJSON)
-
-    if (id) { // Share it with one user
-      connections[id].dataChannel.send(shareJSON); // Notify everyone that we want to share our screen
-      connections[id].connection.addTrack(screenCapture.getVideoTracks()[0]); // Update our media stream
-    } else { // Share it with all users
-      for (let i in connections) {
-        connections[i].dataChannel.send(shareJSON); // Notify everyone that we want to share our screen
-      }
-      for (let i in connections) {
-        connections[i].connection.addTrack(screenCapture.getVideoTracks()[0]); // Update our media stream
-      }
-    }
-  }
-}
-
-/**
- * Stops us sharing our screen, including notifying others that we have done so
- */
-function stopShareScreen(button) {
-
-  if (!screenShare.srcObject || sharing.id !== ourID) {
-    return; // We are not sharing our screen, so we do not need to close anything
-  }
-
-  button.onclick = function () { shareScreen(button) }; // Reset the share screen button
-  button.value = "Share Screen";
-
-  let tracks = screenShare.srcObject.getTracks();
-
-  tracks.forEach(track => track.stop()); // Stop the video track
-  screenShare.srcObject = null;
-  sharing.id = null; // This indicates that noone is sharing their screen
-  sharing.width = 0;
-  sharing.height = 0;
-  updateShareScreen3D(null, sharing); // Re-add the 3D walls without the video texture
-
-  let shareJSON = JSON.stringify({
-    type: "share",
-    sharing: false // Indicates that we are no longer sharing
-  });
-
-  for (let id in connections) {
-    connections[id].dataChannel.send(shareJSON); // Let all users know that we are no longer sharing our screen
-  }
-}
-
-/**
- * Adds a username to the list of connections on the HTML page.
- */
-function appendConnectionHTMLList(id) {
-  let item = document.createElement("li");
-  item.id = id;
-  item.innerHTML = connections[id].name;
-  connectionList.appendChild(item);
-}
-
-/**
- * Removes a user from the list of connections on the HTML page.
- */
-function removeConnectionHTMLList(id) {
-  let children = connectionList.children;
-  for (let i = 0; i < children.length; i++) {
-    if (children[i].id == id) {
-      connectionList.removeChild(children[i]);
-      return;
-    }
-  }
-}
-
-/**
- * Handles receiving a message on a DataChannel. The type of the JSON message
- * determines what function to call with it. If it is not a JSON then it is a
- * file which results in 'receiveFile' being called.
- */
-function dataChannelReceive(id, data) {
-
-  if (id === ourID) return;
-
-  let message;
-  try {
-    message = JSON.parse(data);
-  } catch (e) {
-    receiveFile(id, data); // If it is not a JSON then it is a file Blob
-    return;
-  }
-
-  console.log(message)
-
-  if (message.type == "pos") { // It is 3D positional data
-    changeUserPosition(id, message.x, message.y, message.z); // Change position of user
-  } else if (message.type == "file") { // It is a list of advertised files
-    clearFileList(id); // Remove previous file options
-    for (let i in message.files) {
-      updateFileList(id, message.files[i]); // Add each advertised file to the drop-down menu
-    }
-  } else if (message.type == "request") { // It is a file request
-    sendFile(id, message.option);
-  } else if (message.type == "chat") { // It is a chat message
-    addChat(connections[id].name, message.message, message.whisper);
-  } else if (message.type == "share") { // Someone is sharing their screen
-    if (message.sharing) { // If the person has started sharing
-      shareButton.hidden = true; // Hide the share screen button
-      sharing.id = id; // Save the ID of the sharing user
-      sharing.width = message.width;
-      sharing.height = message.height;
-    } else { // If they have stopped sharing
-      sharing.id = null;
-      sharing.width = 0;
-      sharing.height = 0;
-
-      shareButton.hidden = false; // Unhide the share screen button
-      screenShare.srcObject = null;
-      updateShareScreen3D(null, sharing); // Re-add the 3D walls without the video texture
-    }
-  }
-}
-
-/**
- * Adds the given message to the chat box, including the user that sent it and
- * the received time.
- */
-function addChat(name, message, whisper) {
-  let today = new Date(); // Get the current time
-  let hour = today.getHours();
-  let minute = today.getMinutes();
-  let second = today.getSeconds();
-
-  // Make sure that there are always two digits to each time value
-  if (hour < 10) hour = '0' + hour;
-  if (minute < 10) minute = '0' + minute;
-  if (second < 10) second = '0' + second;
-  let time = hour + ":" + minute + ":" + second;
-
-  if (whisper) { // If the message is just to us then let the user know
-    message = '<whisper>' + message + '</whisper>';
-    name = name + '->' + username.value;
-  }
-
-  let newMessage = document.createElement("li"); // Add a new chat element
-  newMessage.innerHTML = '<time>' + time + '</time> | <chatName>' + name + '</chatName>: ' + message;
-  chatReceive.appendChild(newMessage);
-  if (chatReceive.children.length > maxChatLength) {
-    chatReceive.removeChild(chatReceive.childNodes[0]); // Limits the number of messages
-  }
-
-  chatReceive.scrollTop = chatReceive.scrollHeight; // Maintains the scroll at the bottom
-
-  // Notify how many unread messages there are when the user is in 3D mode
-  if (sceneDiv.style.display != "none") {
-    unreadMessages++;
-    notification.innerHTML = "You have " + unreadMessages + " unread message(s)."
-  }
-}
-
-/**
- * Emits a chat message to all other connected users.
- */
-function sendChat() {
-
-  if (chatSend.value == '') return; // If there is no text to send, do nothing
-
-  let message = chatSend.value.trim(); // Remove excess white-space of either end of the text
-
-  if (message.charAt(0) == '@') { // Check if someone is sending the message to someone specific
-    let space = message.indexOf(' ');
-    let target = message.slice(1, space); // This String contains the target user
-
-    let messageWhisper = message.slice(space + 1, message.length); // This is the message to be sent
-
-    let messageJSON = JSON.stringify({type: "chat", message: messageWhisper, whisper: true});
-
-    for (let id in connections) {
-      if (connections[id].name == target) { // If the user is the target
-        connections[id].dataChannel.send(messageJSON);
-        addChat(username.value + '->' + target, '<whisper>' + messageWhisper + '</whisper>');
-        chatSend.value = ''; // Clear the text box
-        return;
-      }
-    }
-  }
-
-  // If it is not a targeted message, then just send the text itself
-  let messageJSON = JSON.stringify( { type: "chat", message: message, whisper: false } );
-
-  for (let id in connections) {
-    connections[id].dataChannel.send(messageJSON);
-  }
-
-  addChat(username.value, chatSend.value);
-  chatSend.value = ''; // Clear the text box
-}
-
-/**
- * Advertise to the other users which files we can send them.
- */
-function advertiseFile() {
-  let files = document.getElementById("sendFile").files; // Get our selected files
-
-  let fileDetailsList = [];
-
-  for (let i in files) { // For each file
-    if (files[i].name && files[i].size) { // If the file has a name and size
-      fileDetailsList.push({ // Add the file to the list of advertised files
-        fileName: files[i].name,
-        size: files[i].size
-      });
-    }
-  }
-
-  let filesJSON = {
-    type: "file",
-    files: fileDetailsList // Add the list of files to a JSON
+  socket = io(signalServer); // Connect to the signaling server
+
+  let startInfo = {
+    room: roomName.value, // The room we want to join
+    name: username.value // Our username
   };
 
-  for (let id in connections) {
-    connections[id].dataChannel.send(JSON.stringify(filesJSON)); // Send the JSON to all users
+  socket.emit('join', startInfo);
+
+  console.log('Attempting to join ' + roomName.value);
+
+  // The room we tried to join is full
+  socket.on('full', function(room) {
+    console.log('Room ' + room + ' is full');
+    alert('Room ' + room + ' is full');
+  });
+
+  // A new user joined the room
+  socket.on('join', function (startInfo) {
+    if (startInfo.id === ourID) return;
+
+    connections[startInfo.id] = {};
+    connections[startInfo.id].name = startInfo.name;
+
+    console.log('User ' + startInfo.name + ' joined the room');
+
+    sendOffer(startInfo.id); // Send the user your local description in order to create a connection
+    newUserJoined3D(startInfo.id, startInfo.name); // Add the new user to the 3D environment
+    appendConnectionHTMLList(startInfo.id);
+  });
+
+  // We joined a conference
+  socket.on('joined', async function(connectionInfo) {
+    console.log('We joined: ' + connectionInfo.room);
+    ourID = connectionInfo.id;
+    await initChat(ourID, connections);
+    init3D(ourID, connections); // Renders the 3D environment
+  });
+
+  // A user moved in the 3D space
+  socket.on('pos', function(data) {
+    if (data.id === ourID) return; // If we moved: do nothing
+    changeUserPosition(data.id, data.x, data.y, data.z); // Change position of user
+  });
+
+  // A user left the conference
+  socket.on('left', function(id) {
+    if (connections[id]) {
+      console.log("User " + connections[id].name + " left");
+      userLeft(id);
+    }
+  });
+
+  // We have received a PeerConnection offer
+  socket.on('offer', function(message) {
+    let id = message.id;
+    let name = message.name;
+    let offerDescription = message.offer;
+
+    if (id === ourID) return;
+
+    if (!connections[id]) {
+      connections[id] = {};
+      connections[id].name = name;
+      appendConnectionHTMLList(id); // Add their username to the list of connections on the webpage
+      newUserJoined3D(id, name); // Add new user to 3D environment
+    }
+    console.log("Received offer from " + connections[id].name)
+    sendAnswer(id, offerDescription); // Reply to the offer with our details
+  });
+
+  // We have received an answer to our PeerConnection offer
+  socket.on('answer', function(message) {
+    let id = message.id;
+    let answerDescription = message.answer;
+
+    console.log("Received answer from " + connections[id].name)
+
+    if (id === ourID) return;
+
+    connections[id].connection.setRemoteDescription(new RTCSessionDescription(answerDescription));
+  });
+
+  // We have received an ICE candidate from a user we are connecting to
+  socket.on('candidate', function(message) {
+
+    let id = message.id;
+    let candidates = message.candidateData;
+    if (id === ourID) return;
+
+    console.log("Receiving candidates from " + connections[id].name);
+
+    let candidate = new RTCIceCandidate({
+      sdpMLineIndex: candidates.label,
+      candidate: candidates.candidate
+    });
+
+    connections[id].connection.addIceCandidate(candidate);
+  });
+}
+
+/**
+ * Sends an offer to a new user with our local PeerConnection description.
+ */
+async function sendOffer(id) {
+
+  console.log('Sending offer to user ' + connections[id].name);
+
+  if (!connections[id].connection) {
+    console.log('Creating peer connection to user ' + connections[id].name);
+    connections[id].connection = await createPeerConnection(id);
+    createDataChannel(id);
+    addLocalTracksToConnection(id); // This triggers 'renegotiations'
   }
 }
 
 /**
- * This code was made by Alice Jim on StackOverflow: https://stackoverflow.com/a/18650828
- * It formats the given number of bytes into a more presentable string which is accurate
- * to 'decimals' significant figures, which is by default 2.
+ * Sends a reply to an offer with our local PeerConnection description.
  */
-function formatBytes(bytes, decimals = 2) {
-    if (bytes === 0) return '0 Bytes';
+async function sendAnswer(id, offerDescription) {
 
-    const k = 1024;
-    const dm = decimals < 0 ? 0 : decimals;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
+  if (!connections[id].connection) {
+    console.log('Creating RTCPeerConnection to user ' + connections[id].name);
+    connections[id].connection = await createPeerConnection(id);
+    addLocalTracksToConnection(id);
+  }
 
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i];
+  console.log('Sending answer to connection to user ' + connections[id].name);
+
+  connections[id].connection.setRemoteDescription(new RTCSessionDescription(offerDescription));
+  connections[id].connection.createAnswer().then(function(description) {
+    connections[id].connection.setLocalDescription(description);
+    socket.emit('answer', {
+      id: id,
+      answer: description
+    });
+  }, function (e) {
+    console.error("Failed to create answer: " + e);
+    return;
+  });
 }
 
 /**
- * Empties the list of advertised files for a user.
+ * Creates a PeerConnection to the user with ID 'id', and sets the listeners
+ * for the connection.
  */
-function clearFileList(id) {
-  if (document.getElementById(connections[id].name + 'Files')) {
-    document.getElementById(connections[id].name + 'Files').outerHTML = ''; // Clears their list of files
-  }
-}
+async function createPeerConnection(id) {
+  let pc;
 
-/**
- * Adds the given new file to the drop-down menu of advertised files for the
- * relevant user.
- */
-function updateFileList(id, message) {
-  document.getElementById("remoteFiles").hidden = false;
-  let file = document.getElementById(message.fileName + '-' + connections[id].name);
-  if (!file) { // If the file does not already have an option
-    file = document.createElement("option"); // Create an option to add to the drop-down menu of files
-    file.id = message.fileName;
-  }
-
-  file.value = message.fileName;
-  file.innerHTML = message.fileName + ' (' + formatBytes(message.size) + ')'; // The displayed option text
-
-  let files = document.getElementById("files");
-  let userFiles = document.getElementById(connections[id].name + 'Files');
-
-  if (!userFiles) { // If the user does not have a list of files already
-    userFiles = document.createElement("userFiles"); // Create an element for the user
-    userFiles.id = connections[id].name + 'Files';
-
-    let label = document.createElement("label"); // This label displays who owns the files
-    label.for = connections[id].name;
-    label.innerHTML = connections[id].name + ': ';
-    userFiles.appendChild(label);
-
-    let select = document.createElement("select"); // This drop-down menu contains the files to choose from
-    userFiles.appendChild(select);
-
-    let request = document.createElement("button"); // This button requests the selected file
-    request.innerHTML = "Request File";
-    request.onclick = function () {
-      requestFile(id, select.value);
+  try {
+    if (connections[id] == undefined) {
+      connections[id] = {};
     }
 
-    userFiles.appendChild(request);
-    userFiles.appendChild(document.createElement("br")); // Place the next user on the next line
-    files.appendChild(userFiles);
-  }
+    pc = new RTCPeerConnection(pcConfig);
 
-  userFiles.childNodes[1].appendChild(file);
-}
-
-/**
- * Requests the file given in the 'option'.
- */
-function requestFile(id, option) {
-  connections[id].dataChannel.send(JSON.stringify({
-    type: "request",
-    option: option // The name of the file
-  }));
-
-  document.getElementById("download").name = option;
-}
-
-/**
- * Transmits the file given in the 'option' to the user with ID 'id'.
- */
-function sendFile(id, option) {
-  let fileReader = new FileReader();
-  let files = document.getElementById("sendFile").files; // Gets an array of our selected files
-  for (let i in files) {
-    if (files[i].name == option) { // Find the requested file
-
-      fileReader.readAsArrayBuffer(files[i]); // Get the file as a byte array
-
-      fileReader.onload = function (e) { // When the files is loaded into memory
-        let binary = e.target.result;
-        let blob = new File([binary], files[i]); // Make the byte array to a blob
-        connections[id].dataChannel.send(blob); // Send the blob
+    pc.onicecandidate = function (event) {
+      if (event.candidate) {
+        socket.emit('candidate', {
+          id: id,
+          info: {
+            type: 'candidate',
+            label: event.candidate.sdpMLineIndex,
+            id: event.candidate.sdpMid,
+            candidate: event.candidate.candidate
+          }
+        });
+      } else {
+        console.log('End of candidates.');
       }
-      return;
-    }
+    };
+
+    pc.ontrack = function (event) {
+      console.log('Remote stream added.');
+
+      let newStream = new MediaStream([event.track]);
+
+      if (event.track.kind == "audio") {
+        userGotMedia(id, newStream); // Adds audio track to 3D environment
+      }
+
+      if (event.track.kind == "video") {
+        if (event.streams.length == 0) { // Screen capture video
+          updateShareScreen(newStream); // Add the video track to the 3D environment
+        } else { // Web camera video
+          // Web camera videos should always be in a stream
+          addVideoStream(id, event.track);
+        }
+      }
+
+      if (event.streams[0]) {
+        event.streams[0].onremovetrack = function (event) { // A track has been removed
+          console.log(connections[id].name + ' removed a track from their stream.')
+          if (event.track.kind == "video") {
+            removeVideoStream(id);
+          }
+        }
+      }
+    };
+
+    pc.onremovestream = function (event) {
+      console.log("Lost a stream from " + connections[id].name);
+    };
+
+    pc.ondatachannel = function (event) {
+      event.channel.addEventListener("open", () => {
+        connections[id].dataChannel = event.channel;
+        console.log("Datachannel established to " + connections[id].name);
+      });
+
+      event.channel.addEventListener("close", () => {
+        console.log("DataChannel to " + connections[id].name + " has closed");
+        userLeft3D(id); // Removes the user from the 3D environment
+        userLeft(id);
+      });
+
+      event.channel.addEventListener("message", (message) => {
+        dataChannelReceive(id, message.data); // Called when we receive a DataChannel message
+      });
+    };
+
+    pc.onnegotiationneeded = function (event) {
+
+      console.log("Renegotiations needed, sending new offer to " + connections[id].name);
+
+      connections[id].connection.createOffer().then(function(description) {
+        connections[id].connection.setLocalDescription(description);
+        socket.emit('offer', {
+          id: id,
+          name: username.value,
+          offer: description
+        });
+      }, function (e) {
+        console.error("Failed to create offer: " + e);
+        return;
+      });
+    };
+
+    pc.onconnectionstatechange = function (event) {
+      if (pc.connectionState == "closed") {
+        console.log("Lost connection to " + connections[id].name);
+        userLeft3D(id); // Removes the user from the 3D environment
+        userLeft(id);
+      }
+    };
+
+  } catch (e) {
+    console.error('Failed to create PeerConnection. Exception: ' + e.message);
+    alert('Cannot create RTCPeerConnection.');
+    return;
   }
+  console.log('Created RTCPeerConnection');
+  return pc;
 }
 
 /**
- * Generates a URL for a received file which can be used to download it.
+ * Creates a new data channel to the user with the given id.
  */
-function receiveFile(id, data) {
+function createDataChannel(id) {
+  let tempConnection = connections[id].connection.createDataChannel("Conference");
+  tempConnection.onopen = function () {
+    connections[id].dataChannel = tempConnection;
+    console.log("Datachannel established to " + connections[id].name);
+    advertiseFile();
+    addScreenCapture(id);
+    updatePos();
+  };
 
-  if (textFile !== null) {
-    window.URL.revokeObjectURL(textFile); // Avoid memory leaks
-  }
+  tempConnection.onclose = function () {
+    console.log("A DataChannel closed");
+  };
 
-  textFile = window.URL.createObjectURL(data); // Make a URL which leads to the file
-
-  // The file can be retrieved via a link
-  document.getElementById("download").href = textFile;
-  document.getElementById("download").hidden = false;
-  document.getElementById("download").innerHTML = connections[id].name + ': ' + document.getElementById("download").name;
-
-  receivedFiles.style.display = "inline-block";
+  tempConnection.onmessage = function (event) {
+    dataChannelReceive(id, event.data); // Called when we receive a DataChannel message
+  };
 }
 
 /**
- * Adds a new video to the videos displayed on the right side of the screen.
+ * Transmit local ICE candidates.
  */
-function addVideoStream(id, track) {
-
-  let stream = new MediaStream([track]);
-  if (id !== ourID) {
-    connections[id].stream = stream; // Update the 'stream' attribute for the connection
-  }
-
-  let streamElement = document.createElement("video"); // Create an element to place the stream in
-  let streamElementLi = document.createElement("li"); // Create a list entry to store it in
-
-  if (id !== ourID) {
-    streamElementLi.hidden = true;
-    streamElement.autoplay = false;
-    streamElementLi.id = stream.id; // The ID of the list entry is the ID of the stream
+function handleIceCandidate(event) {
+  if (event.candidate) {
+    socket.emit('candidate', {
+      type: 'candidate',
+      label: event.candidate.sdpMLineIndex,
+      id: event.candidate.sdpMid,
+      candidate: event.candidate.candidate
+    });
   } else {
-    streamElement.autoplay = true;
-    streamElementLi.id = "ourVideo";
-  }
-
-  streamElement.width = cameraConstraints.video.width;
-  streamElement.height = cameraConstraints.video.height;
-  streamElement.srcObject = stream;
-  streamElementLi.appendChild(streamElement);
-  videoElement.hidden = false;
-
-  if (id == ourID && videoElement.children[0].children.length > 0) {
-    videoElement.children[0].insertBefore(streamElementLi, videoElement.children[0].firstChild); // Display our video at the top
-  } else {
-    videoElement.children[0].appendChild(streamElementLi);
-  }
-
-  resizeCanvas(cameraConstraints.video.width); // Make space for the videos on the screen
-  updateVideoList(id); // Update the list of what videos to show, in 3D.js
-}
-
-/**
- * Removes the video stream belonging to the user with ID 'id' from the HTML.
- */
-function removeVideoStream(id) {
-  let cameraLi = document.getElementById(connections[id].stream.id);
-  cameraLi.children[0].srcObject = null;
-  screenShare.hidden = true;
-  cameraLi.innerHTML = '';
-  videoElement.children[0].removeChild(cameraLi);
-
-  connections[id].stream = null;
-
-  if (videoElement.children[0].children.length == 0)
-    resizeCanvas(0); // Make space for the videos on the screen
-
-  updateVideoList(id);
-}
-
-/**
- * This function updates which videos are visible on the screen. The list of
- * videos to display is 'videoList' in 3D.js.
- */
-function updateVideoVisibility() {
-  let vidList = getVideoList();
-	for (let i = 0; i < vidList.length; i++) {
-    let id = vidList[i];
-    if (id == 0 || !connections[id].stream.id) continue;
-
-    document.getElementById(connections[id].stream.id).hidden = false;
-    document.getElementById(connections[id].stream.id).children[0].autoplay = true;
+    console.log('End of candidates.');
   }
 }
 
 /**
- * Open up the chat window to its initial state.
- */
-function initChat() {
-  openChat();
-
-  files.style.display = "inline-block";
-  users.style.display = "inline-block";
-  connectionList.hidden = false;
-  chatBox.style.display = "inline-block";
-  receivedFiles.style.display = "none";
-  buttons.hidden = false;
-
-  if ((sharing.id && sharing.id == ourID) || !sharing.id) {
-    shareButton.hidden = false;
-  }
-
-  sceneDiv.style.display = "none"; // Hide the 3D scene
-}
-
-/**
- * Open the chat and hide the 3D environment.
- */
-function openChat() {
-  document.removeEventListener("keydown", onDocumentKeyDown);
-	document.removeEventListener("keyup", onDocumentKeyUp);
-
-  chatDiv.style.display = "inline-block"; // Open the chat
-  sceneDiv.style.display = "none"; // Hide the 3D scene
-
-  unreadMessages = 0; // We have now seen the received chat messages
-  notification.innerHTML = "";
-
-  changeModeButton.onclick = function() { open3D() };
-  changeModeButton.value = "Open 3D";
-
-  document.body.style.backgroundColor = "white";
-}
-
-/**
- * Open the 3D environment and hide the chat.
- */
-function open3D() {
-  document.addEventListener("keydown", onDocumentKeyDown, false);
-	document.addEventListener("keyup", onDocumentKeyUp, false);
-
-  chatDiv.style.display = "none"; // Hide the chat
-  sceneDiv.style.display = "inline-block"; // Open the 3D scene
-
-  changeModeButton.onclick = function() { openChat() };
-  changeModeButton.value = "Open Chat";
-
-  document.body.style.backgroundColor = "grey";
-}
-
-/**
- * Make 'c'-keypress swap between chat and 3D-space.
- */
-function initSwapView() {
-  document.addEventListener("keyup", swapViewOnC);
-
-  chatSend.onfocus = function() { document.removeEventListener("keyup", swapViewOnC) };
-  chatSend.onblur = function() { document.addEventListener("keyup", swapViewOnC) };
-}
-
-/**
- * Switches between the chat and the 3D environment.
- */
-function swapViewOnC(event) {
-  if (event.key == 'c') {
-    if (controls.isLocked === true) controls.unlock(); // Unlocks the mouse if you swap view while moving in the 3D-space
-
-    if (changeModeButton.value == "Open 3D") open3D();
-    else openChat();
-  }
-}
-
-/**
- * Tidies up variables related to a PeerConnection when a user leaves.
- */
-function userLeft(id) {
-  removeConnectionHTMLList(id);
-  if (id == sharing.id) { // If they were sharing their screen then remove it
-    sharing.id = null;
-    sharing.width = 0;
-    sharing.height = 0;
-    screenShare.srcObject = null;
-    shareButton.hidden = false;
-    updateShareScreen3D(null, sharing);
-  }
-  if (connections[id].stream) document.getElementById(connections[id].stream.id).outerHTML = ''; // Remove video
-  if (connections[id].dataChannel) connections[id].dataChannel.close(); // Close DataChannel
-  if (connections[id].connection) connections[id].connection.close(); // Close PeerConnection
-  delete connections[id]; // Delete object entry
-}
-
-/**
- * Leaves the conference, resets variable values and closes connections and streams.
+ * Signifies to the signal server that we are leaving the conference, then
+ * closes the connection and resets the HTML page.
  */
 function leave(button) {
-
-  if (textFile !== null) {
-    window.URL.revokeObjectURL(textFile); // Avoid memory leaks
-  }
-
-  stopShareScreen(document.getElementById("shareButton"));
-  stopShareCamera(document.getElementById("cameraButton"));
-
-  files.style.display = "none"; // Stop listing local files
-  roomName.readOnly = false; // Allows the user to change what room to join
-  username.readOnly = false; // Allows the user to change their username
-  shareButton.hidden = true; // We cannot share our screen once we leave the conference
-  receivedFiles.style.display = "none"; // Stop listing received files
-  chatBox.style.display = "none"; // Stop listing messages
-  users.style.display = "none"; // Stop listing users
-  connectionList.innerHTML = ''; // Empty the list of users
-  changeModeButton.hidden = true;
-  videoElement.innerHTML = '<ul></ul>'; // Removes all videos from the list on the right side of the screen
-  buttons.hidden = true;
-  remoteFiles.innerHTML = ' Remote Files: ';
-
-  if (localStream) {
-    localStream.getTracks().forEach(track => track.stop()); // Stop all local media tracks
-    localStream = null;
-  }
+  socket.emit('left');
+  socket.disconnect(true);
 
   leave3D(); // Closes the 3D environment
-  leaveRoom(); // Let the other users know that we are leaving
+  clearHTML();
 
-  for (let id in connections) {
-    if (connections[id].stream)
-      connections[id].stream.getTracks().forEach(track => track.stop()); // Stop all remote media tracks, if there are any
-    connections[id].dataChannel.close(); // Close the DataChannel
-    connections[id].connection.close(); // Close the PeerConnection
-    clearFileList(id);
-  }
   connections = {};
 
   button.value = "Join";
   button.onclick = function() { init(button) };
 }
-
-export { appendConnectionHTMLList, addLocalTracksToConnection, addVideoStream, addScreenCapture, advertiseFile, dataChannelReceive, removeVideoStream, userLeft };
