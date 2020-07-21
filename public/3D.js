@@ -42,8 +42,13 @@ var UserMap = {}; //json-object to store the Users
 var allObjects = []; // Stores all 3D objects so that they can be removed later
 var videoList = []; // The list of remote videos to display
 var videoListLength = 0; // The number of videos to show at a time, not including our own
-const resourceList = ['objects/obj/pawn.glb']; //List of 3D-object-files
-var resourceIndex = 0;
+const resourceList = ["objects/Anglerfish/Anglerfish.glb","objects/ArmoredCatfish/ArmoredCatfish.glb","objects/Betta/Betta.glb", "objects/BlackLionFish/BlackLionFish.glb", "objects/Blobfish/Blobfish.glb", "objects/BlueGoldfish.glb", "objects/Clownfish.glb",
+"objects/Flatfish/Flatfish.glb", "objects/FlowerHorn/FlowerHorn.glb", "objects/GoblinShark/GoblinShark.glb", "objects/Goldfish/Goldfish.glb",
+"objects/Huphhead/HumphHead.glb", "objects/Koi/Koi.glb", "objects/Lionfish/Lionfish.glb", "objects/MandarinFish/MandarinFish.glb",
+"objects/MoorishIdol/MoorishIdol.glb","objects/ParrotFish/ParrotFish.glb", "objects/Piranha/Piranha.glb", "objects/Puffer/Puffer.glb",
+"objects/RedSnapper/RedSnapper.glb", "objects/RoyalGramma/RoyalGramma.glb", "objects/Shark/Shark.glb", "objects/Sunfish/Sunfish.glb",
+"objects/Swordfish/Swordfish.glb", "objects/Tang/Tang.glb", "objects/Tetra/Tetra.glb", "objects/Tuna/Tuna.glb", "objects/Turbot/Turbot.glb",
+"objects/YellowTang/YellowTang", "objects/ZebraClownFish/ZebraClownFish.glb"]; //List of 3D-object-files
 
 function init3D() {
 	scene = new THREE.Scene();
@@ -286,14 +291,40 @@ function addText(name, model) {
 	});
 } // end of function addText()
 
+// Load 3D-object from file "resource" and add it to scene
+function loadNewObject(resource){
+	console.log("Loading object from: " + resource);
+	let avatar = {};
+	avatar['model'] = new THREE.Object3D();
+
+	loader.load(resource, function(gltf) { // this could probably be vastly improved
+		avatar.model.add(gltf.scene);
+		avatar.model.scale.x = objectScale;
+		avatar.model.scale.y = objectScale;
+		avatar.model.scale.z = objectScale;
+
+		//FIXME errors when these are uncommented
+		//avatar['clips'] = gltf.animations;
+		//avatar['mixer'] = new THREE.AnimationMixer(gltf.scene);
+		//avatar['swim'] = avatar.mixer.clipAction(gltf.animations[0]);
+		//avatar.swim.play(); // FIXME Currently not working
+
+		let boundingBox = new THREE.Box3().setFromObject(avatar.model);
+		objectSize = boundingBox.getSize(); // Returns Vector3
+
+		scene.add(avatar.model);
+		allObjects.push(avatar.model);
+	});
+	return avatar;
+}
+
 function newUserJoined(id, name) {
 	console.log("Adding new user to the 3D environment: " + name);
 	let newUser = {};
 
 	newUser['name'] = name;
-	newUser['avatar'] = loadNewObject(resourceList[resourceIndex]);
-	resourceIndex++;
-	resourceIndex %= resourceList.length; // Make sure the index never exceeds the size of the list
+	newUser['resource'] = resourceList.shift();
+	newUser['avatar'] = loadNewObject(newUser.resource);
 
 	addText(name, newUser.avatar.model);
 
@@ -431,6 +462,7 @@ function userGotMedia(id, mediaStream) {
 }
 
 function userLeft3D(id) {
+	resourceList.push(UserMap[id].resource);
 	scene.remove(UserMap[id].avatar.model);
 	if (UserMap[id].audioElement.srcObject) {
 		UserMap[id].audioElement.srcObject.getTracks().forEach(track => track.stop());
@@ -439,34 +471,6 @@ function userLeft3D(id) {
 	UserMap[id].audioElement = null;
 	delete UserMap[id];
 	updateVideoList(ourID);
-}
-
-
-// Load 3D-object from file "resource" and add it to scene
-function loadNewObject(resource){
-	console.log("Loading object from: " + resource);
-	let avatar = {};
-	avatar['model'] = new THREE.Object3D();
-
-	loader.load(resource, function(gltf) { // this could probably be vastly improved
-		avatar.model.add(gltf.scene);
-		avatar.model.scale.x = objectScale;
-		avatar.model.scale.y = objectScale;
-		avatar.model.scale.z = objectScale;
-
-		//FIXME errors when these are uncommented
-		//avatar['clips'] = gltf.animations;
-		//avatar['mixer'] = new THREE.AnimationMixer(gltf.scene);
-		//avatar['swim'] = avatar.mixer.clipAction(gltf.animations[0]);
-		//avatar.swim.play(); // FIXME Currently not working
-
-		let boundingBox = new THREE.Box3().setFromObject(avatar.model);
-		objectSize = boundingBox.getSize(); // Returns Vector3
-
-		scene.add(avatar.model);
-		allObjects.push(avatar.model);
-	});
-	return avatar;
 }
 
 function onDocumentKeyDown(event) {
@@ -633,5 +637,4 @@ function leave3D() {
 	allObjects = [];
 	videoList = [];
 	videoListLength = 0;
-	resourceIndex = 0;
 }
