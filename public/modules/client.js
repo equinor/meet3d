@@ -276,8 +276,9 @@ async function shareScreen(button) {
   sharing.height = screenCapture.getVideoTracks()[0].getSettings().height;
   screenShare.srcObject = screenCapture;
   console.log(sharing)
-  updateShareScreen3D(screenShare, sharing); // Add the stream to the 3D environment
-  addScreenCapture(null); // Notify other users
+  updateShareScreen3D(screenCapture.getVideoTracks()[0], sharing); // Add the stream to the 3D environment
+  updateShareScreen3D(screenCapture.getAudioTracks()[0], sharing); // Add the stream to the 3D environment
+  addScreenCapture(null); // Notify other users and add the stream to the connections
 }
 
 /**
@@ -298,13 +299,17 @@ function addScreenCapture(id) {
 
     if (id) { // Share it with one user
       connections[id].dataChannel.send(shareJSON); // Notify everyone that we want to share our screen
-      connections[id].connection.addTrack(screenCapture.getVideoTracks()[0]); // Update our media stream
+      connections[id].connection.addTrack(screenCapture.getVideoTracks()[0], screenCapture); // Update our media stream with video
+      if (screenCapture.getAudioTracks()[0])
+        connections[id].connection.addTrack(screenCapture.getAudioTracks()[0], screenCapture); // Update our media stream with audio
     } else { // Share it with all users
       for (let i in connections) {
         connections[i].dataChannel.send(shareJSON); // Notify everyone that we want to share our screen
       }
       for (let i in connections) {
-        connections[i].connection.addTrack(screenCapture.getVideoTracks()[0]); // Update our media stream
+        connections[i].connection.addTrack(screenCapture.getVideoTracks()[0], screenCapture); // Update our media stream with video
+        if (screenCapture.getAudioTracks()[0])
+          connections[i].connection.addTrack(screenCapture.getAudioTracks()[0], screenCapture); // Update our media stream with audio
       }
     }
   }
@@ -346,10 +351,8 @@ function stopShareScreen(button) {
  * and height as it does so.
  */
 function updateShareScreen(videoStream) {
-  let shareHTML = document.getElementById("screenShare");
-  shareHTML.srcObject = videoStream; // Create a new stream containing the received track
   if (sharing.id) {
-    updateShareScreen3D(shareHTML, sharing);
+    updateShareScreen3D(videoStream, sharing);
   }
 }
 
@@ -846,5 +849,6 @@ export {
   removeVideoStream,
   userLeft,
   updateShareScreen,
-  changeModeButton
+  changeModeButton,
+  shareScreen
 };

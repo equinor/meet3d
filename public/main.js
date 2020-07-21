@@ -1,11 +1,12 @@
 'use strict';
 
 import { newUserJoined3D, userGotMedia, updatePos, updateShareScreen3D, userLeft3D, init3D, leave3D } from './modules/3D.js';
-import { clearHTML, appendConnectionHTMLList, addLocalTracksToConnection, addVideoStream, addScreenCapture, advertiseFile, dataChannelReceive, removeVideoStream, userLeft, updateShareScreen, initChat } from './modules/client.js';
+import { clearHTML, shareScreen, appendConnectionHTMLList, addLocalTracksToConnection, addVideoStream, addScreenCapture, advertiseFile, dataChannelReceive, removeVideoStream, userLeft, updateShareScreen, initChat } from './modules/client.js';
 
 var roomName = document.getElementById("roomName");
 var username = document.getElementById("username");
 var startButton = document.getElementById("start/leave");
+var shareButton = document.getElementById("shareButton");
 var socket; // This is the SocketIO connection to the signalling server
 var connections = {};
 /*
@@ -33,6 +34,7 @@ const pcConfig = {
 };
 
 startButton.onclick = function () { init(startButton) };
+shareButton.onclick = function () { shareScreen(shareButton) };
 
 username.addEventListener("keyup", function(event) {
     if (event.keyCode === 13) { // This is the 'enter' key-press
@@ -249,12 +251,13 @@ async function createPeerConnection(id) {
       let newStream = new MediaStream([event.track]);
 
       if (event.track.kind == "audio") {
+        connections[id].audiostream = newStream;
         userGotMedia(id, newStream); // Adds audio track to 3D environment
       }
 
       if (event.track.kind == "video") {
-        if (event.streams.length == 0) { // Screen capture video
-          updateShareScreen(newStream); // Add the video track to the 3D environment
+        if (event.streams[0].id !== connections[id].audiostream.id) { // Screen capture video
+          updateShareScreen(event.track); // Add the video track to the 3D environment
         } else { // Web camera video
           // Web camera videos should always be in a stream
           addVideoStream(id, event.track);
