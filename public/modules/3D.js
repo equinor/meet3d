@@ -91,7 +91,7 @@ async function init3D(id, connectionsObject, div) {
 	renderer.domElement.id = "scene"; // Adds an ID to the canvas element
 	div.appendChild(renderer.domElement);
 
-	controls = new PointerLockControls( camera, document.body );
+	controls = new PointerLockControls( camera, div );
 	scene.add(controls.getObject());
 	allObjects.push(controls.getObject());
 
