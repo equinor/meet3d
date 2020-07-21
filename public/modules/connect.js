@@ -1,6 +1,6 @@
 'use strict';
 
-import { newUserJoined, userGotMedia, changePos3D } from './3D.js';
+import { newUserJoined3D, userGotMedia, updatePos } from './3D.js';
 import { appendConnectionHTMLList, addLocalTracksToConnection, addVideoStream, addScreenCapture, advertiseFile, dataChannelReceive } from '../main.js';
 
 var socket; // This is the SocketIO connection to the signalling server
@@ -68,7 +68,7 @@ function initSignaling(room, name, cons) {
     console.log('User ' + startInfo.name + ' joined room ' + room);
 
     sendOffer(startInfo.id); // Send the user your local description in order to create a connection
-    newUserJoined(startInfo.id, startInfo.name); // Add the new user to the 3D environment
+    newUserJoined3D(startInfo.id, startInfo.name); // Add the new user to the 3D environment
     appendConnectionHTMLList(startInfo.id);
   });
 
@@ -104,7 +104,7 @@ function initSignaling(room, name, cons) {
       connections[id] = {};
       connections[id].name = name;
       appendConnectionHTMLList(id); // Add their username to the list of connections on the webpage
-      newUserJoined(id, name); // Add new user to 3D environment
+      newUserJoined3D(id, name); // Add new user to 3D environment
     }
     console.log("Received offer from " + connections[id].name)
     sendAnswer(id, offerDescription); // Reply to the offer with our details
@@ -303,7 +303,7 @@ function createDataChannel(id) {
     console.log("Datachannel established to " + connections[id].name);
     advertiseFile();
     addScreenCapture(id);
-    changePos3D();
+    updatePos();
   };
 
   tempConnection.onclose = function () {

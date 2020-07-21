@@ -1,4 +1,4 @@
-import { changePos, updateVideoVisibility } from '../main.js';
+import { updateVideoVisibility } from '../main.js';
 
 // GLOBAL CONSTANTS
 const maxX = 100;
@@ -288,7 +288,7 @@ function addText(name, model) {
 	});
 } // end of function addText()
 
-function newUserJoined(id, name) {
+function newUserJoined3D(id, name) {
 	console.log("Adding new user to the 3D environment: " + name);
 	let newUser = {};
 
@@ -594,8 +594,18 @@ function update() {
  * This is a wrapper function which can be used to update our current position
  * for other users without needing to access 3D.js variables.
  */
-function changePos3D() {
+function updatePos() {
 	changePos(camera.position.x, 0, camera.position.z);
+}
+
+/**
+ * Function which tells other users our new 3D position.
+ */
+function changePos(x, y, z) {
+  let jsonPos = JSON.stringify({type: "pos", x: x, y: y, z: z});
+  for (let id in connections) { // Send it to everyone
+    connections[id].dataChannel.send(jsonPos);
+  }
 }
 
 function leave3D() {
@@ -636,4 +646,4 @@ function leave3D() {
 	resourceIndex = 0;
 }
 
-export { newUserJoined, userGotMedia, changePos3D, init3D, updateShareScreen3D, getVideoList, updateVideoList, resizeCanvas, leave3D, onDocumentKeyDown, onDocumentKeyUp, changeUserPosition };
+export { newUserJoined3D, userGotMedia, changePos3D, init3D, updateShareScreen3D, getVideoList, updateVideoList, resizeCanvas, leave3D, onDocumentKeyDown, onDocumentKeyUp, changeUserPosition };

@@ -703,16 +703,6 @@ function updateVideoVisibility() {
 }
 
 /**
- * Function which tells other users our new 3D position.
- */
-function changePos(x, y, z) {
-  let jsonPos = JSON.stringify({type: "pos", x: x, y: y, z: z});
-  for (let id in connections) { // Send it to everyone
-    connections[id].dataChannel.send(jsonPos);
-  }
-}
-
-/**
  * Open up the chat window to its initial state.
  */
 function initChat() {
@@ -854,4 +844,4 @@ function leave(button) {
   button.onclick = function() { init(button) };
 }
 
-export { appendConnectionHTMLList, addLocalTracksToConnection, addVideoStream, addScreenCapture, advertiseFile, dataChannelReceive, changePos, updateVideoVisibility };
+export { appendConnectionHTMLList, addLocalTracksToConnection, addVideoStream, addScreenCapture, advertiseFile, dataChannelReceive, updateVideoVisibility };
