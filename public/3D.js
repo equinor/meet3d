@@ -291,23 +291,24 @@ function addText(name, model) {
 	});
 } // end of function addText()
 
-// Load 3D-object from file "resource" and add it to scene
-function loadNewObject(resource){
-	console.log("Loading object from: " + resource);
-	let avatar = {};
-	avatar['model'] = new THREE.Object3D();
+function newUserJoined(id, name) {
+	console.log("Adding new user to the 3D environment: " + name);
+	var newUser = {};
 
-	loader.load(resource, function(gltf) { // this could probably be vastly improved
+	newUser['name'] = name;
+
+	var avatar = {};
+	avatar['resource'] = resourceList.shift();
+	avatar['model'] = new THREE.Object3D();
+	loader.load(avatar.resource, function(gltf) { // this could probably be vastly improved
 		avatar.model.add(gltf.scene);
 		avatar.model.scale.x = objectScale;
 		avatar.model.scale.y = objectScale;
 		avatar.model.scale.z = objectScale;
 
-		//FIXME errors when these are uncommented
-		//avatar['clips'] = gltf.animations;
-		//avatar['mixer'] = new THREE.AnimationMixer(gltf.scene);
-		//avatar['swim'] = avatar.mixer.clipAction(gltf.animations[0]);
-		//avatar.swim.play(); // FIXME Currently not working
+		avatar['mixer'] = new THREE.AnimationMixer(gltf.scene);
+		avatar['action'] = avatar.mixer.clipAction(gltf.animations[0]);
+		avatar.action.play(); // FIXME Currently not working
 
 		let boundingBox = new THREE.Box3().setFromObject(avatar.model);
 		objectSize = boundingBox.getSize(); // Returns Vector3
@@ -315,16 +316,7 @@ function loadNewObject(resource){
 		scene.add(avatar.model);
 		allObjects.push(avatar.model);
 	});
-	return avatar;
-}
-
-function newUserJoined(id, name) {
-	console.log("Adding new user to the 3D environment: " + name);
-	let newUser = {};
-
-	newUser['name'] = name;
-	newUser['resource'] = resourceList.shift();
-	newUser['avatar'] = loadNewObject(newUser.resource);
+	newUser['avatar'] = avatar;
 
 	addText(name, newUser.avatar.model);
 
@@ -332,6 +324,7 @@ function newUserJoined(id, name) {
 	UserMap[id] = newUser;
 
 	updateVideoList(id);
+	return newUser;
 }
 
 function changeUserPosition(id, x, y, z) {
@@ -556,6 +549,13 @@ function update() {
 	if (controls.isLocked === true) {
 		var time = performance.now();
 		var delta = ( time - prevUpdateTime ) / 1000;
+
+		//updating animation
+		for(u in UserMap){
+			if(UserMap[u].avatar.mixer){
+				UserMap[u].avatar.mixer.update(delta);
+			}
+		}
 
 		velocity.x -= velocity.x * 10.0 * delta;
 		velocity.z -= velocity.z * 10.0 * delta;
