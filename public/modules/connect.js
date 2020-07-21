@@ -10,7 +10,7 @@ import {
   advertiseFile,
   dataChannelReceive,
   userLeft
-} from '../main.js';
+} from './client.js';
 
 var socket; // This is the SocketIO connection to the signalling server
 var connections;

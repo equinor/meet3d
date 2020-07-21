@@ -1,4 +1,11 @@
-import { changePos, updateVideoVisibility } from '../main.js';
+//import * as THREE from 'three';
+//import { PointerLockControls } from 'three/examples/jsm/controls/PointerLockControls.js';
+
+import * as THREE from '../three.module.js';
+import { PointerLockControls } from '../PointerLockControls.js';
+import { GLTFLoader } from '../GLTFLoader.js';
+
+import { changePos, updateVideoVisibility } from './client.js';
 
 // GLOBAL CONSTANTS
 const maxX = 100;
@@ -23,7 +30,7 @@ var listener;
 var loader;
 var time;
 
-var objectSize = new THREE.Vector3(); // A Vector3 representing size of each 3D-object
+var objectSize = new THREE.Vector3(0, 0, 0); // A Vector3 representing size of each 3D-object
 
 var tv; // The object which stores the screen sharing video
 
@@ -75,7 +82,8 @@ function init3D(id, connectionsObject) {
 	allObjects.push(directionalLight);
 
 	//load models
-	loader = new THREE.GLTFLoader();
+	//loader = new THREE.GLTFLoader();
+	loader = new GLTFLoader();
 
 	addWalls();
 	addDecoration();
@@ -87,7 +95,8 @@ function init3D(id, connectionsObject) {
 	renderer.domElement.id = "scene"; // Adds an ID to the canvas element
 	document.getElementById("3D").appendChild(renderer.domElement);
 
-	controls = new THREE.PointerLockControls( camera, document.body );
+	// controls = new THREE.PointerLockControls( camera, document.body );
+	controls = new PointerLockControls( camera, document.body )
 	scene.add(controls.getObject());
 	allObjects.push(controls.getObject());
 
