@@ -22,9 +22,7 @@ var videoElement = document.getElementById("remoteVideo");
 var videoPageElement = document.getElementById("remoteVideoPage");
 var buttons = document.getElementById("buttons");
 var shareButton = document.getElementById("shareButton");
-var columnN = 4;
-var streamcount = 0;
-var allvideotable = document.getElementById("allvideotable")
+
 
 username.addEventListener("keyup", function(event) {
     if (event.keyCode === 13) { // This is the 'enter' key-press
@@ -217,6 +215,7 @@ async function shareCamera(button) {
 function stopShareCamera(button) {
 
   let cameraLi = document.getElementById("ourVideo");
+  let cameradisp = document.getElementById("ourVideostream");
   if (!cameraLi) {
     return; // We are not sharing our camera anyways
   }
@@ -236,6 +235,8 @@ function stopShareCamera(button) {
   tracks.forEach(track => track.stop()); // Stop the webcamera video track
   cameraLi.children[0].srcObject = null;
   cameraLi.innerHTML = ''; // Delete the video element
+  cameradisp.remove();
+
 
   videoElement.children[0].removeChild(cameraLi);
   if (videoElement.children[0].children.length == 0) {
@@ -630,35 +631,31 @@ function addVideoStream(id, track) {
   if (id !== ourID) {
     connections[id].stream = stream; // Update the 'stream' attribute for the connection
   }
-  streamcount++;
+
   let streamElement = document.createElement("video"); // Create an element to place the stream in
   let streamElementLi = document.createElement("li"); // Create a list entry to store it in
   let streamElement2 = document.createElement("video"); 
-  let row = getTablePosition(columnN, streamcount).second
-  let cell = getTablePosition(columnN, streamcount).first
+ 
  
 
   if (id !== ourID) {
     streamElementLi.hidden = true;
-    allvideotable.hidden = false;
     streamElement.autoplay = false;
     streamElement2.autoplay = true;
     streamElementLi.id = stream.id; // The ID of the list entry is the ID of the stream
-    allvideotable.rows[row].cells[cell].id = stream.id;
   
+    streamElement2.id = (stream.id+1);
   } else {
     streamElement.autoplay = true;
     streamElement2.autoplay = true;
     streamElementLi.id = "ourVideo";
-    allvideotable.rows[row].cells[cell].id = "ourVideo"
+    streamElement2.id = "ourVideostream";
     
   }
   streamElement2.srcObject = stream;
   streamElement.srcObject = stream;
-  
-  allvideotable.rows[row].cells[cell].appendChild(streamElement2);
  
-
+  videoPageElement.appendChild(streamElement2);
   streamElement.width = cameraConstraints.video.width;
   streamElement.height = cameraConstraints.video.height;
 
@@ -688,7 +685,7 @@ function videoDisplay(){
   }
 };
 
-
+/*
 function getTablePosition(columnN, index) {
   let row = index / columnN;
   let column = (index % columnN)-1;
@@ -696,16 +693,22 @@ function getTablePosition(columnN, index) {
           first: column, 
           second: Math.floor(row)}
 }
-
+*/
 /**
  * Removes the video stream belonging to the user with ID 'id' from the HTML.
  */
 function removeVideoStream(id) {
   let cameraLi = document.getElementById(connections[id].stream.id);
   cameraLi.children[0].srcObject = null;
+
+  let cameradisp = document.getElementById(connections[id].stream.id+1);
+ 
+  cameradisp.remove();
   screenShare.hidden = true;
   cameraLi.innerHTML = '';
+ 
   videoElement.children[0].removeChild(cameraLi);
+  
 
   connections[id].stream = null;
 
