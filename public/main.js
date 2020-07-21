@@ -1,4 +1,4 @@
-import {
+/*import {
   init3D,
   updateShareScreen3D,
   getVideoList,
@@ -7,9 +7,12 @@ import {
   leave3D,
   onDocumentKeyDown,
   onDocumentKeyUp,
-  changeUserPosition
-} from './modules/3D.js';
-import { initSignaling, leaveRoom } from './modules/connect.js';
+  changeUserPosition,
+  controls
+} from './modules/3D.js';*/
+// import { initSignaling, leaveRoom } from './modules/connect.js';
+import * as ThreeD from './modules/3D.js';
+import * as Connect from './modules/connect.js';
 
 var roomName = document.getElementById("roomName");
 var startButton = document.getElementById("start/leave");
@@ -126,8 +129,8 @@ async function init(button) {
   roomName.readOnly = true; // Do not allow the user to edit the room name, but show it
 
   initChat(); // Show the chat
-  initSignaling(roomName.value, username.value, connections); // Connect to the conference room
-  init3D(ourID, connections); // Renders the 3D environment
+  Connect.initSignaling(roomName.value, username.value, connections); // Connect to the conference room
+  ThreeD.init3D(ourID, connections); // Renders the 3D environment
   initSwapView(); // Allows users to switch between the chat and the 3D space using 'c'
   changeModeButton.hidden = false; // Allows the user to open the 3D environment
 }
@@ -260,7 +263,7 @@ function stopShareCamera(button) {
   videoElement.children[0].removeChild(cameraLi);
   if (videoElement.children[0].children.length == 0) {
     // There are no videos to show, so resize the 3D scene
-    resizeCanvas(0); // Make space for the videos on the screen
+    ThreeD.resizeCanvas(0); // Make space for the videos on the screen
   }
 }
 
@@ -291,7 +294,7 @@ async function shareScreen(button) {
   shareUser = ourID; // We are the one sharing our screen
   screenShare.srcObject = screenCapture;
   sharing = true;
-  updateShareScreen3D(screenShare); // Add the stream to the 3D environment
+  ThreeD.updateShareScreen3D(screenShare); // Add the stream to the 3D environment
 
   addScreenCapture(null);
 }
@@ -341,7 +344,7 @@ function stopShareScreen(button) {
   screenShare.hidden = true;
   sharing = false; // This indicates that noone is sharing their screen
   shareUser = null;
-  updateShareScreen3D(null); // Re-add the 3D walls without the video texture
+  ThreeD.updateShareScreen3D(null); // Re-add the 3D walls without the video texture
 
   let shareJSON = JSON.stringify({
     type: "share",
@@ -394,7 +397,7 @@ function dataChannelReceive(id, data) {
   }
 
   if (message.type == "pos") { // It is 3D positional data
-    changeUserPosition(id, message.x, message.y, message.z); // Change position of user
+    ThreeD.changeUserPosition(id, message.x, message.y, message.z); // Change position of user
   } else if (message.type == "file") { // It is a list of advertised files
     clearFileList(id); // Remove previous file options
     for (let i in message.files) {
@@ -412,7 +415,7 @@ function dataChannelReceive(id, data) {
       shareUser = null;
       shareButton.hidden = false; // Unhide the share screen button
       screenShare.srcObject = null;
-      updateShareScreen3D(null); // Re-add the 3D walls without the video texture
+      ThreeD.updateShareScreen3D(null); // Re-add the 3D walls without the video texture
     }
     sharing = message.sharing; // This boolean stores whether or not someone is streaming
   }
@@ -675,8 +678,8 @@ function addVideoStream(id, track) {
     videoElement.children[0].appendChild(streamElementLi);
   }
 
-  resizeCanvas(cameraConstraints.video.width); // Make space for the videos on the screen
-  updateVideoList(id); // Update the list of what videos to show, in 3D.js
+  ThreeD.resizeCanvas(cameraConstraints.video.width); // Make space for the videos on the screen
+  ThreeD.updateVideoList(id); // Update the list of what videos to show, in 3D.js
 }
 
 /**
@@ -692,9 +695,9 @@ function removeVideoStream(id) {
   connections[id].stream = null;
 
   if (videoElement.children[0].children.length == 0)
-    resizeCanvas(0); // Make space for the videos on the screen
+    ThreeD.resizeCanvas(0); // Make space for the videos on the screen
 
-  updateVideoList(id);
+  ThreeD.updateVideoList(id);
 }
 
 /**
@@ -702,7 +705,7 @@ function removeVideoStream(id) {
  * videos to display is 'videoList' in 3D.js.
  */
 function updateVideoVisibility() {
-  let vidList = getVideoList();
+  let vidList = ThreeD.getVideoList();
 	for (let i = 0; i < vidList.length; i++) {
     let id = vidList[i];
     if (id == 0 || !connections[id].stream.id) continue;
@@ -746,8 +749,8 @@ function initChat() {
  * Open the chat and hide the 3D environment.
  */
 function openChat() {
-  document.removeEventListener("keydown", onDocumentKeyDown);
-	document.removeEventListener("keyup", onDocumentKeyUp);
+  document.removeEventListener("keydown", ThreeD.onDocumentKeyDown);
+	document.removeEventListener("keyup", ThreeD.onDocumentKeyUp);
 
   chatDiv.style.display = "inline-block"; // Open the chat
   sceneDiv.style.display = "none"; // Hide the 3D scene
@@ -765,8 +768,8 @@ function openChat() {
  * Open the 3D environment and hide the chat.
  */
 function open3D() {
-  document.addEventListener("keydown", onDocumentKeyDown, false);
-	document.addEventListener("keyup", onDocumentKeyUp, false);
+  document.addEventListener("keydown", ThreeD.onDocumentKeyDown, false);
+	document.addEventListener("keyup", ThreeD.onDocumentKeyUp, false);
 
   chatDiv.style.display = "none"; // Hide the chat
   sceneDiv.style.display = "inline-block"; // Open the 3D scene
@@ -792,7 +795,7 @@ function initSwapView() {
  */
 function swapViewOnC(event) {
   if (event.key == 'c') {
-    if (controls.isLocked === true) controls.unlock(); // Unlocks the mouse if you swap view while moving in the 3D-space
+    if (ThreeD.controls.isLocked === true) ThreeD.controls.unlock(); // Unlocks the mouse if you swap view while moving in the 3D-space
 
     if (changeModeButton.value == "Open 3D") open3D();
     else openChat();
@@ -804,13 +807,13 @@ function swapViewOnC(event) {
  */
 function userLeft(id) {
   removeConnectionHTMLList(id);
-  userLeft3D(id); // Removes the user from the 3D environment
+  ThreeD.userLeft3D(id); // Removes the user from the 3D environment
   if (id == shareUser) { // If they were sharing their screen then remove it
     shareUser = null;
     screenShare.hidden = true;
     screenShare.srcObject = null;
     shareButton.hidden = false;
-    updateShareScreen3D(null);
+    ThreeD.updateShareScreen3D(null);
   }
   if (connections[id].stream) document.getElementById(connections[id].stream.id).outerHTML = ''; // Remove video
   if (connections[id].dataChannel) connections[id].dataChannel.close(); // Close DataChannel
@@ -848,8 +851,8 @@ function leave(button) {
     localStream = null;
   }
 
-  leave3D(); // Closes the 3D environment
-  leaveRoom(); // Let the other users know that we are leaving
+  ThreeD.leave3D(); // Closes the 3D environment
+  Connect.leaveRoom(); // Let the other users know that we are leaving
 
   for (let id in connections) {
     if (connections[id].stream)
@@ -871,6 +874,7 @@ export {
   addScreenCapture,
   advertiseFile,
   dataChannelReceive,
+  userLeft,
   changePos,
   updateVideoVisibility
 };

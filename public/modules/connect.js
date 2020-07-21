@@ -1,13 +1,15 @@
 'use strict';
 
-import { newUserJoined, userGotMedia, changePos3D } from './3D.js';
+// import { newUserJoined, userGotMedia, changePos3D } from './3D.js';
+import * as ThreeD from './3D.js';
 import {
   appendConnectionHTMLList,
   addLocalTracksToConnection,
   addVideoStream,
   addScreenCapture,
   advertiseFile,
-  dataChannelReceive
+  dataChannelReceive,
+  userLeft
 } from '../main.js';
 
 var socket; // This is the SocketIO connection to the signalling server
@@ -22,7 +24,8 @@ var connections;
  *    }
  */
 var ourID;
-const signalServer = 'signaling-server-meet3d-master.radix.equinor.com'; // The signaling server
+//const signalServer = 'signaling-server-meet3d-master.radix.equinor.com'; // The signaling server
+const signalServer = 'localhost:3000'; // The signaling server
 
 // The configuration containing our STUN and TURN servers.
 const pcConfig = {
@@ -75,7 +78,7 @@ function initSignaling(room, name, cons) {
     console.log('User ' + startInfo.name + ' joined room ' + room);
 
     sendOffer(startInfo.id); // Send the user your local description in order to create a connection
-    newUserJoined(startInfo.id, startInfo.name); // Add the new user to the 3D environment
+    ThreeD.newUserJoined(startInfo.id, startInfo.name); // Add the new user to the 3D environment
     appendConnectionHTMLList(startInfo.id);
   });
 
@@ -111,7 +114,7 @@ function initSignaling(room, name, cons) {
       connections[id] = {};
       connections[id].name = name;
       appendConnectionHTMLList(id); // Add their username to the list of connections on the webpage
-      newUserJoined(id, name); // Add new user to 3D environment
+      ThreeD.newUserJoined(id, name); // Add new user to 3D environment
     }
     console.log("Received offer from " + connections[id].name)
     sendAnswer(id, offerDescription); // Reply to the offer with our details
@@ -226,7 +229,7 @@ async function createPeerConnection(id) {
       let newStream = new MediaStream([event.track]);
 
       if (event.track.kind == "audio") {
-        userGotMedia(id, newStream); // Adds audio track to 3D environment
+        ThreeD.userGotMedia(id, newStream); // Adds audio track to 3D environment
       }
 
       if (event.track.kind == "video") {
@@ -310,7 +313,7 @@ function createDataChannel(id) {
     console.log("Datachannel established to " + connections[id].name);
     advertiseFile();
     addScreenCapture(id);
-    changePos3D();
+    ThreeD.changePos3D();
   };
 
   tempConnection.onclose = function () {

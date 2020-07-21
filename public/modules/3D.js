@@ -579,7 +579,7 @@ function update() {
 
 		// Only call costly functions if we have moved and some time has passed since the last time we called them
 		if (moved && time - prevPosTime > 50 ) {
-			changePos(camera.position.x, 0, camera.position.z); // Update our position for others
+			changePos3D(); // Update our position for others
 			updateVideoList(ourID); // Update which videos to show
 			prevPosTime = time;
 
@@ -655,5 +655,7 @@ export {
 	onDocumentKeyDown,
 	onDocumentKeyUp,
 	changeUserPosition,
-	getDistanceBetween
+	getDistanceBetween,
+	userLeft3D,
+	controls
 };
