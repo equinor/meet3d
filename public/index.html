@@ -70,9 +70,9 @@
 		</videos>
 
 		<buttons id="buttons" hidden>
-			<input type="button" id="changeMode" onclick="open3D()" value="Open Chat" />
-			<input type="button" id="shareButton" onclick="shareScreen()" value="Share Screen" />
-			<input type="button" id="cameraButton" onclick="shareCamera()" value="Add video" />
+			<input type="button" id="changeMode" onclick="open3D(this)" value="Open Chat" />
+			<input type="button" id="shareButton" onclick="shareScreen(this)" value="Share Screen" />
+			<input type="button" id="cameraButton" onclick="shareCamera(this)" value="Add video" />
 		</buttons>
 
 		<div id="3D">
@@ -85,8 +85,5 @@
 	  <script src="socket.io.js"></script>
 	  <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
 	  <script type="module" src="main.js"></script>
-		<script src="three.js"></script>
-		<script src="GLTFLoader.js"></script>
-		<script src="PointerLockControls.js"></script>
 	</body>
 </html>

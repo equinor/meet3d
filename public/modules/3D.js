@@ -1,3 +1,9 @@
+import * as THREE from './three.module.js';
+
+import { GLTFLoader } from './GLTFLoader.js';
+
+import { PointerLockControls } from './PointerLockControls.js';
+
 // GLOBAL CONSTANTS
 const maxX = 100;
 const maxY = 100; // This is probably not needed
@@ -48,7 +54,7 @@ var resourceIndex = 0;
 var connections;
 var ourID;
 
-function init3D(id, connectionsObject) {
+async function init3D(id, connectionsObject, div) {
 	ourID = id;
 	connections = connectionsObject;
 
@@ -73,7 +79,7 @@ function init3D(id, connectionsObject) {
 	allObjects.push(directionalLight);
 
 	//load models
-	loader = new THREE.GLTFLoader();
+	loader = new GLTFLoader();
 
 	addWalls();
 	addDecoration();
@@ -83,9 +89,9 @@ function init3D(id, connectionsObject) {
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize(window.innerWidth, window.innerHeight - 30);
 	renderer.domElement.id = "scene"; // Adds an ID to the canvas element
-	document.getElementById("3D").appendChild(renderer.domElement);
+	div.appendChild(renderer.domElement);
 
-	controls = new THREE.PointerLockControls( camera, document.body );
+	controls = new PointerLockControls( camera, document.body );
 	scene.add(controls.getObject());
 	allObjects.push(controls.getObject());
 
@@ -540,7 +546,6 @@ function onDocumentKeyUp(event) {
 }
 
 function onWindowResize() {
-
 	camera.aspect = window.innerWidth / window.innerHeight;
 	camera.updateProjectionMatrix();
 	resizeCanvas(-1);
@@ -658,4 +663,4 @@ function leave3D() {
 	resourceIndex = 0;
 }
 
-export { newUserJoined3D, userGotMedia, updatePos, userLeft3D, init3D, updateShareScreen3D, getVideoList, updateVideoList, resizeCanvas, leave3D, onDocumentKeyDown, onDocumentKeyUp, changeUserPosition };
+export { UserMap, newUserJoined3D, userGotMedia, updatePos, userLeft3D, init3D, updateShareScreen3D, getVideoList, updateVideoList, resizeCanvas, leave3D, onDocumentKeyDown, onDocumentKeyUp, changeUserPosition };

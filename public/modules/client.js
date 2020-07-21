@@ -25,8 +25,8 @@ var buttons = document.getElementById("buttons");
 var shareButton = document.getElementById("shareButton");
 var cameraButton = document.getElementById("cameraButton");
 
-cameraButton.onclick = function () { shareCamera(cameraButton) };
-shareButton.onclick = function () { shareScreen(shareButton) };
+//cameraButton.onclick = function () { shareCamera(cameraButton) };
+//shareButton.onclick = function () { shareScreen(shareButton) };
 
 chatSend.addEventListener("keyup", function(event) {
     if (event.keyCode === 13) { // This is the 'enter' key-press
@@ -834,4 +834,17 @@ function clearHTML() {
   }
 }
 
-export { clearHTML, initChat, appendConnectionHTMLList, addLocalTracksToConnection, addVideoStream, addScreenCapture, advertiseFile, dataChannelReceive, removeVideoStream, userLeft, updateShareScreen };
+export {
+  clearHTML,
+  initChat,
+  appendConnectionHTMLList,
+  addLocalTracksToConnection,
+  addVideoStream,
+  addScreenCapture,
+  advertiseFile,
+  dataChannelReceive,
+  removeVideoStream,
+  userLeft,
+  updateShareScreen,
+  changeModeButton
+};

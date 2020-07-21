@@ -107,7 +107,7 @@ async function init(button) {
     console.log('We joined: ' + connectionInfo.room);
     ourID = connectionInfo.id;
     await initChat(ourID, connections);
-    init3D(ourID, connections); // Renders the 3D environment
+    await init3D(ourID, connections, document.getElementById("3D")); // Renders the 3D environment
   });
 
   // A user moved in the 3D space

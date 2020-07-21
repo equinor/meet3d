@@ -3,7 +3,13 @@
  * @author Mugen87 / https://github.com/Mugen87
  */
 
-THREE.PointerLockControls = function ( camera, domElement ) {
+import {
+	Euler,
+	EventDispatcher,
+	Vector3
+} from "./three.module.js";
+
+var PointerLockControls = function ( camera, domElement ) {
 
 	if ( domElement === undefined ) {
 
@@ -30,11 +36,11 @@ THREE.PointerLockControls = function ( camera, domElement ) {
 	var lockEvent = { type: 'lock' };
 	var unlockEvent = { type: 'unlock' };
 
-	var euler = new THREE.Euler( 0, 0, 0, 'YXZ' );
+	var euler = new Euler( 0, 0, 0, 'YXZ' );
 
 	var PI_2 = Math.PI / 2;
 
-	var vec = new THREE.Vector3();
+	var vec = new Vector3();
 
 	function onMouseMove( event ) {
 
@@ -110,7 +116,7 @@ THREE.PointerLockControls = function ( camera, domElement ) {
 
 	this.getDirection = function () {
 
-		var direction = new THREE.Vector3( 0, 0, - 1 );
+		var direction = new Vector3( 0, 0, - 1 );
 
 		return function ( v ) {
 
@@ -157,5 +163,7 @@ THREE.PointerLockControls = function ( camera, domElement ) {
 
 };
 
-THREE.PointerLockControls.prototype = Object.create( THREE.EventDispatcher.prototype );
-THREE.PointerLockControls.prototype.constructor = THREE.PointerLockControls;
+PointerLockControls.prototype = Object.create( EventDispatcher.prototype );
+PointerLockControls.prototype.constructor = PointerLockControls;
+
+export { PointerLockControls };
