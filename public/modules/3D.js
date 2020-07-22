@@ -38,7 +38,6 @@ var moveRight = false;
 
 var prevUpdateTime = performance.now();
 var prevPosTime = performance.now();
-var lastPosShared = new THREE.Vector3();
 var velocity = new THREE.Vector3();
 var direction = new THREE.Vector3();
 var videoWidth = 0; // The width that is used up by videos on the side
@@ -428,11 +427,7 @@ function getDistanceBetween(fromX, fromZ, toX, toZ) {
  * was shared to the server, false otherwise.
  */
 function hasMoved() {
-	console.log('hasmoved?: (' + lastPosShared.x + lastPosShared.z + ', ' + camera.position.x + camera.position.z + ')\n lastposshared: ' + lastPosShared);
-	if (getDistanceBetween(lastPosShared.x, camera.position.x, lastPosShared.z, camera.position.z) > 1.0) {
-		return true;
-	}
-	return false;
+	return velocity.length() > 1.0;
 }
 
 /**
@@ -605,18 +600,15 @@ function update() {
 		else if (camera.position.z < minZcam) camera.position.z = minZcam;
 
 		// Only call costly functions if we have moved and some time has passed since the last time we called them
-		if (hasMoved() && time - prevPosTime > 50 ) {
-			console.log('Has moved');
-			let newPos = new THREE.Vector3(camera.position.x, 0, camera.position.z);
+		if (hasMoved(velocity) && time - prevPosTime > 50 ) {
 			changePos(camera.position.x, 0, camera.position.z); // Update our position for others
 			updateVideoList(ourID); // Update which videos to show
-			prevPosTime = time;
-
+			
 			for (let keyId in UserMap) { // Makes the usernames point towards the user
 				UserMap[keyId].avatar.model.getObjectByName('text').lookAt(camera.position.x, 0, camera.position.z);
 			}
-
-			// Add functionality to update direction based on camera direction OR movement direction
+			
+			prevPosTime = time;
 		}
 
 		prevUpdateTime = time;
@@ -640,7 +632,6 @@ function changePos(x, y, z) {
   for (let id in connections) { // Send it to everyone
     connections[id].dataChannel.send(jsonPos);
   }
-  lastPosShared.set(x, y, z);
 }
 
 function leave3D() {
