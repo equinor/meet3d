@@ -341,38 +341,18 @@ function newUserJoined(id, name) {
 function changeUserPosition(id, x, y, z) {
 	let user = UserMap[id];
 
-	//change avatar's rotation
-	if(x > user.avatar.model.position.x){ //down
-		if(z > user.avatar.model.position.z){ //right
-			//setUserRotation(id, 0, 45 * Math.PI / 180, 0); //down-right
-			user.avatar.model.rotation.y = 45 * Math.PI / 180;
-		}else if(z < user.avatar.model.position.z){ //left
-			//setUserRotation(id, 0, 135 * Math.PI / 180, 0); //down-left
-			user.avatar.model.rotation.y = 135 * Math.PI / 180;
-		}else{
-			//setUserRotation(id, 0, 90 * Math.PI / 180, 0); //down
-			user.avatar.model.rotation.y = 90 * Math.PI / 180;
-		}
-	}else if(x < user.avatar.model.position.x){ //up
-		if(z > user.avatar.model.position.z){ //right
-			//setUserRotation(id, 0, -45 * Math.PI / 180, 0); //up-right
-			user.avatar.model.rotation.y = -45 * Math.PI / 180;
-		}else if(z < user.avatar.model.position.z){ //left
-			//setUserRotation(id, 0, -135 * Math.PI / 180, 0); //up-left
-			user.avatar.model.rotation.y = -135 * Math.PI / 180;
-		}else{
-			//setUserRotation(id, 0, -90 * Math.PI / 180, 0); //up
-			user.avatar.model.rotation.y = -90 * Math.PI / 180;
-		}
-	}else{ //neither down nor up
-		if(z > user.avatar.model.position.z){ //right
-			//setUserRotation(id, 0, 0, 0);
-			user.avatar.model.rotation.y = 0;
-		}else if(z < user.avatar.model.position.z){ //left
-			//setUserRotation(id, 0, 180 * Math.PI / 180, 0);
-			user.avatar.model.rotation.y = 180 * Math.PI / 180;
-		}
+	let changeX = x - user.avatar.model.position.x;
+	let changeZ = z - user.avatar.model.position.z;
+	let distance = Math.sqrt(changeX ** 2 + changeZ ** 2);
+	let ratioedChangeZ = changeZ / distance;
+	if(changeX >= 0){
+		user.avatar.model.rotation.y = Math.acos(ratioedChangeZ);
+		console.log("Rotation : " + Math.acos(ratioedChangeZ) * 180 / Math.PI);
+	}else{
+		user.avatar.model.rotation.y = (0 - Math.acos(ratioedChangeZ));
+		console.log("Rotation : " + (0 - Math.acos(ratioedChangeZ)) * 180 / Math.PI );
 	}
+	console.log(user.avatar.model.rotation.y);
 
 	user.avatar.model.position.x = x;
 	user.avatar.model.position.y = y;
