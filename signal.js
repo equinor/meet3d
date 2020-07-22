@@ -40,6 +40,10 @@ io.sockets.on('connection', function(socket) {
     }
   });
 
+  socket.on('ready', function(name) {
+    io.sockets.in(users[socket.id].room).emit('join', { name: name, id: socket.id } );
+  });
+
   socket.on('join', function(startInfo) {
 
     let room = startInfo.room;
@@ -48,26 +52,16 @@ io.sockets.on('connection', function(socket) {
     let clientsInRoom = io.sockets.adapter.rooms[room];
     let numClients = clientsInRoom ? Object.keys(clientsInRoom.sockets).length : 0;
 
-    if (numClients === 0) { // Room created
-
-      rooms[room] = []; // Create a new entry for this room in the dictionary storing the rooms
-      rooms[room].push(socket); // Add the client ID to the list of clients in the room
-      users[socket.id] = { room: room, socket: socket }; // Add the User object to the list of users
-
-      socket.join(room); // Add this user to the room
-      socket.emit('joined', { room: room, id: socket.id } );
-
-    } else if (numClients > 0 && numClients < maxUsers) { // Existing room joined
+    if (numClients < maxUsers) {
+      if (numClients === 0) {
+        rooms[room] = []; // Create a new entry for this room in the dictionary storing the rooms
+      }
 
       rooms[room].push(socket); // Add the client ID to the list of clients in the room
       users[socket.id] = { room: room, socket: socket }; // Add the User object to the list of users
 
       socket.emit('joined', { room: room, id: socket.id } ); // Let the user know they joined the room
-
-      // Let everyone in the room know that a new user has joined
-      io.sockets.in(room).emit('join', { name: name, id: socket.id } );
       socket.join(room); // Add this user to the room
-
     } else { // Someone tried to join a full room
       socket.emit('full', room);
     }

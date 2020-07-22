@@ -1,11 +1,29 @@
 'use strict';
 
 import { newUserJoined3D, userGotMedia, updatePos, updateShareScreen3D, userLeft3D, init3D, leave3D } from './modules/3D.js';
-import { clearHTML, appendConnectionHTMLList, addLocalTracksToConnection, addVideoStream, addScreenCapture, advertiseFile, dataChannelReceive, removeVideoStream, userLeft, updateShareScreen, initChat } from './modules/client.js';
+import { openVideoPage,
+open3D,
+shareCamera,
+shareScreen,
+openChat, clearHTML, appendConnectionHTMLList, addLocalTracksToConnection, addVideoStream, addScreenCapture, advertiseFile, dataChannelReceive, removeVideoStream, userLeft, updateShareScreen, initChat } from './modules/client.js';
 
 var roomName = document.getElementById("roomName");
 var username = document.getElementById("username");
+
 var startButton = document.getElementById("start/leave");
+var roomButton = document.getElementById("3Droom");
+var chatButton = document.getElementById("chatMode");
+var videoButton = document.getElementById("videoButton");
+var shareButton = document.getElementById("shareButton");
+var cameraButton = document.getElementById("cameraButton");
+
+startButton.onclick = function () { init(startButton) };
+roomButton.onclick = function () { open3D() };
+chatButton.onclick = function () { openChat() };
+videoButton.onclick = function () { openVideoPage() };
+shareButton.onclick = function () { shareScreen(shareButton) };
+cameraButton.onclick = function () { shareCamera(cameraButton) };
+
 var socket; // This is the SocketIO connection to the signalling server
 var connections = {};
 /*
@@ -18,8 +36,8 @@ var connections = {};
  *    }
  */
 var ourID;
-//const signalServer = 'signaling-server-meet3d-master.radix.equinor.com'; // The signaling server
-const signalServer = 'localhost:3000'; // The signaling server
+const signalServer = 'signaling-server-meet3d-master.radix.equinor.com'; // The signaling server
+//const signalServer = 'localhost:3000'; // The signaling server
 
 // The configuration containing our STUN and TURN servers.
 const pcConfig = {
@@ -31,8 +49,6 @@ const pcConfig = {
     }
   ]
 };
-
-startButton.onclick = function () { init(startButton) };
 
 username.addEventListener("keyup", function(event) {
     if (event.keyCode === 13) { // This is the 'enter' key-press
@@ -89,17 +105,17 @@ async function init(button) {
   });
 
   // A new user joined the room
-  socket.on('join', function (startInfo) {
-    if (startInfo.id === ourID) return;
+  socket.on('join', function (message) {
+    if (message.id === ourID) return;
 
-    connections[startInfo.id] = {};
-    connections[startInfo.id].name = startInfo.name;
+    connections[message.id] = {};
+    connections[message.id].name = message.name;
 
-    console.log('User ' + startInfo.name + ' joined the room');
+    console.log('User ' + message.name + ' joined the room');
 
-    sendOffer(startInfo.id); // Send the user your local description in order to create a connection
-    newUserJoined3D(startInfo.id, startInfo.name); // Add the new user to the 3D environment
-    appendConnectionHTMLList(startInfo.id);
+    sendOffer(message.id); // Send the user your local description in order to create a connection
+    newUserJoined3D(message.id, message.name); // Add the new user to the 3D environment
+    appendConnectionHTMLList(message.id);
   });
 
   // We joined a conference
@@ -108,6 +124,8 @@ async function init(button) {
     ourID = connectionInfo.id;
     await initChat(ourID, connections);
     await init3D(ourID, connections, document.getElementById("3D")); // Renders the 3D environment
+    console.log('ready')
+    socket.emit('ready', startInfo.name);
   });
 
   // A user moved in the 3D space
