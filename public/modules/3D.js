@@ -427,7 +427,8 @@ function getDistanceBetween(fromX, fromZ, toX, toZ) {
  * false otherwise.
  */
 function hasMoved() {
-	return direction.length();
+	//return direction.length();
+	return ( direction.x || direction.z ); // Do not use square root and should be mor efficient
 }
 
 /**
