@@ -31,13 +31,6 @@ var videoButton = document.getElementById("videoButton");
 var shareButton = document.getElementById("shareButton");
 var cameraButton = document.getElementById("cameraButton");
 
-chatSend.addEventListener("keyup", function(event) {
-    if (event.keyCode === 13) { // This is the 'enter' key-press
-      event.preventDefault();
-      sendChat(); // Send chat message by pressing enter in the chat
-    }
-  });
-
 // These two variables are present in both client.js and connect.js
 var ourID; // This is our unique ID
 var connections; // The key is the socket id, and the value is:
@@ -407,7 +400,8 @@ function dataChannelReceive(id, data) {
     addChat(connections[id].name, message.message, message.whisper);
   } else if (message.type == "share") { // Someone is sharing their screen
     if (message.sharing) { // If the person has started sharing
-      shareButton.hidden = true; // Hide the share screen button
+      if (shareButton) // This is done in order to make unit testing work
+        shareButton.hidden = true; // Hide the share screen button
       sharing.id = id; // Save the ID of the sharing user
       sharing.width = message.width;
       sharing.height = message.height;
@@ -894,5 +888,9 @@ export {
   openChat,
   shareCamera,
   shareScreen,
-  sendChat
+  sendChat,
+
+  // These are used for unit tests
+  sharing,
+  shareButton
 };

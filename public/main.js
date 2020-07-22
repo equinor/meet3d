@@ -29,6 +29,7 @@ var videoButton = document.getElementById("videoButton");
 var shareButton = document.getElementById("shareButton");
 var cameraButton = document.getElementById("cameraButton");
 var chatSendButton = document.getElementById("chatSendButton");
+var chatSend = document.getElementById("chatSend");
 
 startButton.onclick = function () { init(startButton) };
 roomButton.onclick = function () { open3D() };
@@ -37,6 +38,12 @@ videoButton.onclick = function () { openVideoPage() };
 shareButton.onclick = function () { shareScreen(shareButton) };
 cameraButton.onclick = function () { shareCamera(cameraButton) };
 chatSendButton.onclick = function () { sendChat() };
+chatSend.addEventListener("keyup", function(event) {
+    if (event.keyCode === 13) { // This is the 'enter' key-press
+      event.preventDefault();
+      sendChat(); // Send chat message by pressing enter in the chat
+    }
+  });
 
 var socket; // This is the SocketIO connection to the signalling server
 var connections = {};

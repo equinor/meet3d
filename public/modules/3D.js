@@ -358,7 +358,7 @@ function changeUserPosition(id, x, y, z) {
 	if (connections[id].stream) {
 		updateVideoList(id);
 	}
-	UserMap[id].avatar.model.getObjectByName('text').lookAt(camera.position.x, 0, camera.position.z);
+	user.avatar.model.getObjectByName('text').lookAt(camera.position.x, 0, camera.position.z);
 }
 
 function setUserRotation(id, angleY) {
