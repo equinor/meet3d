@@ -292,7 +292,7 @@ function addScreenCapture(id) {
       type: "share",
       sharing: true,
       height: screenCapture.getVideoTracks()[0].getSettings().height,
-      width: screenCapture.getVideoTracks()[0].getSettings().width,
+      width: screenCapture.getVideoTracks()[0].getSettings().width
     });
 
     if (id) { // Share it with one user
