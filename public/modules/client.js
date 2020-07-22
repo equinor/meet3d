@@ -893,5 +893,6 @@ export {
   open3D,
   openChat,
   shareCamera,
-  shareScreen
+  shareScreen,
+  sendChat
 };

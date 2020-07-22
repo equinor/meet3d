@@ -16,6 +16,7 @@ dataChannelReceive,
 removeVideoStream,
 userLeft,
 updateShareScreen,
+sendChat,
 initChat } from './modules/client.js';
 
 var roomName = document.getElementById("roomName");
@@ -27,6 +28,7 @@ var chatButton = document.getElementById("chatMode");
 var videoButton = document.getElementById("videoButton");
 var shareButton = document.getElementById("shareButton");
 var cameraButton = document.getElementById("cameraButton");
+var chatSendButton = document.getElementById("chatSendButton");
 
 startButton.onclick = function () { init(startButton) };
 roomButton.onclick = function () { open3D() };
@@ -34,6 +36,7 @@ chatButton.onclick = function () { openChat() };
 videoButton.onclick = function () { openVideoPage() };
 shareButton.onclick = function () { shareScreen(shareButton) };
 cameraButton.onclick = function () { shareCamera(cameraButton) };
+chatSendButton.onclick = function () { sendChat() };
 
 var socket; // This is the SocketIO connection to the signalling server
 var connections = {};
