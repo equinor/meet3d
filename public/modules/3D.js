@@ -663,7 +663,7 @@ function leave3D() {
 	resourceIndex = 0;
 }
 
-export { 
+export {
 	UserMap,
 	ourID,
 	objectScale,
@@ -679,5 +679,6 @@ export {
 	leave3D,
 	onDocumentKeyDown,
 	onDocumentKeyUp,
-	changeUserPosition
+	changeUserPosition,
+	controls
 };
