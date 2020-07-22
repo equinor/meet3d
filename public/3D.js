@@ -71,7 +71,7 @@ function init3D() {
 	addSkyBox();
 	addWalls();
 	addDecoration();
-
+	addVideoCube();
 	// RENDERER
 	renderer = new THREE.WebGLRenderer();
 	renderer.setPixelRatio( window.devicePixelRatio );
@@ -111,6 +111,19 @@ function addSkyBox(){
 
 	let loader = new THREE.CubeTextureLoader();
 	scene.background = loader.load(urls);
+
+	let textureLoader = new THREE.TextureLoader();
+	let floortext = textureLoader.load( "objects/obj/sh_dn.png" );
+	floortext.wrapS = THREE.RepeatWrapping;
+	floortext.wrapT = THREE.RepeatWrapping;
+	floortext.repeat.set( 100,100 );
+	let floor = new THREE.Mesh(
+		new THREE.PlaneGeometry(10000,10000),
+		new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: floortext })
+	);
+	floor.rotation.x += Math.PI / 2; 
+	floor.position.y = 0;
+	scene.add(floor);
 	
 };
 
@@ -228,6 +241,22 @@ function addWalls() {
 	allObjects.push( wallRight );
 	allObjects.push( wallBack );
 	allObjects.push( wallFront );
+}
+
+function addVideoCube(){
+	let youtube = document.getElementById( 'youtubeVideo');
+
+	var Vtexture = new THREE.VideoTexture( youtube );
+	Vtexture.minFilter = THREE.LinearFilter;
+	Vtexture.magFilter = THREE.LinearFilter;
+	Vtexture.format = THREE.RGBFormat;
+	
+	let geometry = new THREE.BoxGeometry(50,50,50);
+	let Vmaterial = new THREE.MeshBasicMaterial ({map: Vtexture}); //FIXME! WANT TO PLACE VIDEO HEREmap: video)
+	let videoCube = new THREE.Mesh(geometry, Vmaterial);
+	videoCube.position.x = maxX+50;
+	scene.add(videoCube);
+
 }
 
 function addDecoration() {
