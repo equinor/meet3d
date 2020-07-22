@@ -427,7 +427,7 @@ function getDistanceBetween(fromX, fromZ, toX, toZ) {
  * false otherwise.
  */
 function hasMoved() {
-	return direction.length();
+	return direction.lengthSq();
 }
 
 /**
