@@ -35,10 +35,10 @@ var moveForward = false;
 var moveBackward = false;
 var moveLeft = false;
 var moveRight = false;
-var moved = false;
 
 var prevUpdateTime = performance.now();
 var prevPosTime = performance.now();
+var lastPosShared = new THREE.Vector3();
 var velocity = new THREE.Vector3();
 var direction = new THREE.Vector3();
 var videoWidth = 0; // The width that is used up by videos on the side
@@ -317,6 +317,7 @@ function changeUserPosition(id, x, y, z) {
 	if (connections[id].stream) {
 		updateVideoList(id);
 	}
+	//UserMap[id].avatar.model.getObjectByName('text').lookAt(camera.position.x, 0, camera.position.z);
 }
 
 function setUserRotation(id, angleY) {
@@ -410,9 +411,28 @@ function shiftVideoList(id) {
  * user in the 3D space.
  */
 function getDistance(id) {
-	let otherUser = UserMap[id];
-	return (otherUser.avatar.model.position.x - camera.position.x) ** 2 +
-		(otherUser.avatar.model.position.z - camera.position.z) ** 2;
+	let otherPos = UserMap[id].avatar.model.position;
+	return getDistanceBetween((otherPos.x - camera.position.x) ** 2 +
+		(otherPos.z - camera.position.z) ** 2);
+}
+
+/**
+ * Returns the squared distance between two points in the xz-plane.
+ */
+function getDistanceBetween(fromX, fromZ, toX, toZ) {
+	return (toX - fromX)**2 + (toZ - fromZ)**2;
+}
+
+/**
+ * True if user has moved at least 1 unit since the position
+ * was shared to the server, false otherwise.
+ */
+function hasMoved() {
+	console.log('hasmoved?: (' + lastPosShared.x + lastPosShared.z + ', ' + camera.position.x + camera.position.z + ')\n lastposshared: ' + lastPosShared);
+	if (getDistanceBetween(lastPosShared.x, camera.position.x, lastPosShared.z, camera.position.z) > 1.0) {
+		return true;
+	}
+	return false;
 }
 
 /**
@@ -494,22 +514,18 @@ function onDocumentKeyDown(event) {
 
 		case 87: //w
 			moveForward = true;
-			moved = true;
 			break;
 
 		case 65: // a
 			moveLeft = true;
-			moved = true;
 			break;
 
 		case 83: // s
 			moveBackward = true;
-			moved = true;
 			break;
 
 		case 68: // d
 			moveRight = true;
-			moved = true;
 			break;
 
 		case 38://up
@@ -589,7 +605,9 @@ function update() {
 		else if (camera.position.z < minZcam) camera.position.z = minZcam;
 
 		// Only call costly functions if we have moved and some time has passed since the last time we called them
-		if (moved && time - prevPosTime > 50 ) {
+		if (hasMoved() && time - prevPosTime > 50 ) {
+			console.log('Has moved');
+			let newPos = new THREE.Vector3(camera.position.x, 0, camera.position.z);
 			changePos(camera.position.x, 0, camera.position.z); // Update our position for others
 			updateVideoList(ourID); // Update which videos to show
 			prevPosTime = time;
@@ -602,7 +620,6 @@ function update() {
 		}
 
 		prevUpdateTime = time;
-		moved = false;
 	}
 	renderer.render(scene, camera);
 }
@@ -623,6 +640,7 @@ function changePos(x, y, z) {
   for (let id in connections) { // Send it to everyone
     connections[id].dataChannel.send(jsonPos);
   }
+  lastPosShared.set(x, y, z);
 }
 
 function leave3D() {
