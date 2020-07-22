@@ -344,25 +344,33 @@ function changeUserPosition(id, x, y, z) {
 	//change avatar's rotation
 	if(x > user.avatar.model.position.x){ //down
 		if(z > user.avatar.model.position.z){ //right
-			setUserRotation(id, 0, 45 * Math.PI / 180, 0); //down-right
+			//setUserRotation(id, 0, 45 * Math.PI / 180, 0); //down-right
+			user.avatar.model.rotation.y = 45 * Math.PI / 180;
 		}else if(z < user.avatar.model.position.z){ //left
-			setUserRotation(id, 0, 135 * Math.PI / 180, 0); //down-left
+			//setUserRotation(id, 0, 135 * Math.PI / 180, 0); //down-left
+			user.avatar.model.rotation.y = 135 * Math.PI / 180;
 		}else{
-			setUserRotation(id, 0, 90 * Math.PI / 180, 0); //down
+			//setUserRotation(id, 0, 90 * Math.PI / 180, 0); //down
+			user.avatar.model.rotation.y = 90 * Math.PI / 180;
 		}
 	}else if(x < user.avatar.model.position.x){ //up
 		if(z > user.avatar.model.position.z){ //right
-			setUserRotation(id, 0, -45 * Math.PI / 180, 0); //up-right
+			//setUserRotation(id, 0, -45 * Math.PI / 180, 0); //up-right
+			user.avatar.model.rotation.y = -45 * Math.PI / 180;
 		}else if(z < user.avatar.model.position.z){ //left
-			setUserRotation(id, 0, -135 * Math.PI / 180, 0); //up-left
+			//setUserRotation(id, 0, -135 * Math.PI / 180, 0); //up-left
+			user.avatar.model.rotation.y = -135 * Math.PI / 180;
 		}else{
-			setUserRotation(id, 0, -90 * Math.PI / 180, 0); //up
+			//setUserRotation(id, 0, -90 * Math.PI / 180, 0); //up
+			user.avatar.model.rotation.y = -90 * Math.PI / 180;
 		}
 	}else{ //neither down nor up
 		if(z > user.avatar.model.position.z){ //right
-			setUserRotation(id, 0, 0, 0);
+			//setUserRotation(id, 0, 0, 0);
+			user.avatar.model.rotation.y = 0;
 		}else if(z < user.avatar.model.position.z){ //left
-			setUserRotation(id, 0, 180 * Math.PI / 180, 0);
+			//setUserRotation(id, 0, 180 * Math.PI / 180, 0);
+			user.avatar.model.rotation.y = 180 * Math.PI / 180;
 		}
 	}
 
@@ -374,11 +382,11 @@ function changeUserPosition(id, x, y, z) {
 	}
 }
 
-function setUserRotation(id, x, y, z) {
+/*function setUserRotation(id, x, y, z) {
 	UserMap[id].avatar.model.rotation.x = x;
 	UserMap[id].avatar.model.rotation.y = y;
 	UserMap[id].avatar.model.rotation.z = z;
-}
+}*/
 
 /**
  * This function updates the list of videos to display on the screen. Only the
