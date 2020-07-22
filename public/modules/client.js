@@ -5,7 +5,8 @@ import {
   resizeCanvas,
   onDocumentKeyDown,
   onDocumentKeyUp,
-  changeUserPosition
+  changeUserPosition,
+  controls
 } from './3D.js';
 
 var connectionList = document.getElementById("connectionList");
@@ -14,7 +15,6 @@ var chatReceive = document.getElementById("chatReceive");
 var chatBox = document.getElementById("chatBox");
 var chatSend = document.getElementById("chatSend");
 var chatDiv = document.getElementById("chatSection");
-var changeModeButton = document.getElementById("changeMode");
 var files = document.getElementById("files");
 var receivedFiles = document.getElementById("receivedFiles");
 var screenShare = document.getElementById("screenShare");
@@ -22,11 +22,14 @@ var notification = document.getElementById("notification");
 var sceneDiv = document.getElementById("3D");
 var videoElement = document.getElementById("remoteVideo");
 var buttons = document.getElementById("buttons");
+var videoDiv = document.getElementById("videopage");
+var videoPageElement = document.getElementById("remoteVideoPage");
+
+var roomButton = document.getElementById("3Droom");
+var chatButton = document.getElementById("chatMode");
+var videoButton = document.getElementById("videoButton");
 var shareButton = document.getElementById("shareButton");
 var cameraButton = document.getElementById("cameraButton");
-
-//cameraButton.onclick = function () { shareCamera(cameraButton) };
-//shareButton.onclick = function () { shareScreen(shareButton) };
 
 chatSend.addEventListener("keyup", function(event) {
     if (event.keyCode === 13) { // This is the 'enter' key-press
@@ -91,7 +94,6 @@ async function initChat(id, cons) {
   if (!audio) return;
 
   initSwapView(); // Allows users to switch between the chat and the 3D space using 'c'
-  changeModeButton.hidden = false; // Allows the user to open the 3D environment
 
   openChat();
 
@@ -195,7 +197,9 @@ async function shareAudio(button) {
  * Shares our camera stream with the other users.
  */
 async function shareCamera(button) {
+  console.log("hei")
   let cameraCapture = await addLocalTrack(cameraConstraints);
+  console.log("hallo")
 
   if (!cameraCapture) return;
 
@@ -260,8 +264,6 @@ async function shareScreen(button) {
     return;
   }
 
-  console.log(sharing)
-
   if (sharing.id) { // If someone else starts sharing whilst we select our screen, use theirs
     let tracks = screenCapture.getTracks();
     tracks.forEach(track => track.stop());
@@ -275,9 +277,9 @@ async function shareScreen(button) {
   sharing.width = screenCapture.getVideoTracks()[0].getSettings().width;
   sharing.height = screenCapture.getVideoTracks()[0].getSettings().height;
   screenShare.srcObject = screenCapture;
-  console.log(sharing)
   updateShareScreen3D(screenCapture.getVideoTracks()[0], sharing); // Add the stream to the 3D environment
-  updateShareScreen3D(screenCapture.getAudioTracks()[0], sharing); // Add the stream to the 3D environment
+  if (screenCapture.getAudioTracks()[0])
+    updateShareScreen3D(screenCapture.getAudioTracks()[0], sharing); // Add the stream to the 3D environment
   addScreenCapture(null); // Notify other users and add the stream to the connections
 }
 
@@ -294,8 +296,6 @@ function addScreenCapture(id) {
       height: screenCapture.getVideoTracks()[0].getSettings().height,
       width: screenCapture.getVideoTracks()[0].getSettings().width,
     });
-
-    console.log(shareJSON)
 
     if (id) { // Share it with one user
       connections[id].dataChannel.send(shareJSON); // Notify everyone that we want to share our screen
@@ -663,19 +663,30 @@ function addVideoStream(id, track) {
 
   let streamElement = document.createElement("video"); // Create an element to place the stream in
   let streamElementLi = document.createElement("li"); // Create a list entry to store it in
+  let streamElement2 = document.createElement("video");
 
   if (id !== ourID) {
     streamElementLi.hidden = true;
     streamElement.autoplay = false;
+    streamElement2.autoplay = true;
     streamElementLi.id = stream.id; // The ID of the list entry is the ID of the stream
+
+    streamElement2.id = (stream.id + 1);
   } else {
     streamElement.autoplay = true;
+    streamElement2.autoplay = true;
     streamElementLi.id = "ourVideo";
+    streamElement2.id = "ourVideostream";
+
   }
+  streamElement2.srcObject = stream;
+  streamElement.srcObject = stream;
+
+  videoPageElement.appendChild(streamElement2);
 
   streamElement.width = cameraConstraints.video.width;
   streamElement.height = cameraConstraints.video.height;
-  streamElement.srcObject = stream;
+
   streamElementLi.appendChild(streamElement);
   videoElement.hidden = false;
 
@@ -685,8 +696,20 @@ function addVideoStream(id, track) {
     videoElement.children[0].appendChild(streamElementLi);
   }
 
+  videoDisplay();
   resizeCanvas(cameraConstraints.video.width); // Make space for the videos on the screen
   updateVideoList(id); // Update the list of what videos to show, in 3D.js
+}
+
+// Function to choose which videoElement to display in videopage and chat/3D
+function videoDisplay() {
+  if (videoButton.hidden == true) {
+    videoElement.hidden = true;
+    videoPageElement.hidden = false;
+  } else {
+    videoElement.hidden = false;
+    videoPageElement.hidden = true;
+  }
 }
 
 /**
@@ -731,12 +754,15 @@ function openChat() {
 
   chatDiv.style.display = "inline-block"; // Open the chat
   sceneDiv.style.display = "none"; // Hide the 3D scene
+  videoDiv.style.display = "none"; //Hide video
+
+  chatButton.hidden = true;
+  roomButton.hidden = false;
+  videoButton.hidden = false;
+  videoDisplay();
 
   unreadMessages = 0; // We have now seen the received chat messages
   notification.innerHTML = "";
-
-  changeModeButton.onclick = function() { open3D() };
-  changeModeButton.value = "Open 3D";
 
   document.body.style.backgroundColor = "white";
 }
@@ -748,13 +774,34 @@ function open3D() {
   document.addEventListener("keydown", onDocumentKeyDown, false);
 	document.addEventListener("keyup", onDocumentKeyUp, false);
 
+
   chatDiv.style.display = "none"; // Hide the chat
+  videoDiv.style.display = "none"; //Hide video
   sceneDiv.style.display = "inline-block"; // Open the 3D scene
 
-  changeModeButton.onclick = function() { openChat() };
-  changeModeButton.value = "Open Chat";
+  chatButton.hidden = false;
+  videoButton.hidden = false;
+  roomButton.hidden = true;
+  videoDisplay();
 
   document.body.style.backgroundColor = "grey";
+}
+
+/**
+ * Open the videopage and hide chat and 3D scene
+ */
+function openVideoPage() {
+
+  chatDiv.style.display = "none"; // Hide the chat
+  sceneDiv.style.display = "none"; //Hide 3D scene
+  videoDiv.style.display = "inline-block"; //Open videopage
+  document.body.style.backgroundColor = "grey";
+
+  chatButton.hidden = false;
+  videoButton.hidden = true;
+  roomButton.hidden = false;
+
+  videoDisplay();
 }
 
 /**
@@ -773,8 +820,8 @@ function initSwapView() {
 function swapViewOnC(event) {
   if (event.key == 'c') {
     if (controls.isLocked === true) controls.unlock(); // Unlocks the mouse if you swap view while moving in the 3D-space
-
-    if (changeModeButton.value == "Open 3D") open3D();
+    if (videoButton.hidden == true) return;
+    if (roomButton.hidden == false) open3D();
     else openChat();
   }
 }
@@ -813,12 +860,10 @@ function clearHTML() {
   files.style.display = "none"; // Stop listing local files
   roomName.readOnly = false; // Allows the user to change what room to join
   username.readOnly = false; // Allows the user to change their username
-  shareButton.hidden = true; // We cannot share our screen once we leave the conference
   receivedFiles.style.display = "none"; // Stop listing received files
   chatBox.style.display = "none"; // Stop listing messages
   users.style.display = "none"; // Stop listing users
   connectionList.innerHTML = ''; // Empty the list of users
-  changeModeButton.hidden = true;
   videoElement.innerHTML = '<ul></ul>'; // Removes all videos from the list on the right side of the screen
   buttons.hidden = true;
   remoteFiles.innerHTML = ' Remote Files: ';
@@ -849,6 +894,9 @@ export {
   removeVideoStream,
   userLeft,
   updateShareScreen,
-  changeModeButton,
+  openVideoPage,
+  open3D,
+  openChat,
+  shareCamera,
   shareScreen
 };

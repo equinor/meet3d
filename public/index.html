@@ -70,9 +70,11 @@
 		</videos>
 
 		<buttons id="buttons" hidden>
-			<input type="button" id="changeMode" onclick="open3D(this)" value="Open Chat" />
-			<input type="button" id="shareButton" onclick="shareScreen(this)" value="Share Screen" />
-			<input type="button" id="cameraButton" onclick="shareCamera(this)" value="Add video" />
+			<input type="button" id="3Droom" value="Open 3D" />
+			<input type="button" id="chatMode" value="Open Chat" />
+			<input type="button" id="videoButton" value="Open Videos" />
+			<input type="button" id="shareButton" value="Share Screen" />
+			<input type="button" id="cameraButton" value="Add video" />
 		</buttons>
 
 		<div id="3D">
@@ -80,7 +82,15 @@
 			<!-- This is where the 3D canvas goes -->
 		</div>
 
-		<video id="screenShare" hidden autoplay />
+		<br/>
+
+		<videopagevideos id="remoteVideoPage" hidden></videopagevideos>
+
+		<div id="videopage" hidden>
+			<!-- This is where the video canvas goes -->
+		</div>
+
+		<video id="screenShare" hidden autoplay >
 
 	  <script src="socket.io.js"></script>
 	  <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
