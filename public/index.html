@@ -69,16 +69,28 @@
 			</ul>
 		</videos>
 
+		<videopagevideos id = "remoteVideoPage" hidden>
+			
+		</videopagevideos>
+
 		<buttons id="buttons" hidden>
-			<input type="button" id="changeMode" onclick="open3D()" value="Open Chat" hidden />
+			<input type="button" id="3Droom" onclick="open3D()" value="Open 3D" hidden />
+			<input type="button" id="chatMode" onclick="openChat()" value="Open Chat" hidden />
 			<input type="button" id="shareButton" onclick="shareScreen(this)" value="Share Screen" hidden />
 			<input type="button" id="cameraButton" onclick="shareCamera(this)" value="Add video" />
+			<input type="button" id="videoButton" onclick="openVideoPage()" value="Open Videos"  />
+
 		</buttons>
 
 		<div id="3D">
 			<notification id="notification"></notification>
 			<!-- This is where the 3D canvas goes -->
 		</div>
+		
+		<div id="videopage" hidden>
+			<!-- This is where the video canvas goes -->
+		</div>
+
 
 		<video id="screenShare" hidden autoplay />
 

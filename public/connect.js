@@ -222,6 +222,7 @@ async function createPeerConnection(id) {
         } else { // Web camera video
           // Web camera videos should always be in a stream
           addVideoStream(id, event.track);
+          //FIXME Put a function which adds the videostreams to the new videopage
         }
       }
 
@@ -230,6 +231,7 @@ async function createPeerConnection(id) {
           console.log(connections[id].name + ' removed a track from their stream.')
           if (event.track.kind == "video") {
             removeVideoStream(id);
+            //FIXME Should also be removed from the videopage
           }
         }
       }
