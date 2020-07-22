@@ -1,3 +1,9 @@
+import * as THREE from './three.module.js';
+
+import { GLTFLoader } from './GLTFLoader.js';
+
+import { PointerLockControls } from './PointerLockControls.js';
+
 // GLOBAL CONSTANTS
 const maxX = 100;
 const maxY = 100; // This is probably not needed
@@ -19,6 +25,7 @@ var controls;
 var requestID;
 var listener;
 var loader;
+var time;
 
 var objectSize = new THREE.Vector3(); // A Vector3 representing size of each 3D-object
 
@@ -44,8 +51,13 @@ var videoList = []; // The list of remote videos to display
 var videoListLength = 0; // The number of videos to show at a time, not including our own
 const resourceList = ['objects/obj/pawn.glb']; //List of 3D-object-files
 var resourceIndex = 0;
+var connections;
+var ourID;
 
-function init3D() {
+async function init3D(id, connectionsObject, div) {
+	ourID = id;
+	connections = connectionsObject;
+
 	scene = new THREE.Scene();
 	scene.background = new THREE.Color(0xf0f0f0);
 
@@ -67,7 +79,7 @@ function init3D() {
 	allObjects.push(directionalLight);
 
 	//load models
-	loader = new THREE.GLTFLoader();
+	loader = new GLTFLoader();
 
 	addWalls();
 	addDecoration();
@@ -77,9 +89,9 @@ function init3D() {
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize(window.innerWidth, window.innerHeight - 30);
 	renderer.domElement.id = "scene"; // Adds an ID to the canvas element
-	document.getElementById("3D").appendChild(renderer.domElement);
+	div.appendChild(renderer.domElement);
 
-	controls = new THREE.PointerLockControls( camera, document.body );
+	controls = new PointerLockControls( camera, div );
 	scene.add(controls.getObject());
 	allObjects.push(controls.getObject());
 
@@ -102,7 +114,7 @@ function init3D() {
 function updateShareScreen3D(screenObject, details) {
 	scene.remove(tv);
 	if (screenObject) { // If someone is sharing their screen, display it
-		texture = new THREE.VideoTexture(screenObject);
+		let texture = new THREE.VideoTexture(screenObject);
 		texture.minFilter = THREE.LinearFilter;
 		texture.magFilter = THREE.LinearFilter;
 		texture.format = THREE.RGBFormat;
@@ -110,10 +122,6 @@ function updateShareScreen3D(screenObject, details) {
 		let height = details.height;
 		let width = details.width;
 		let ratio = width / height;
-
-		console.log(screenObject.srcObject.getVideoTracks()[0].getSettings())
-
-		console.log("h:", height, "w:", width);
 
 		// This block of code makes the video fit the screen whilst maintaining the original aspect ratio
 		if (height > wallHeight) {
@@ -135,8 +143,6 @@ function updateShareScreen3D(screenObject, details) {
 				height = height2;
 			}
 		}
-
-		console.log("h:", height, "w:", width, "h2:", height2, "w2:", width2);
 
 		tv = new THREE.Mesh(
 			new THREE.PlaneBufferGeometry(width, height, 1, 1),
@@ -177,7 +183,7 @@ function addWalls() {
 
 	// WALLS
 	let walltext = textureLoader.load( "objects/obj/wall1.jpg" );
-	wallLeft = new THREE.Mesh(
+	let wallLeft = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, wallHeight, 1, 1),
 		new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: walltext } )
 	);
@@ -186,7 +192,7 @@ function addWalls() {
 	wallLeft.position.x = -maxX;
 	wallLeft.position.y += wallHeight / 2;
 
-	wallRight = new THREE.Mesh(
+	let wallRight = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, wallHeight, 1, 1),
 		new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: walltext } )
 	);
@@ -195,7 +201,7 @@ function addWalls() {
 	wallRight.position.x = maxX;
 	wallRight.position.y += wallHeight / 2;
 
-	wallBack = new THREE.Mesh(
+	let wallBack = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, wallHeight, 1, 1),
 		new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: walltext } )
 	);
@@ -203,7 +209,7 @@ function addWalls() {
 	wallBack.position.z = maxZ;
 	wallBack.position.y += wallHeight / 2;
 
-	wallFront = new THREE.Mesh(
+	let wallFront = new THREE.Mesh(
 		new THREE.PlaneBufferGeometry(maxX * 2, wallHeight, 1, 1),
 		new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: walltext } )
 	);
@@ -286,7 +292,7 @@ function addText(name, model) {
 	});
 } // end of function addText()
 
-function newUserJoined(id, name) {
+function newUserJoined3D(id, name) {
 	console.log("Adding new user to the 3D environment: " + name);
 	let newUser = {};
 
@@ -340,7 +346,7 @@ function updateVideoList(id) {
 		videoList = []; // Reset the list of videos to display
 		videoListLength = 0;
 		for (const testID in UserMap) {
-			if (testID == ourID || !connections[testID].stream || videoList.includes(testID)) {
+			if (testID == ourID || !connections[testID] || !connections[testID].stream || videoList.includes(testID)) {
 				continue; // Ignore our own user, those who do not have video and those already in the list
 			}
 
@@ -407,6 +413,20 @@ function getDistance(id) {
 	let otherUser = UserMap[id];
 	return (otherUser.avatar.model.position.x - camera.position.x) ** 2 +
 		(otherUser.avatar.model.position.z - camera.position.z) ** 2;
+}
+
+/**
+ * This function updates which videos are visible on the screen. The list of
+ * videos to display is 'videoList' in 3D.js.
+ */
+function updateVideoVisibility() {
+	for (let i = 0; i < videoListLength; i++) {
+    let id = videoList[i];
+    if (id == 0 || !connections[id].stream.id) continue;
+
+    document.getElementById(connections[id].stream.id).hidden = false;
+    document.getElementById(connections[id].stream.id).children[0].autoplay = true;
+  }
 }
 
 function userGotMedia(id, mediaStream) {
@@ -525,11 +545,9 @@ function onDocumentKeyUp(event) {
 	}
 }
 
-/**
- * Called when the width or height of the webpage is changed. The 3D scene is
- * reshaped as a result.
- */
 function onWindowResize() {
+	camera.aspect = window.innerWidth / window.innerHeight;
+	camera.updateProjectionMatrix();
 	resizeCanvas(-1);
 }
 
@@ -539,18 +557,17 @@ function onWindowResize() {
  * If it is -1 then the previously used value of videoWidth will be used.
  */
 function resizeCanvas(newWidth) {
-	camera.aspect = window.innerWidth / window.innerHeight;
-	camera.updateProjectionMatrix();
 	if (newWidth >= 0)
 		videoWidth = newWidth;
 	renderer.setSize( window.innerWidth - videoWidth, window.innerHeight - 30 );
 }
 
+
 //function to update frame
 function update() {
 	requestID = requestAnimationFrame(update);
 	if (controls.isLocked === true) {
-		var time = performance.now();
+		time = performance.now();
 		var delta = ( time - prevUpdateTime ) / 1000;
 
 		velocity.x -= velocity.x * 10.0 * delta;
@@ -594,8 +611,18 @@ function update() {
  * This is a wrapper function which can be used to update our current position
  * for other users without needing to access 3D.js variables.
  */
-function changePos3D() {
+function updatePos() {
 	changePos(camera.position.x, 0, camera.position.z);
+}
+
+/**
+ * Function which tells other users our new 3D position.
+ */
+function changePos(x, y, z) {
+  let jsonPos = JSON.stringify({type: "pos", x: x, y: y, z: z});
+  for (let id in connections) { // Send it to everyone
+    connections[id].dataChannel.send(jsonPos);
+  }
 }
 
 function leave3D() {
@@ -603,11 +630,11 @@ function leave3D() {
 	updateShareScreen3D(null);
 
 	for (let id in UserMap) {
-		if (UserMap[id].audioElement.srcObject) {
+		if (UserMap[id].audioElement) {
 			UserMap[id].audioElement.srcObject.getTracks().forEach(track => track.stop());
+			UserMap[id].audioElement.srcObject = null;
+			UserMap[id].audioElement = null;
 		}
-		UserMap[id].audioElement.srcObject = null;
-		UserMap[id].audioElement = null;
 		delete UserMap[id];
 	}
 
@@ -635,3 +662,23 @@ function leave3D() {
 	videoListLength = 0;
 	resourceIndex = 0;
 }
+
+export {
+	UserMap,
+	ourID,
+	objectScale,
+	newUserJoined3D,
+	userGotMedia,
+	updatePos,
+	userLeft3D,
+	init3D,
+	updateShareScreen3D,
+	getVideoList,
+	updateVideoList,
+	resizeCanvas,
+	leave3D,
+	onDocumentKeyDown,
+	onDocumentKeyUp,
+	changeUserPosition,
+	controls
+};
