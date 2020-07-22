@@ -5,7 +5,18 @@ import { openVideoPage,
 open3D,
 shareCamera,
 shareScreen,
-openChat, clearHTML, appendConnectionHTMLList, addLocalTracksToConnection, addVideoStream, addScreenCapture, advertiseFile, dataChannelReceive, removeVideoStream, userLeft, updateShareScreen, initChat } from './modules/client.js';
+openChat,
+clearHTML,
+appendConnectionHTMLList,
+addLocalTracksToConnection,
+addVideoStream,
+addScreenCapture,
+advertiseFile,
+dataChannelReceive,
+removeVideoStream,
+userLeft,
+updateShareScreen,
+initChat } from './modules/client.js';
 
 var roomName = document.getElementById("roomName");
 var username = document.getElementById("username");
@@ -124,7 +135,7 @@ async function init(button) {
     ourID = connectionInfo.id;
     await initChat(ourID, connections);
     await init3D(ourID, connections, document.getElementById("3D")); // Renders the 3D environment
-    console.log('ready')
+    console.log('We are ready to receive offers');
     socket.emit('ready', startInfo.name);
   });
 
@@ -268,9 +279,6 @@ async function createPeerConnection(id) {
 
       let newStream = new MediaStream([event.track]);
 
-      console.log(event)
-      console.log(newStream)
-
       if (event.track.kind == "audio") {
         connections[id].audiostream = event.streams[0];
         userGotMedia(id, newStream); // Adds audio track to 3D environment
@@ -279,7 +287,6 @@ async function createPeerConnection(id) {
       if (event.track.kind == "video") {
 
         if (event.streams[0].id !== connections[id].audiostream.id) { // Screen capture video
-          console.log("heisan")
           updateShareScreen(event.track); // Add the video track to the 3D environment
         } else { // Web camera video
           // Web camera videos should always be in a stream

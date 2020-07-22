@@ -40,6 +40,8 @@ var moved = false;
 
 var prevUpdateTime = performance.now();
 var prevPosTime = performance.now();
+var lastX = 0;
+var lastZ = 0;
 var velocity = new THREE.Vector3();
 var direction = new THREE.Vector3();
 var videoWidth = 0; // The width that is used up by videos on the side
@@ -159,9 +161,6 @@ function addPositionalAudioToObject(stream, object) {
  * only remove the existing one.
  */
 function updateShareScreen3D(screenTrack, details) {
-	console.log(screenTrack);
-	console.log(details);
-
 	if (screenTrack) { // If someone is sharing their screen, display it
 
 		let stream = new MediaStream([screenTrack]);
@@ -186,8 +185,6 @@ function updateShareScreen3D(screenTrack, details) {
 			);
 			tv.position.z = -(maxZ - 1);
 			tv.position.y += wallHeight / 2;
-
-			console.log(tv)
 
 			scene.add(tv);
 			allObjects.push(tv);
@@ -363,6 +360,7 @@ function changeUserPosition(id, x, y, z) {
 	if (connections[id].stream) {
 		updateVideoList(id);
 	}
+	UserMap[id].avatar.model.getObjectByName('text').lookAt(camera.position.x, 0, camera.position.z);
 }
 
 function setUserRotation(id, angleY) {
@@ -520,12 +518,6 @@ function loadNewObject(resource){
 		avatar.model.scale.y = objectScale;
 		avatar.model.scale.z = objectScale;
 
-		//FIXME errors when these are uncommented
-		//avatar['clips'] = gltf.animations;
-		//avatar['mixer'] = new THREE.AnimationMixer(gltf.scene);
-		//avatar['swim'] = avatar.mixer.clipAction(gltf.animations[0]);
-		//avatar.swim.play(); // FIXME Currently not working
-
 		let boundingBox = new THREE.Box3().setFromObject(avatar.model);
 		objectSize = boundingBox.getSize(); // Returns Vector3
 
@@ -537,25 +529,20 @@ function loadNewObject(resource){
 
 function onDocumentKeyDown(event) {
 	switch (event.keyCode) {
-
 		case 87: //w
 			moveForward = true;
-			moved = true;
 			break;
 
 		case 65: // a
 			moveLeft = true;
-			moved = true;
 			break;
 
 		case 83: // s
 			moveBackward = true;
-			moved = true;
 			break;
 
 		case 68: // d
 			moveRight = true;
-			moved = true;
 			break;
 
 		case 38://up
@@ -572,7 +559,6 @@ function onDocumentKeyDown(event) {
 
 function onDocumentKeyUp(event) {
 	switch ( event.keyCode ) {
-
 		case 87: // w
 			moveForward = false;
 			break;
@@ -608,6 +594,11 @@ function resizeCanvas(newWidth) {
 	renderer.setSize( window.innerWidth - videoWidth, window.innerHeight - 30 );
 }
 
+function hasMoved(x, z) {
+	if (x !== lastX || z !== lastZ) return true;
+  return false;
+}
+
 
 //function to update frame
 function update() {
@@ -629,13 +620,15 @@ function update() {
 		controls.moveRight( - velocity.x * delta );
 		controls.moveForward( - velocity.z * delta );
 
+		/*
 		if (camera.position.x > maxXcam) camera.position.x = maxXcam;
 		else if (camera.position.x < minXcam) camera.position.x = minXcam;
 		if (camera.position.z > maxZcam) camera.position.z = maxZcam;
 		else if (camera.position.z < minZcam) camera.position.z = minZcam;
+		*/
 
 		// Only call costly functions if we have moved and some time has passed since the last time we called them
-		if (moved && time - prevPosTime > 50 ) {
+		if (hasMoved(camera.position.x, camera.position.z) && time - prevPosTime > 50) {
 			changePos(camera.position.x, 0, camera.position.z); // Update our position for others
 			updateVideoList(ourID); // Update which videos to show
 			prevPosTime = time;
@@ -643,12 +636,10 @@ function update() {
 			for (let keyId in UserMap) { // Makes the usernames point towards the user
 				UserMap[keyId].avatar.model.getObjectByName('text').lookAt(camera.position.x, 0, camera.position.z);
 			}
-
-			// Add functionality to update direction based on camera direction OR movement direction
+			lastX = camera.position.x;
+			lastZ = camera.position.z;
 		}
-
 		prevUpdateTime = time;
-		moved = false;
 	}
 	renderer.render(scene, camera);
 }

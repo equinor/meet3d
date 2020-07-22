@@ -68,7 +68,7 @@ const screenShareConstraints = {
   video: {
     cursor: "always"
   },
-  audio: false
+  audio: true
 };
 
 // Our local camera video constraints
@@ -197,9 +197,7 @@ async function shareAudio(button) {
  * Shares our camera stream with the other users.
  */
 async function shareCamera(button) {
-  console.log("hei")
   let cameraCapture = await addLocalTrack(cameraConstraints);
-  console.log("hallo")
 
   if (!cameraCapture) return;
 
@@ -395,9 +393,6 @@ function dataChannelReceive(id, data) {
     receiveFile(id, data); // If it is not a JSON then it is a file Blob
     return;
   }
-
-  console.log(message)
-  console.log(connections)
 
   if (message.type == "pos") { // It is 3D positional data
     changeUserPosition(id, message.x, message.y, message.z); // Change position of user
