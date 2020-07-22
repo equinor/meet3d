@@ -302,9 +302,9 @@ function newUserJoined(id, name) {
 	avatar['model'] = new THREE.Object3D();
 	loader.load(avatar.resource, function(gltf) { // this could probably be vastly improved
 		avatar.model.add(gltf.scene);
-		avatar.model.scale.x = objectScale;
+		/*avatar.model.scale.x = objectScale;
 		avatar.model.scale.y = objectScale;
-		avatar.model.scale.z = objectScale;
+		avatar.model.scale.z = objectScale;*/
 
 		avatar['mixer'] = new THREE.AnimationMixer(gltf.scene);
 		avatar['action'] = avatar.mixer.clipAction(gltf.animations[0]);
@@ -316,6 +316,9 @@ function newUserJoined(id, name) {
 		scene.add(avatar.model);
 		allObjects.push(avatar.model);
 	});
+	avatar.model.scale.x = objectScale;
+	avatar.model.scale.y = objectScale;
+	avatar.model.scale.z = objectScale;
 	newUser['avatar'] = avatar;
 
 	addText(name, newUser.avatar.model);
@@ -327,8 +330,42 @@ function newUserJoined(id, name) {
 	return newUser;
 }
 
+/*function getUserPosition(id){
+	var position = {};
+	position['x'] = UserMap[id].avatar.model.position.x;
+	position['y'] = UserMap[id].avatar.model.position.y;
+	position['z'] = UserMap[id].avatar.model.position.z;
+	return position;
+}*/
+
 function changeUserPosition(id, x, y, z) {
 	let user = UserMap[id];
+
+	//change avatar's rotation
+	if(x > user.avatar.model.position.x){ //down
+		if(z > user.avatar.model.position.z){ //right
+			setUserRotation(id, 0, 45 * Math.PI / 180, 0); //down-right
+		}else if(z < user.avatar.model.position.z){ //left
+			setUserRotation(id, 0, 135 * Math.PI / 180, 0); //down-left
+		}else{
+			setUserRotation(id, 0, 90 * Math.PI / 180, 0); //down
+		}
+	}else if(x < user.avatar.model.position.x){ //up
+		if(z > user.avatar.model.position.z){ //right
+			setUserRotation(id, 0, -45 * Math.PI / 180, 0); //up-right
+		}else if(z < user.avatar.model.position.z){ //left
+			setUserRotation(id, 0, -135 * Math.PI / 180, 0); //up-left
+		}else{
+			setUserRotation(id, 0, -90 * Math.PI / 180, 0); //up
+		}
+	}else{ //neither down nor up
+		if(z > user.avatar.model.position.z){ //right
+			setUserRotation(id, 0, 0, 0);
+		}else if(z < user.avatar.model.position.z){ //left
+			setUserRotation(id, 0, 180 * Math.PI / 180, 0);
+		}
+	}
+
 	user.avatar.model.position.x = x;
 	user.avatar.model.position.y = y;
 	user.avatar.model.position.z = z;
@@ -337,8 +374,10 @@ function changeUserPosition(id, x, y, z) {
 	}
 }
 
-function setUserRotation(id, angleY) {
-	UserMap[id].avatar.model.rotation.y = angleY;
+function setUserRotation(id, x, y, z) {
+	UserMap[id].avatar.model.rotation.x = x;
+	UserMap[id].avatar.model.rotation.y = y;
+	UserMap[id].avatar.model.rotation.z = z;
 }
 
 /**
@@ -546,8 +585,17 @@ function resizeCanvas(newWidth) {
 //function to update frame
 function update() {
 	requestID = requestAnimationFrame(update);
+	var time = performance.now();
+	var delta = ( time - prevUpdateTime ) / 1000;
+
+	//updating animation
+	for(u in UserMap){
+		if(UserMap[u].avatar.mixer){
+			UserMap[u].avatar.mixer.update(delta);
+		}
+	}
 	if (controls.isLocked === true) {
-		var time = performance.now();
+		/*var time = performance.now();
 		var delta = ( time - prevUpdateTime ) / 1000;
 
 		//updating animation
@@ -555,7 +603,7 @@ function update() {
 			if(UserMap[u].avatar.mixer){
 				UserMap[u].avatar.mixer.update(delta);
 			}
-		}
+		}*/
 
 		velocity.x -= velocity.x * 10.0 * delta;
 		velocity.z -= velocity.z * 10.0 * delta;
@@ -588,9 +636,10 @@ function update() {
 			// Add functionality to update direction based on camera direction OR movement direction
 		}
 
-		prevUpdateTime = time;
+		//prevUpdateTime = time;
 		moved = false;
 	}
+	prevUpdateTime = time;
 	renderer.render(scene, camera);
 }
 

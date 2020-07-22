@@ -386,6 +386,7 @@ function dataChannelReceive(id, data) {
 
   if (message.type == "pos") { // It is 3D positional data
     changeUserPosition(id, message.x, message.y, message.z); // Change position of user
+    //setUserRotation(id, message.angle);
   } else if (message.type == "file") { // It is a list of advertised files
     clearFileList(id); // Remove previous file options
     for (let i in message.files) {
