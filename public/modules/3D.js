@@ -423,11 +423,11 @@ function getDistanceBetween(fromX, fromZ, toX, toZ) {
 }
 
 /**
- * True if user has moved at least 1 unit since the position
- * was shared to the server, false otherwise.
+ * True if keypress suggests that the user wants to move,
+ * false otherwise.
  */
 function hasMoved() {
-	return velocity.length() > 1.0;
+	return direction.length();
 }
 
 /**
@@ -600,7 +600,7 @@ function update() {
 		else if (camera.position.z < minZcam) camera.position.z = minZcam;
 
 		// Only call costly functions if we have moved and some time has passed since the last time we called them
-		if (hasMoved(velocity) && time - prevPosTime > 50 ) {
+		if ( hasMoved() && time - prevPosTime > 50 ) {
 			changePos(camera.position.x, 0, camera.position.z); // Update our position for others
 			updateVideoList(ourID); // Update which videos to show
 			
