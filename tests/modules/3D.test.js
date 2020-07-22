@@ -8,5 +8,5 @@ test('changeUserPosition - small value - all axis', () => {
 
   threeD.changeUserPosition(5, 1, 1, 1);
 
-  expect(threeD.UserMap[5].avatar.model.position.x).toBe(10);
+  expect(threeD.UserMap[5].avatar.model.position.x).toBe(1);
 });
