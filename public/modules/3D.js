@@ -663,4 +663,21 @@ function leave3D() {
 	resourceIndex = 0;
 }
 
-export { UserMap, newUserJoined3D, userGotMedia, updatePos, userLeft3D, init3D, updateShareScreen3D, getVideoList, updateVideoList, resizeCanvas, leave3D, onDocumentKeyDown, onDocumentKeyUp, changeUserPosition };
+export { 
+	UserMap,
+	ourID,
+	objectScale,
+	newUserJoined3D,
+	userGotMedia,
+	updatePos,
+	userLeft3D,
+	init3D,
+	updateShareScreen3D,
+	getVideoList,
+	updateVideoList,
+	resizeCanvas,
+	leave3D,
+	onDocumentKeyDown,
+	onDocumentKeyUp,
+	changeUserPosition
+};
