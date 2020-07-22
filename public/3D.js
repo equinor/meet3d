@@ -183,6 +183,7 @@ function addWalls() {
 		new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: floortext })
 	);
 	floor.rotation.x += Math.PI / 2; //can rotate the floor/plane
+	floor.position.y = 1;
 	scene.add(floor);
 	allObjects.push(floor);
 
