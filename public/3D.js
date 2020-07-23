@@ -347,12 +347,12 @@ function changeUserPosition(id, x, y, z) {
 	let ratioedChangeZ = changeZ / distance;
 	if(changeX >= 0){
 		user.avatar.model.rotation.y = Math.acos(ratioedChangeZ);
-		console.log("Rotation : " + Math.acos(ratioedChangeZ) * 180 / Math.PI);
+		//console.log("Rotation : " + Math.acos(ratioedChangeZ) * 180 / Math.PI);
 	}else{
 		user.avatar.model.rotation.y = (0 - Math.acos(ratioedChangeZ));
-		console.log("Rotation : " + (0 - Math.acos(ratioedChangeZ)) * 180 / Math.PI );
+		//console.log("Rotation : " + (0 - Math.acos(ratioedChangeZ)) * 180 / Math.PI );
 	}
-	console.log(user.avatar.model.rotation.y);
+	//console.log(user.avatar.model.rotation.y);
 
 	user.avatar.model.position.x = x;
 	user.avatar.model.position.y = y;
