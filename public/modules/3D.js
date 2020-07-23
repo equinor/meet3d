@@ -36,7 +36,6 @@ var moveForward = false;
 var moveBackward = false;
 var moveLeft = false;
 var moveRight = false;
-var moved = false;
 
 var prevUpdateTime = performance.now();
 var prevPosTime = performance.now();
@@ -447,9 +446,17 @@ function shiftVideoList(id) {
  * user in the 3D space.
  */
 function getDistance(id) {
-	let otherUser = UserMap[id];
-	return (otherUser.avatar.model.position.x - camera.position.x) ** 2 +
-		(otherUser.avatar.model.position.z - camera.position.z) ** 2;
+	let otherPos = UserMap[id].avatar.model.position;
+	return (otherPos.x - camera.position.x) ** 2 +
+		(otherPos.z - camera.position.z) ** 2;
+}
+
+/**
+ * True if keypress suggests that the user wants to move,
+ * false otherwise.
+ */
+function hasMoved() {
+	return direction.lengthSq();
 }
 
 /**
@@ -526,22 +533,18 @@ function onDocumentKeyDown(event) {
 
 		case 87: //w
 			moveForward = true;
-			moved = true;
 			break;
 
 		case 65: // a
 			moveLeft = true;
-			moved = true;
 			break;
 
 		case 83: // s
 			moveBackward = true;
-			moved = true;
 			break;
 
 		case 68: // d
 			moveRight = true;
-			moved = true;
 			break;
 
 		case 38://up
@@ -621,20 +624,18 @@ function update() {
 		else if (camera.position.z < minZcam) camera.position.z = minZcam;
 
 		// Only call costly functions if we have moved and some time has passed since the last time we called them
-		if (moved && time - prevPosTime > 50) {
+		if ( hasMoved() && time - prevPosTime > 50 ) {
 			changePos(camera.position.x, 0, camera.position.z); // Update our position for others
 			updateVideoList(ourID); // Update which videos to show
-			prevPosTime = time;
 
 			for (let keyId in UserMap) { // Makes the usernames point towards the user
 				UserMap[keyId].avatar.model.getObjectByName('text').lookAt(camera.position.x, 0, camera.position.z);
 			}
 
-			// Add functionality to update direction based on camera direction OR movement direction
+			prevPosTime = time;
 		}
 
 		prevUpdateTime = time;
-		moved = false;
 	}
 	renderer.render(scene, camera);
 }
