@@ -6,6 +6,12 @@ beforeAll(() => {
 });
 
 beforeEach(() => {
+
+  threeD.moveForward = false;
+  threeD.moveBackward = false;
+  threeD.moveRight = false;
+  threeD.moveLeft = false;
+
   threeD.newUserJoined3D(5, "test");
   let text = new THREE.Mesh();
   text.name = "text";
@@ -60,4 +66,44 @@ test('set name number', () => {
 
 test('set name number', () => {
   expect(threeD.getVideoRatio(50, 50)).toEqual({ height: 50, width: 50 });
+});
+
+test('setUserRotation - small value', () => {
+  threeD.setUserRotation(5, 1);
+
+  expect(threeD.UserMap[5].avatar.model.rotation.y).toBe(1);
+});
+
+test('setUserRotation - several values', () => {
+  threeD.setUserRotation(5, 1);
+  expect(threeD.UserMap[5].avatar.model.rotation.y).toBe(1);
+  threeD.setUserRotation(5, 7);
+  expect(threeD.UserMap[5].avatar.model.rotation.y).toBe(7);
+  threeD.setUserRotation(5, -100);
+  expect(threeD.UserMap[5].avatar.model.rotation.y).toBe(-100);
+});
+
+test('onDocumentKeyDown - user moved forwards', () => {
+  threeD.onDocumentKeyDown({ keyCode: 87 });
+  expect(threeD.moveForward && !threeD.moveBackward && !threeD.moveRight && !threeD.moveLeft).toBe(true);
+});
+
+test('onDocumentKeyDown - user moved left', () => {
+  threeD.onDocumentKeyDown({ keyCode: 65 });
+  expect(!threeD.moveForward && !threeD.moveBackward && !threeD.moveRight && threeD.moveLeft).toBe(true);
+});
+
+test('onDocumentKeyDown - user moved backwards', () => {
+  threeD.onDocumentKeyDown({ keyCode: 83 });
+  expect(!threeD.moveForward && threeD.moveBackward && !threeD.moveRight && !threeD.moveLeft).toBe(true);
+});
+
+test('onDocumentKeyDown - user moved right', () => {
+  threeD.onDocumentKeyDown({ keyCode: 68 });
+  expect(!threeD.moveForward && !threeD.moveBackward && threeD.moveRight && !threeD.moveLeft).toBe(true);
+});
+
+test('userLeft3D - user moved right', () => {
+  threeD.userLeft3D(5);
+  expect(threeD.UserMap[5]).toBeUndefined();
 });
