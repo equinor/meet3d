@@ -452,15 +452,8 @@ function shiftVideoList(id) {
  */
 function getDistance(id) {
 	let otherPos = UserMap[id].avatar.model.position;
-	return getDistanceBetween((otherPos.x - camera.position.x) ** 2 +
-		(otherPos.z - camera.position.z) ** 2);
-}
-
-/**
- * Returns the squared distance between two points in the xz-plane.
- */
-function getDistanceBetween(fromX, fromZ, toX, toZ) {
-	return (toX - fromX)**2 + (toZ - fromZ)**2;
+	return (otherPos.x - camera.position.x) ** 2 +
+		(otherPos.z - camera.position.z) ** 2;
 }
 
 /**
