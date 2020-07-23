@@ -885,7 +885,6 @@ export {
   shareCamera,
   shareScreen,
   sendChat,
-  advertiseFile,
 
   // These are used for unit tests
   sharing,

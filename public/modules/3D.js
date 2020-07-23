@@ -79,9 +79,10 @@ async function init3D(id, connectionsObject, div) {
 	allObjects.push(ambientLight);
 	allObjects.push(directionalLight);
 
-	//load models
+	// GLTF LOADER
 	loader = new GLTFLoader();
 
+	// ADD SCENERY
 	addWalls();
 	addDecoration();
 
@@ -92,6 +93,7 @@ async function init3D(id, connectionsObject, div) {
 	renderer.domElement.id = "scene"; // Adds an ID to the canvas element
 	div.appendChild(renderer.domElement);
 
+	// CAMERA CONTROLS
 	controls = new PointerLockControls( camera, div );
 	scene.add(controls.getObject());
 	allObjects.push(controls.getObject());
@@ -328,8 +330,11 @@ function newUserJoined3D(id, name) {
 	console.log("Adding new user to the 3D environment: " + name);
 	let newUser = {};
 
-	newUser['name'] = name;
-	newUser['avatar'] = loadNewObject(resourceList[resourceIndex]);
+	if (name == null || name === '') throw new Error("Name cannot be empty");
+	if (typeof name !== "string") throw new Error("Name must be a string");
+
+	newUser.name = name;
+	newUser.avatar = loadNewObject(resourceList[resourceIndex]);
 	resourceIndex++;
 	resourceIndex %= resourceList.length; // Make sure the index never exceeds the size of the list
 
@@ -485,11 +490,13 @@ function userGotMedia(id, mediaStream) {
 
 function userLeft3D(id) {
 	scene.remove(UserMap[id].avatar.model);
-	if (UserMap[id].audioElement.srcObject) {
-		UserMap[id].audioElement.srcObject.getTracks().forEach(track => track.stop());
+	if (UserMap[id].audioElement) { // Needed for testing
+		if (UserMap[id].audioElement.srcObject) {
+			UserMap[id].audioElement.srcObject.getTracks().forEach(track => track.stop());
+		}
+		UserMap[id].audioElement.srcObject = null;
+		UserMap[id].audioElement = null;
 	}
-	UserMap[id].audioElement.srcObject = null;
-	UserMap[id].audioElement = null;
 	delete UserMap[id];
 	updateVideoList(ourID);
 }
@@ -713,5 +720,8 @@ export {
 	onDocumentKeyDown,
 	onDocumentKeyUp,
 	changeUserPosition,
-	controls
+	controls,
+
+	// For tests
+	getVideoRatio
 };
