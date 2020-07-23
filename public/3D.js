@@ -21,6 +21,7 @@ var controls;
 
 var requestID;
 var listener;
+var videoFileListener;
 var loader;
 
 var objectSize = new THREE.Vector3(); // A Vector3 representing size of each 3D-object
@@ -75,6 +76,10 @@ function init3D() {
 	allObjects.push(ambientLight);
 	allObjects.push(directionalLight);
 
+	videoFileListener = new THREE.AudioListener();
+	camera.add(videoFileListener);
+
+
 	//load models
 	loader = new THREE.GLTFLoader();
 	addSkyBox();
@@ -107,6 +112,7 @@ function init3D() {
 
 	listener = new THREE.AudioListener();
 	controls.getObject().add(listener)
+
 
 	window.addEventListener( 'resize', onWindowResize, false );
 	document.addEventListener( 'keydown', onDocumentKeyDown, false );
@@ -271,32 +277,39 @@ function addWalls() {
 }
 
 function addVideoCube(){
-	/*let material = new THREE.MeshBasicMaterial({ wireframe: true });
-	let geometry = new THREE.PlaneGeometry();
-	let planeMesh= new THREE.Mesh( geometry, material );
-// add it to the WebGL scene
-	scene.add(planeMesh);*/
-	
-	let youtube = document.getElementById( 'youtubev');
-	youtube.hidden = false;
-	let object = new THREE.CSS3DObject(youtube);
-	object.position = 0;
-	virtualCamera.lookAt(object);
-	//object.rotation = planeMesh.rotation;
-	cssscene.add(object);
+	let videofile = document.getElementById("videofile"); //HTML element
+	let audiofile = document.createElement("audiofile");
+	let sound = new THREE.PositionalAudio(videoFileListener);//create PositionalAudio object
+	sound.setRefDistance(20);
+	sound.setRolloffFactor(2);
 
-	//var Vtexture = new THREE.VideoTexture( youtube );
-	/*
+	audiofile.srcObject = videofile.getTracks();
+	audiofile.muted = true;
+	const audio2 = sound.context.createMediaStreamSource(audiofile.srcObject)
+	sound.setNodeSource(audio2);
+	
+
+	let Vtexture = new THREE.VideoTexture(videofile);
+	/*var vposAudio = new THREE.PositionalAudio(videoFileListener);
+	let media = new MediaStream(videofile.getAudioTracks())
+	vposAudio.setRefDistance(20);
+	vposAudio.setRolloffFactor(2);
+	vposAudio.setMediaStreamSource(media);
+*/
 	Vtexture.minFilter = THREE.LinearFilter;
 	Vtexture.magFilter = THREE.LinearFilter;
 	Vtexture.format = THREE.RGBFormat;
-	*/
-	/*let geometry = new THREE.BoxGeometry(50,50,50);
-	let Vmaterial = new THREE.MeshBasicMaterial ({}); //FIXME! WANT TO PLACE VIDEO HEREmap: video)
-	let videoCube = new THREE.Mesh(geometry, Vmaterial);
-	videoCube.position.x = maxX+50;
-	videoCube.position.y = 26;
-	scene.add(videoCube);*/
+
+	let geometry = new THREE.PlaneGeometry(50,50,50);
+	let Vmaterial = new THREE.MeshBasicMaterial ({side: THREE.DoubleSide, map: Vtexture}); //FIXME! WANT TO PLACE VIDEO HEREmap: video)
+	let videoPlane = new THREE.Mesh(geometry, Vmaterial);
+	videoPlane.position.x = 0;
+	videoPlane.position.y = 20;
+	videoPlane.position.z=0;
+	videoPlane.add(sound);
+	scene.add(videoPlane);
+	
+	
 
 }
 
