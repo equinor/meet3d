@@ -16,7 +16,6 @@ dataChannelReceive,
 removeVideoStream,
 userLeft,
 updateShareScreen,
-advertiseFile,
 sendChat,
 initChat } from './modules/client.js';
 
