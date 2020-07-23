@@ -29,6 +29,11 @@ test('set name new', () => {
   expect(threeD.UserMap[5].name).toBe("my_new_name");
 });
 
+test('set name - WILL FAIL', () => {
+  threeD.init3D(3, {"5" : {id: 5}}, document.body);
+  threeD.newUserJoined3D(5, "my_new_name");
+  expect(threeD.UserMap[5].name).toBe("wrong _name");
+});
 
 test('changeUserPosition - big values - all axis', () => {
   threeD.init3D(3, {"5" : {id: 5}}, document.body);
