@@ -12,8 +12,11 @@ const minZcam = -maxZ + 1;
 
 // GLOBAL VARIABLES
 var scene;
+var cssscene;
 var camera;
+var virtualCamera;
 var renderer;
+var cssrenderer;
 var controls;
 
 var requestID;
@@ -45,13 +48,19 @@ var videoListLength = 0; // The number of videos to show at a time, not includin
 const resourceList = ['objects/obj/pawn.glb']; //List of 3D-object-files
 var resourceIndex = 0;
 
+
 function init3D() {
 	scene = new THREE.Scene();
-	
+	cssscene = new THREE.Scene();
 
 	// CAMERA
-	camera = new THREE.PerspectiveCamera(100, (window.innerWidth / window.outerWidth), 0.1, 300000);
+	camera = new THREE.PerspectiveCamera(75, (window.innerWidth / window.outerWidth), 0.1, 300000);
 	camera.position.y = wallHeight / 3;
+
+	virtualCamera = new THREE.Camera();
+	
+	//virtualCamera.add( camera );
+
 
 	// LIGHT
 	let light = new THREE.PointLight( 0xff0000, 1, 100 );
@@ -73,11 +82,24 @@ function init3D() {
 	addDecoration();
 	addVideoCube();
 	// RENDERER
-	renderer = new THREE.WebGLRenderer();
+	renderer = new THREE.WebGLRenderer({alpha: true, antiAliasing: true});
+	renderer.setClearColor( 0x000000, 0 );
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize(window.innerWidth, window.innerHeight - 30);
+	renderer.domElement.style.position = 'absolute';
+	renderer.domElement.style.top = 0;
+	renderer.domElement.style.zIndex = "0";
 	renderer.domElement.id = "scene"; // Adds an ID to the canvas element
 	document.getElementById("3D").appendChild(renderer.domElement);
+
+	cssrenderer = new THREE.CSS3DRenderer();
+	cssrenderer.setSize(window.innerWidth, window.innerHeight);
+	cssrenderer.domElement.style.position = 'absolute';
+	cssrenderer.domElement.style.top = 0;
+	cssrenderer.domElement.id="cssscenes";
+	document.getElementById("3D").appendChild(cssrenderer.domElement);
+	
+
 
 	controls = new THREE.PointerLockControls( camera, document.body );
 	scene.add(controls.getObject());
@@ -89,8 +111,11 @@ function init3D() {
 	window.addEventListener( 'resize', onWindowResize, false );
 	document.addEventListener( 'keydown', onDocumentKeyDown, false );
 	document.addEventListener( 'keyup', onDocumentKeyUp, false );
-
+   
+	cssrenderer.render(cssscene, virtualCamera);
 	renderer.render(scene, camera);
+
+	
 
 	update();
 }
@@ -218,6 +243,7 @@ function addWalls() {
 	wallRight.position.x = maxX;
 	wallRight.position.y += wallHeight / 2;
 
+
 	wallBack = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, wallHeight, 1, 1),
 		new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: walltext } )
@@ -245,18 +271,32 @@ function addWalls() {
 }
 
 function addVideoCube(){
-	let youtube = document.getElementById( 'youtubeVideo');
+	/*let material = new THREE.MeshBasicMaterial({ wireframe: true });
+	let geometry = new THREE.PlaneGeometry();
+	let planeMesh= new THREE.Mesh( geometry, material );
+// add it to the WebGL scene
+	scene.add(planeMesh);*/
+	
+	let youtube = document.getElementById( 'youtubev');
+	youtube.hidden = false;
+	let object = new THREE.CSS3DObject(youtube);
+	object.position = 0;
+	virtualCamera.lookAt(object);
+	//object.rotation = planeMesh.rotation;
+	cssscene.add(object);
 
-	var Vtexture = new THREE.VideoTexture( youtube );
+	//var Vtexture = new THREE.VideoTexture( youtube );
+	/*
 	Vtexture.minFilter = THREE.LinearFilter;
 	Vtexture.magFilter = THREE.LinearFilter;
 	Vtexture.format = THREE.RGBFormat;
-	
-	let geometry = new THREE.BoxGeometry(50,50,50);
-	let Vmaterial = new THREE.MeshBasicMaterial ({map: Vtexture}); //FIXME! WANT TO PLACE VIDEO HEREmap: video)
+	*/
+	/*let geometry = new THREE.BoxGeometry(50,50,50);
+	let Vmaterial = new THREE.MeshBasicMaterial ({}); //FIXME! WANT TO PLACE VIDEO HEREmap: video)
 	let videoCube = new THREE.Mesh(geometry, Vmaterial);
 	videoCube.position.x = maxX+50;
-	scene.add(videoCube);
+	videoCube.position.y = 26;
+	scene.add(videoCube);*/
 
 }
 
@@ -620,7 +660,10 @@ function update() {
 		prevUpdateTime = time;
 		moved = false;
 	}
+	cssrenderer.render(cssscene, virtualCamera);
 	renderer.render(scene, camera);
+	
+
 }
 
 /**
