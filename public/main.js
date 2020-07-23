@@ -60,6 +60,7 @@ var connections = {};
  */
 var ourID;
 const signalServer = 'signaling-server-meet3d-master.radix.equinor.com'; // The signaling server
+//const signalServer = 'localhost:3000'; // The signaling server
 
 // The configuration containing our STUN and TURN servers.
 const pcConfig = {
@@ -284,9 +285,7 @@ async function createPeerConnection(id) {
     };
 
     pc.ontrack = function (event) {
-      console.log('Remote stream added.');
-
-      if (!event.streams[0]) return;
+      console.log('Remote track added.');
 
       let newStream = new MediaStream([event.track]);
 

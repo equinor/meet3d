@@ -255,6 +255,10 @@ async function shareScreen(button) {
     return;
   }
 
+  screenCapture.getVideoTracks()[0].onended = function (event) { // Detects when sharing is disabled in chrome
+    stopShareScreen(button);
+  }
+
   if (sharing.id) { // If someone else starts sharing whilst we select our screen, use theirs
     let tracks = screenCapture.getTracks();
     tracks.forEach(track => track.stop());

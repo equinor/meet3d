@@ -1,7 +1,7 @@
 import * as threeD from '../../public/modules/3D.js'
 import * as THREE from '../../public/modules/three.module.js'
 
-// ---------------------- SETUP ----------------------
+// --------------------------- SETUP ---------------------------
 
 beforeAll(() => {
   threeD.init3D(3, {"5" : {id: 5}}, document.body);
@@ -28,7 +28,7 @@ afterAll(() => {
   threeD.leave3D();
 });
 
-// ---------------------- TESTS ----------------------
+// --------------------------- TESTS ---------------------------
 
 test('changeUserPosition - small value - all axis', () => {
   threeD.changeUserPosition(5, 1, 1, 1);
