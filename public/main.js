@@ -1,7 +1,3 @@
-<<<<<<< HEAD:public/connect.js
-var socket; // This is the SocketIO connection to the signalling server
-const signalServer = 'localhost:3000'; // The signaling server
-=======
 'use strict';
 
 import { newUserJoined3D, userGotMedia, updatePos, updateShareScreen3D, userLeft3D, init3D, leave3D } from './modules/3D.js';
@@ -48,7 +44,6 @@ chatSend.addEventListener("keyup", function(event) {
       sendChat(); // Send chat message by pressing enter in the chat
     }
   });
->>>>>>> master:public/main.js
 
 var socket; // This is the SocketIO connection to the signalling server
 var connections = {};
