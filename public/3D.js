@@ -56,9 +56,6 @@ function init3D() {
 	camera = new THREE.PerspectiveCamera(75, (window.innerWidth / window.outerWidth), 0.1, 300000);
 	camera.position.y = wallHeight / 3;
 
-
-
-
 	// LIGHT
 	let light = new THREE.PointLight( 0xff0000, 1, 100 );
 	let ambientLight = new THREE.AmbientLight( 0xcccccc ); //keep the ambient light. The objects look a lot better
