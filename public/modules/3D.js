@@ -625,7 +625,7 @@ function update() {
 	var delta = ( time - prevUpdateTime ) / 1000;
 
 	//updating animation
-	for(u in UserMap){
+	for(let u in UserMap){
 		if(UserMap[u].avatar.mixer){
 			UserMap[u].avatar.mixer.update(delta);
 		}
@@ -662,8 +662,8 @@ function update() {
 			prevPosTime = time;
 		}
 
-		prevUpdateTime = time;
 	}
+	prevUpdateTime = time;
 	renderer.render(scene, camera);
 }
 
