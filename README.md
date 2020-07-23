@@ -6,3 +6,6 @@ These features are implemented using WebRTC connections and the Three.js JavaScr
 
 Below is a diagram showing the signaling process in client.js. In this case the "Server" represents the interaction with the server.js program.
 ![A diagram showing the WebRTC signaling process](/WebRTC-signaling.png)
+
+The following diagram illustrated the broad architecture of the program, by mapping the connections between the different modules and files included.
+![A diagram showing the program high level architecture](/architecture-diagram.png)

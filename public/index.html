@@ -34,7 +34,7 @@
 					<!-- New chat messages go here -->
 				</ul>
 				<input type="text" id="chatSend" style="width:490px;" placeholder="Type a message here! Use @username to message a specific user"></input>
-				<input type="button" onclick="sendChat()" value="Send"></input>
+				<input id="chatSendButton" type="button" value="Send"></input>
 			</chat>
 
 			<div class="users" id="users" hidden>
@@ -83,15 +83,14 @@
 		</div>
 
 		<br/>
-		
+
 		<videopagevideos id="remoteVideoPage" hidden></videopagevideos>
 
 		<div id="videopage" hidden>
 			<!-- This is where the video canvas goes -->
 		</div>
 
-
-		<video id="screenShare" hidden autoplay />
+		<video id="screenShare" hidden autoplay >
 
 	  <script src="socket.io.js"></script>
 	  <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
