@@ -112,6 +112,18 @@ async function init3D(id, connectionsObject, div) {
 	update();
 }
 
+//called to preserve avatar coherence among all users, can only be executed once
+var reserveResource = (function() {
+    var executed = false;
+    return function() {
+        if (!executed) {
+            executed = true;
+			resourceList.shift();
+			console.log("We have reserved our resource!");
+        }
+    };
+})();
+
 function getVideoRatio(height, width) {
 	let ratio = width / height;
 
@@ -728,6 +740,7 @@ export {
 	ourID,
 	objectScale,
 	newUserJoined3D,
+	reserveResource,
 	userGotMedia,
 	updatePos,
 	userLeft3D,
