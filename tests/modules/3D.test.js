@@ -60,3 +60,18 @@ test('changeUserPosition - negative values - all axis', () => {
   expect(threeD.UserMap[5].avatar.model.position.y).toBe(-44444400);
   expect(threeD.UserMap[5].avatar.model.position.z).toBe(-1);
 });
+
+test('changeUserPosition - new test', () => {
+  threeD.init3D(3, {"5" : {id: 5}}, document.body);
+  threeD.newUserJoined3D(5, "test");
+
+  let text = new THREE.Mesh();
+  text.name = "text";
+  threeD.UserMap[5].avatar.model.add(text);
+
+  threeD.changeUserPosition(5, 10, 100, 1000);
+
+  expect(threeD.UserMap[5].avatar.model.position.x).toBe(10);
+  expect(threeD.UserMap[5].avatar.model.position.y).toBe(100);
+  expect(threeD.UserMap[5].avatar.model.position.z).toBe(1000);
+});
