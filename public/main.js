@@ -16,6 +16,7 @@ dataChannelReceive,
 removeVideoStream,
 userLeft,
 updateShareScreen,
+advertiseFile,
 sendChat,
 initChat } from './modules/client.js';
 
@@ -30,6 +31,7 @@ var shareButton = document.getElementById("shareButton");
 var cameraButton = document.getElementById("cameraButton");
 var chatSendButton = document.getElementById("chatSendButton");
 var chatSend = document.getElementById("chatSend");
+var uploadButton = document.getElementById("uploadButton");
 
 startButton.onclick = function () { init(startButton) };
 roomButton.onclick = function () { open3D() };
@@ -44,6 +46,7 @@ chatSend.addEventListener("keyup", function(event) {
       sendChat(); // Send chat message by pressing enter in the chat
     }
   });
+uploadButton.onclick = function() { advertiseFile() };
 
 var socket; // This is the SocketIO connection to the signalling server
 var connections = {};
@@ -290,13 +293,11 @@ async function createPeerConnection(id) {
       let newStream = new MediaStream([event.track]);
 
       if (event.track.kind == "audio") {
-        connections[id].audiostream = event.streams[0];
         userGotMedia(id, newStream); // Adds audio track to 3D environment
       }
 
       if (event.track.kind == "video") {
-
-        if (event.streams[0].id !== connections[id].audiostream.id) { // Screen capture video
+        if (event.streams.length == 0) { // Screen capture video
           updateShareScreen(event.track); // Add the video track to the 3D environment
         } else { // Web camera video
           // Web camera videos should always be in a stream

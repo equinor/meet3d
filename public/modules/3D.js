@@ -159,41 +159,32 @@ function addPositionalAudioToObject(stream, object) {
  * only remove the existing one.
  */
 function updateShareScreen3D(screenTrack, details) {
+	scene.remove(tv);
 	if (screenTrack) { // If someone is sharing their screen, display it
-
 		let stream = new MediaStream([screenTrack]);
-		if (screenTrack.kind == "video") {
-			let screenObject = document.createElement("video")
-			screenObject.autoplay = true;
-			screenObject.srcObject = stream;
+		let screenObject = document.createElement("video")
+		screenObject.autoplay = true;
+		screenObject.srcObject = stream;
 
-			let texture = new THREE.VideoTexture(screenObject);
-			texture.minFilter = THREE.LinearFilter;
-			texture.magFilter = THREE.LinearFilter;
-			texture.format = THREE.RGBFormat;
+		let texture = new THREE.VideoTexture(screenObject);
+		texture.minFilter = THREE.LinearFilter;
+		texture.magFilter = THREE.LinearFilter;
+		texture.format = THREE.RGBFormat;
 
-			let height = details.height;
-			let width = details.width;
+		let height = details.height;
+		let width = details.width;
 
-			let ratio = getVideoRatio(height, width);
+		let ratio = getVideoRatio(height, width);
 
-			tv = new THREE.Mesh(
-				new THREE.PlaneBufferGeometry(ratio.width, ratio.height, 1, 1),
-				new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: texture } )
-			);
-			tv.position.z = -(maxZ - 1);
-			tv.position.y += wallHeight / 2;
+		tv = new THREE.Mesh(
+			new THREE.PlaneBufferGeometry(ratio.width, ratio.height, 1, 1),
+			new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: texture } )
+		);
+		tv.position.z = -(maxZ - 1);
+		tv.position.y += wallHeight / 2;
 
-			scene.add(tv);
-			allObjects.push(tv);
-
-		} else if (screenTrack.kind == "audio") {
-			tvAudio = new THREE.Object3D();
-			addPositionalAudioToObject(stream, tvAudio);
-		}
-	} else {
-		scene.remove(tv);
-		scene.remove(tvAudio);
+		scene.add(tv);
+		allObjects.push(tv);
 	}
 }
 
@@ -630,7 +621,7 @@ function update() {
 		else if (camera.position.z < minZcam) camera.position.z = minZcam;
 
 		// Only call costly functions if we have moved and some time has passed since the last time we called them
-		if (moved && time - prevPosTime > 50 ) {
+		if (moved && time - prevPosTime > 50) {
 			changePos(camera.position.x, 0, camera.position.z); // Update our position for others
 			updateVideoList(ourID); // Update which videos to show
 			prevPosTime = time;
@@ -662,7 +653,8 @@ function updatePos() {
 function changePos(x, y, z) {
   let jsonPos = JSON.stringify({type: "pos", x: x, y: y, z: z});
   for (let id in connections) { // Send it to everyone
-    connections[id].dataChannel.send(jsonPos);
+		if (connections[id].dataChannel)
+    	connections[id].dataChannel.send(jsonPos);
   }
 }
 

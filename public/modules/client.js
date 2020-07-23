@@ -291,16 +291,12 @@ function addScreenCapture(id) {
     if (id) { // Share it with one user
       connections[id].dataChannel.send(shareJSON); // Notify everyone that we want to share our screen
       connections[id].connection.addTrack(screenCapture.getVideoTracks()[0], screenCapture); // Update our media stream with video
-      if (screenCapture.getAudioTracks()[0])
-        connections[id].connection.addTrack(screenCapture.getAudioTracks()[0], screenCapture); // Update our media stream with audio
     } else { // Share it with all users
       for (let i in connections) {
         connections[i].dataChannel.send(shareJSON); // Notify everyone that we want to share our screen
       }
       for (let i in connections) {
         connections[i].connection.addTrack(screenCapture.getVideoTracks()[0], screenCapture); // Update our media stream with video
-        if (screenCapture.getAudioTracks()[0])
-          connections[i].connection.addTrack(screenCapture.getAudioTracks()[0], screenCapture); // Update our media stream with audio
       }
     }
   }
@@ -889,6 +885,7 @@ export {
   shareCamera,
   shareScreen,
   sendChat,
+  advertiseFile,
 
   // These are used for unit tests
   sharing,
