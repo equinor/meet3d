@@ -1,15 +1,20 @@
-'use strict';
+import {
+  updateShareScreen3D,
+  getVideoList,
+  updateVideoList,
+  resizeCanvas,
+  onDocumentKeyDown,
+  onDocumentKeyUp,
+  changeUserPosition,
+  controls
+} from './3D.js';
 
-var roomName = document.getElementById("roomName");
-var startButton = document.getElementById("start/leave");
 var connectionList = document.getElementById("connectionList");
 var users = document.getElementById("users");
-var username = document.getElementById("username");
 var chatReceive = document.getElementById("chatReceive");
 var chatBox = document.getElementById("chatBox");
 var chatSend = document.getElementById("chatSend");
 var chatDiv = document.getElementById("chatSection");
-var changeModeButton = document.getElementById("changeMode");
 var files = document.getElementById("files");
 var receivedFiles = document.getElementById("receivedFiles");
 var screenShare = document.getElementById("screenShare");
@@ -17,32 +22,18 @@ var notification = document.getElementById("notification");
 var sceneDiv = document.getElementById("3D");
 var videoElement = document.getElementById("remoteVideo");
 var buttons = document.getElementById("buttons");
+var videoDiv = document.getElementById("videopage");
+var videoPageElement = document.getElementById("remoteVideoPage");
+
+var roomButton = document.getElementById("3Droom");
+var chatButton = document.getElementById("chatMode");
+var videoButton = document.getElementById("videoButton");
 var shareButton = document.getElementById("shareButton");
-
-username.addEventListener("keyup", function(event) {
-    if (event.keyCode === 13) { // This is the 'enter' key-press
-      event.preventDefault();
-      init(document.getElementById("start/leave")); // Join the conference by pressing enter in the username input box
-    }
-  });
-
-roomName.addEventListener("keyup", function(event) {
-    if (event.keyCode === 13) { // This is the 'enter' key-press
-      event.preventDefault();
-      init(document.getElementById("start/leave")); // Join the conference by pressing enter in the room name input box
-    }
-  });
-
-chatSend.addEventListener("keyup", function(event) {
-    if (event.keyCode === 13) { // This is the 'enter' key-press
-      event.preventDefault();
-      sendChat(); // Send chat message by pressing enter in the chat
-    }
-  });
+var cameraButton = document.getElementById("cameraButton");
 
 // These two variables are present in both client.js and connect.js
 var ourID; // This is our unique ID
-var connections = {}; // The key is the socket id, and the value is:
+var connections; // The key is the socket id, and the value is:
 /*    {
  *      name: String,
  *      stream: MediaStream,
@@ -54,8 +45,7 @@ var connections = {}; // The key is the socket id, and the value is:
 
 var localStream = null; // This is our local media stream
 var textFile = null; // This stores any downloaded file
-var sharing = false; // Is someone sharing their screen
-var shareUser = null; // Which user is sharing their screen
+var sharing = {};
 var screenCapture = null; // The stream containing the video capture of our screen
 var unreadMessages = 0; // The number of messages we have received whilst not in 'chat mode'
 const maxChatLength = 20; // The chat will only hold this many messages at a time
@@ -71,7 +61,7 @@ const screenShareConstraints = {
   video: {
     cursor: "always"
   },
-  audio: false
+  audio: true
 };
 
 // Our local camera video constraints
@@ -88,32 +78,28 @@ const cameraConstraints = {
  * Initialises the conference by first getting an audio stream from the user
  * and then using that stream to connect to the other users in the given room.
  */
-async function init(button) {
-  if (username.value === '') { // No username given
-    alert('Please enter a username');
-    return;
-  }
+async function initChat(id, cons) {
 
-  if (roomName.value === '') { // No room name given
-    alert('Please enter a room name');
-    return;
-  }
+  ourID = id;
+  connections = cons;
 
   let audio = await shareAudio(null); // We need audio to start
-  if (!audio) {
-    return;
-  }
+  if (!audio) return;
 
-  button.value = "Leave";
-  button.onclick = function() { leave(button) };
-  username.readOnly = true; // Do not allow the user to edit their name, but show it
-  roomName.readOnly = true; // Do not allow the user to edit the room name, but show it
-
-  initChat(); // Show the chat
-  initSignaling(roomName.value, username.value); // Connect to the conference room
-  init3D(name); // Renders the 3D environment
   initSwapView(); // Allows users to switch between the chat and the 3D space using 'c'
-  changeModeButton.hidden = false; // Allows the user to open the 3D environment
+
+  openChat();
+
+  files.style.display = "inline-block";
+  users.style.display = "inline-block";
+  connectionList.hidden = false;
+  chatBox.style.display = "inline-block";
+  receivedFiles.style.display = "none";
+  buttons.hidden = false;
+
+  sceneDiv.style.display = "none"; // Hide the 3D scene
+
+  return true;
 }
 
 /**
@@ -253,7 +239,7 @@ function stopShareCamera(button) {
  */
 async function shareScreen(button) {
 
-  if (shareUser) return; // Someone else is sharing their screen
+  if (sharing.id) return; // Someone else is sharing their screen
 
   try {
     screenCapture = await navigator.mediaDevices.getDisplayMedia(screenShareConstraints); // Ask for the screen capture
@@ -269,15 +255,23 @@ async function shareScreen(button) {
     return;
   }
 
+  if (sharing.id) { // If someone else starts sharing whilst we select our screen, use theirs
+    let tracks = screenCapture.getTracks();
+    tracks.forEach(track => track.stop());
+    return;
+  }
+
   button.value = "Stop Sharing Screen";
   button.onclick = function () { stopShareScreen(button) };
 
-  shareUser = ourID; // We are the one sharing our screen
+  sharing.id = ourID; // We are the one sharing our screen
+  sharing.width = screenCapture.getVideoTracks()[0].getSettings().width;
+  sharing.height = screenCapture.getVideoTracks()[0].getSettings().height;
   screenShare.srcObject = screenCapture;
-  sharing = true;
-  updateShareScreen3D(screenShare); // Add the stream to the 3D environment
-
-  addScreenCapture(null);
+  updateShareScreen3D(screenCapture.getVideoTracks()[0], sharing); // Add the stream to the 3D environment
+  if (screenCapture.getAudioTracks()[0])
+    updateShareScreen3D(screenCapture.getAudioTracks()[0], sharing); // Add the stream to the 3D environment
+  addScreenCapture(null); // Notify other users and add the stream to the connections
 }
 
 /**
@@ -285,22 +279,28 @@ async function shareScreen(button) {
  * 'id', or to all connections if 'id' is null.
  */
 function addScreenCapture(id) {
-  if (sharing && shareUser == ourID) { // If we are sharing
+  if (sharing.id && sharing.id == ourID) { // If we are sharing
 
     let shareJSON = JSON.stringify({
       type: "share",
-      sharing: true
+      sharing: true,
+      height: screenCapture.getVideoTracks()[0].getSettings().height,
+      width: screenCapture.getVideoTracks()[0].getSettings().width
     });
 
     if (id) { // Share it with one user
       connections[id].dataChannel.send(shareJSON); // Notify everyone that we want to share our screen
-      connections[id].connection.addTrack(screenCapture.getVideoTracks()[0]); // Update our media stream
+      connections[id].connection.addTrack(screenCapture.getVideoTracks()[0], screenCapture); // Update our media stream with video
+      if (screenCapture.getAudioTracks()[0])
+        connections[id].connection.addTrack(screenCapture.getAudioTracks()[0], screenCapture); // Update our media stream with audio
     } else { // Share it with all users
       for (let i in connections) {
         connections[i].dataChannel.send(shareJSON); // Notify everyone that we want to share our screen
       }
       for (let i in connections) {
-        connections[i].connection.addTrack(screenCapture.getVideoTracks()[0]); // Update our media stream
+        connections[i].connection.addTrack(screenCapture.getVideoTracks()[0], screenCapture); // Update our media stream with video
+        if (screenCapture.getAudioTracks()[0])
+          connections[i].connection.addTrack(screenCapture.getAudioTracks()[0], screenCapture); // Update our media stream with audio
       }
     }
   }
@@ -311,7 +311,7 @@ function addScreenCapture(id) {
  */
 function stopShareScreen(button) {
 
-  if (!screenShare.srcObject || shareUser !== ourID) {
+  if (!screenShare.srcObject || sharing.id !== ourID) {
     return; // We are not sharing our screen, so we do not need to close anything
   }
 
@@ -322,10 +322,10 @@ function stopShareScreen(button) {
 
   tracks.forEach(track => track.stop()); // Stop the video track
   screenShare.srcObject = null;
-  screenShare.hidden = true;
-  sharing = false; // This indicates that noone is sharing their screen
-  shareUser = null;
-  updateShareScreen3D(null); // Re-add the 3D walls without the video texture
+  sharing.id = null; // This indicates that noone is sharing their screen
+  sharing.width = 0;
+  sharing.height = 0;
+  updateShareScreen3D(null, sharing); // Re-add the 3D walls without the video texture
 
   let shareJSON = JSON.stringify({
     type: "share",
@@ -334,6 +334,16 @@ function stopShareScreen(button) {
 
   for (let id in connections) {
     connections[id].dataChannel.send(shareJSON); // Let all users know that we are no longer sharing our screen
+  }
+}
+
+/**
+ * Adds the given stream to the 3D environment, passing along the video width
+ * and height as it does so.
+ */
+function updateShareScreen(videoStream) {
+  if (sharing.id) {
+    updateShareScreen3D(videoStream, sharing);
   }
 }
 
@@ -390,15 +400,20 @@ function dataChannelReceive(id, data) {
     addChat(connections[id].name, message.message, message.whisper);
   } else if (message.type == "share") { // Someone is sharing their screen
     if (message.sharing) { // If the person has started sharing
-      shareButton.hidden = true; // Hide the share screen button
-      shareUser = id; // Save the ID of the sharing user
+      if (shareButton) // This is done in order to make unit testing work
+        shareButton.hidden = true; // Hide the share screen button
+      sharing.id = id; // Save the ID of the sharing user
+      sharing.width = message.width;
+      sharing.height = message.height;
     } else { // If they have stopped sharing
-      shareUser = null;
+      sharing.id = null;
+      sharing.width = 0;
+      sharing.height = 0;
+
       shareButton.hidden = false; // Unhide the share screen button
       screenShare.srcObject = null;
-      updateShareScreen3D(null); // Re-add the 3D walls without the video texture
+      updateShareScreen3D(null, sharing); // Re-add the 3D walls without the video texture
     }
-    sharing = message.sharing; // This boolean stores whether or not someone is streaming
   }
 }
 
@@ -637,19 +652,30 @@ function addVideoStream(id, track) {
 
   let streamElement = document.createElement("video"); // Create an element to place the stream in
   let streamElementLi = document.createElement("li"); // Create a list entry to store it in
+  let streamElement2 = document.createElement("video");
 
   if (id !== ourID) {
     streamElementLi.hidden = true;
     streamElement.autoplay = false;
+    streamElement2.autoplay = true;
     streamElementLi.id = stream.id; // The ID of the list entry is the ID of the stream
+
+    streamElement2.id = (stream.id + 1);
   } else {
     streamElement.autoplay = true;
+    streamElement2.autoplay = true;
     streamElementLi.id = "ourVideo";
+    streamElement2.id = "ourVideostream";
+
   }
+  streamElement2.srcObject = stream;
+  streamElement.srcObject = stream;
+
+  videoPageElement.appendChild(streamElement2);
 
   streamElement.width = cameraConstraints.video.width;
   streamElement.height = cameraConstraints.video.height;
-  streamElement.srcObject = stream;
+
   streamElementLi.appendChild(streamElement);
   videoElement.hidden = false;
 
@@ -659,8 +685,20 @@ function addVideoStream(id, track) {
     videoElement.children[0].appendChild(streamElementLi);
   }
 
+  videoDisplay();
   resizeCanvas(cameraConstraints.video.width); // Make space for the videos on the screen
   updateVideoList(id); // Update the list of what videos to show, in 3D.js
+}
+
+// Function to choose which videoElement to display in videopage and chat/3D
+function videoDisplay() {
+  if (videoButton.hidden == true) {
+    videoElement.hidden = true;
+    videoPageElement.hidden = false;
+  } else {
+    videoElement.hidden = false;
+    videoPageElement.hidden = true;
+  }
 }
 
 /**
@@ -697,36 +735,6 @@ function updateVideoVisibility() {
 }
 
 /**
- * Function which tells other users our new 3D position.
- */
-function changePos(x, y, z) {
-  let jsonPos = JSON.stringify({type: "pos", x: x, y: y, z: z});
-  for (let id in connections) { // Send it to everyone
-    connections[id].dataChannel.send(jsonPos);
-  }
-}
-
-/**
- * Open up the chat window to its initial state.
- */
-function initChat() {
-  openChat();
-
-  files.style.display = "inline-block";
-  users.style.display = "inline-block";
-  connectionList.hidden = false;
-  chatBox.style.display = "inline-block";
-  receivedFiles.style.display = "none";
-  buttons.hidden = false;
-
-  if ((sharing && shareUser == ourID) || !sharing) {
-    shareButton.hidden = false;
-  }
-
-  sceneDiv.style.display = "none"; // Hide the 3D scene
-}
-
-/**
  * Open the chat and hide the 3D environment.
  */
 function openChat() {
@@ -735,12 +743,15 @@ function openChat() {
 
   chatDiv.style.display = "inline-block"; // Open the chat
   sceneDiv.style.display = "none"; // Hide the 3D scene
+  videoDiv.style.display = "none"; //Hide video
+
+  chatButton.hidden = true;
+  roomButton.hidden = false;
+  videoButton.hidden = false;
+  videoDisplay();
 
   unreadMessages = 0; // We have now seen the received chat messages
   notification.innerHTML = "";
-
-  changeModeButton.onclick = function() { open3D() };
-  changeModeButton.value = "Open 3D";
 
   document.body.style.backgroundColor = "white";
 }
@@ -752,13 +763,34 @@ function open3D() {
   document.addEventListener("keydown", onDocumentKeyDown, false);
 	document.addEventListener("keyup", onDocumentKeyUp, false);
 
+
   chatDiv.style.display = "none"; // Hide the chat
+  videoDiv.style.display = "none"; //Hide video
   sceneDiv.style.display = "inline-block"; // Open the 3D scene
 
-  changeModeButton.onclick = function() { openChat() };
-  changeModeButton.value = "Open Chat";
+  chatButton.hidden = false;
+  videoButton.hidden = false;
+  roomButton.hidden = true;
+  videoDisplay();
 
   document.body.style.backgroundColor = "grey";
+}
+
+/**
+ * Open the videopage and hide chat and 3D scene
+ */
+function openVideoPage() {
+
+  chatDiv.style.display = "none"; // Hide the chat
+  sceneDiv.style.display = "none"; //Hide 3D scene
+  videoDiv.style.display = "inline-block"; //Open videopage
+  document.body.style.backgroundColor = "grey";
+
+  chatButton.hidden = false;
+  videoButton.hidden = true;
+  roomButton.hidden = false;
+
+  videoDisplay();
 }
 
 /**
@@ -777,8 +809,8 @@ function initSwapView() {
 function swapViewOnC(event) {
   if (event.key == 'c') {
     if (controls.isLocked === true) controls.unlock(); // Unlocks the mouse if you swap view while moving in the 3D-space
-
-    if (changeModeButton.value == "Open 3D") open3D();
+    if (videoButton.hidden == true) return;
+    if (roomButton.hidden == false) open3D();
     else openChat();
   }
 }
@@ -788,12 +820,13 @@ function swapViewOnC(event) {
  */
 function userLeft(id) {
   removeConnectionHTMLList(id);
-  if (id == shareUser) { // If they were sharing their screen then remove it
-    shareUser = null;
-    screenShare.hidden = true;
+  if (id == sharing.id) { // If they were sharing their screen then remove it
+    sharing.id = null;
+    sharing.width = 0;
+    sharing.height = 0;
     screenShare.srcObject = null;
     shareButton.hidden = false;
-    updateShareScreen3D(null);
+    updateShareScreen3D(null, sharing);
   }
   if (connections[id].stream) document.getElementById(connections[id].stream.id).outerHTML = ''; // Remove video
   if (connections[id].dataChannel) connections[id].dataChannel.close(); // Close DataChannel
@@ -804,7 +837,7 @@ function userLeft(id) {
 /**
  * Leaves the conference, resets variable values and closes connections and streams.
  */
-function leave(button) {
+function clearHTML() {
 
   if (textFile !== null) {
     window.URL.revokeObjectURL(textFile); // Avoid memory leaks
@@ -816,12 +849,10 @@ function leave(button) {
   files.style.display = "none"; // Stop listing local files
   roomName.readOnly = false; // Allows the user to change what room to join
   username.readOnly = false; // Allows the user to change their username
-  shareButton.hidden = true; // We cannot share our screen once we leave the conference
   receivedFiles.style.display = "none"; // Stop listing received files
   chatBox.style.display = "none"; // Stop listing messages
   users.style.display = "none"; // Stop listing users
   connectionList.innerHTML = ''; // Empty the list of users
-  changeModeButton.hidden = true;
   videoElement.innerHTML = '<ul></ul>'; // Removes all videos from the list on the right side of the screen
   buttons.hidden = true;
   remoteFiles.innerHTML = ' Remote Files: ';
@@ -831,9 +862,6 @@ function leave(button) {
     localStream = null;
   }
 
-  leave3D(); // Closes the 3D environment
-  leaveRoom(); // Let the other users know that we are leaving
-
   for (let id in connections) {
     if (connections[id].stream)
       connections[id].stream.getTracks().forEach(track => track.stop()); // Stop all remote media tracks, if there are any
@@ -841,8 +869,28 @@ function leave(button) {
     connections[id].connection.close(); // Close the PeerConnection
     clearFileList(id);
   }
-  connections = {};
-
-  button.value = "Join";
-  button.onclick = function() { init(button) };
 }
+
+export {
+  clearHTML,
+  initChat,
+  appendConnectionHTMLList,
+  addLocalTracksToConnection,
+  addVideoStream,
+  addScreenCapture,
+  advertiseFile,
+  dataChannelReceive,
+  removeVideoStream,
+  userLeft,
+  updateShareScreen,
+  openVideoPage,
+  open3D,
+  openChat,
+  shareCamera,
+  shareScreen,
+  sendChat,
+
+  // These are used for unit tests
+  sharing,
+  shareButton
+};
