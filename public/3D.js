@@ -14,7 +14,6 @@ const minZcam = -maxZ + 1;
 var scene;
 var cssscene;
 var camera;
-var virtualCamera;
 var renderer;
 var cssrenderer;
 var controls;
@@ -57,9 +56,7 @@ function init3D() {
 	camera = new THREE.PerspectiveCamera(75, (window.innerWidth / window.outerWidth), 0.1, 300000);
 	camera.position.y = wallHeight / 3;
 
-	virtualCamera = new THREE.Camera();
-	
-	//virtualCamera.add( camera );
+
 
 
 	// LIGHT
@@ -112,7 +109,7 @@ function init3D() {
 	document.addEventListener( 'keydown', onDocumentKeyDown, false );
 	document.addEventListener( 'keyup', onDocumentKeyUp, false );
    
-	cssrenderer.render(cssscene, virtualCamera);
+	cssrenderer.render(cssscene, camera);
 	renderer.render(scene, camera);
 
 	
@@ -281,7 +278,7 @@ function addVideoCube(){
 	youtube.hidden = false;
 	let object = new THREE.CSS3DObject(youtube);
 	object.position = 0;
-	virtualCamera.lookAt(object);
+	
 	//object.rotation = planeMesh.rotation;
 	cssscene.add(object);
 
@@ -660,7 +657,7 @@ function update() {
 		prevUpdateTime = time;
 		moved = false;
 	}
-	cssrenderer.render(cssscene, virtualCamera);
+	cssrenderer.render(cssscene, camera);
 	renderer.render(scene, camera);
 	
 
