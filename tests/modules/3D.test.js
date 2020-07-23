@@ -1,12 +1,13 @@
 import * as threeD from '../../public/modules/3D.js'
 import * as THREE from '../../public/modules/three.module.js'
 
+// ---------------------- SETUP ----------------------
+
 beforeAll(() => {
   threeD.init3D(3, {"5" : {id: 5}}, document.body);
 });
 
 beforeEach(() => {
-
   threeD.moveForward = false;
   threeD.moveBackward = false;
   threeD.moveRight = false;
@@ -26,6 +27,8 @@ afterEach(() => {
 afterAll(() => {
   threeD.leave3D();
 });
+
+// ---------------------- TESTS ----------------------
 
 test('changeUserPosition - small value - all axis', () => {
   threeD.changeUserPosition(5, 1, 1, 1);
@@ -103,7 +106,44 @@ test('onDocumentKeyDown - user moved right', () => {
   expect(!threeD.moveForward && !threeD.moveBackward && threeD.moveRight && !threeD.moveLeft).toBe(true);
 });
 
-test('userLeft3D - user moved right', () => {
+test('onDocumentKeyUp - user stopped moving forwards', () => {
+  threeD.moveForward = true;
+  threeD.moveBackward = true;
+  threeD.moveRight = true;
+  threeD.moveLeft = true;
+  threeD.onDocumentKeyUp({ keyCode: 87 });
+  expect(!threeD.moveForward && threeD.moveBackward && threeD.moveRight && threeD.moveLeft).toBe(true);
+});
+
+test('onDocumentKeyUp - user stopped moving left', () => {
+  threeD.moveForward = true;
+  threeD.moveBackward = true;
+  threeD.moveRight = true;
+  threeD.moveLeft = true;
+  threeD.onDocumentKeyUp({ keyCode: 65 });
+  expect(threeD.moveForward && threeD.moveBackward && threeD.moveRight && !threeD.moveLeft).toBe(true);
+});
+
+test('onDocumentKeyUp - user stopped moving backwards', () => {
+  threeD.moveForward = true;
+  threeD.moveBackward = true;
+  threeD.moveRight = true;
+  threeD.moveLeft = true;
+  threeD.onDocumentKeyUp({ keyCode: 83 });
+  expect(threeD.moveForward && !threeD.moveBackward && threeD.moveRight && threeD.moveLeft).toBe(true);
+});
+
+test('onDocumentKeyUp - user stopped moving right', () => {
+  threeD.moveForward = true;
+  threeD.moveBackward = true;
+  threeD.moveRight = true;
+  threeD.moveLeft = true;
+  threeD.onDocumentKeyUp({ keyCode: 68 });
+  expect(threeD.moveForward && threeD.moveBackward && !threeD.moveRight && threeD.moveLeft).toBe(true);
+});
+
+
+test('userLeft3D - user removed correctly', () => {
   threeD.userLeft3D(5);
   expect(threeD.UserMap[5]).toBeUndefined();
 });

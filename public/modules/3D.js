@@ -327,7 +327,6 @@ function addText(name, model) {
 } // end of function addText()
 
 function newUserJoined3D(id, name) {
-	console.log("Adding new user to the 3D environment: " + name);
 	let newUser = {};
 
 	if (name == null || name === '') throw new Error("Name cannot be empty");
