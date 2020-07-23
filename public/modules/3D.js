@@ -30,6 +30,7 @@ var time;
 var objectSize = new THREE.Vector3(); // A Vector3 representing size of each 3D-object
 
 var tv; // The object which stores the screen sharing video
+var tvAudio;
 
 var moveForward = false;
 var moveBackward = false;
@@ -107,52 +108,92 @@ async function init3D(id, connectionsObject, div) {
 	update();
 }
 
+function getVideoRatio(height, width) {
+	let ratio = width / height;
+
+	// This block of code makes the video fit the screen whilst maintaining the original aspect ratio
+	if (height > wallHeight) {
+		var width2 = wallHeight * ratio;
+		if (width2 > maxX * 2) {
+			height = (maxX * 2) / ratio;
+			width = maxX * 2
+		} else {
+			width = width2;
+			height = wallHeight;
+		}
+	}	else if (width > maxX * 2) {
+		var height2 = (maxX * 2) / ratio;
+		if (height2 > wallHeight) {
+			width = wallHeight / ratio;
+			height = wallHeight;
+		} else {
+			width = maxX * 2;
+			height = height2;
+		}
+	}
+	return { height: height, width: width };
+}
+
+function addPositionalAudioToObject(stream, object) {
+	var posAudio = new THREE.PositionalAudio(listener);
+	posAudio.setRefDistance(20);
+	posAudio.setRolloffFactor(2);
+
+	let n = document.createElement("audio"); // Create HTML element to store audio stream
+	n.srcObject = stream;
+	n.muted = true; // We only want audio from the positional audio
+
+	const audio1 = posAudio.context.createMediaStreamSource(n.srcObject);
+
+	try {
+		posAudio.setNodeSource(audio1);
+		object.model.add(posAudio);
+	} catch(err) {
+		console.error(err);
+	};
+	return n;
+}
+
 /**
  * Places the given video stream in the 3D environment. If it is null, then we
  * only remove the existing one.
  */
-function updateShareScreen3D(screenObject, details) {
-	scene.remove(tv);
-	if (screenObject) { // If someone is sharing their screen, display it
-		let texture = new THREE.VideoTexture(screenObject);
-		texture.minFilter = THREE.LinearFilter;
-		texture.magFilter = THREE.LinearFilter;
-		texture.format = THREE.RGBFormat;
+function updateShareScreen3D(screenTrack, details) {
+	if (screenTrack) { // If someone is sharing their screen, display it
 
-		let height = details.height;
-		let width = details.width;
-		let ratio = width / height;
+		let stream = new MediaStream([screenTrack]);
+		if (screenTrack.kind == "video") {
+			let screenObject = document.createElement("video")
+			screenObject.autoplay = true;
+			screenObject.srcObject = stream;
 
-		// This block of code makes the video fit the screen whilst maintaining the original aspect ratio
-		if (height > wallHeight) {
-			var width2 = wallHeight * ratio;
-			if (width2 > maxX * 2) {
-				height = (maxX * 2) / ratio;
-				width = maxX * 2
-			} else {
-				width = width2;
-				height = wallHeight;
-			}
-		}	else if (width > maxX * 2) {
-			var height2 = (maxX * 2) / ratio;
-			if (height2 > wallHeight) {
-				width = wallHeight / ratio;
-				height = wallHeight;
-			} else {
-				width = maxX * 2;
-				height = height2;
-			}
+			let texture = new THREE.VideoTexture(screenObject);
+			texture.minFilter = THREE.LinearFilter;
+			texture.magFilter = THREE.LinearFilter;
+			texture.format = THREE.RGBFormat;
+
+			let height = details.height;
+			let width = details.width;
+
+			let ratio = getVideoRatio(height, width);
+
+			tv = new THREE.Mesh(
+				new THREE.PlaneBufferGeometry(ratio.width, ratio.height, 1, 1),
+				new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: texture } )
+			);
+			tv.position.z = -(maxZ - 1);
+			tv.position.y += wallHeight / 2;
+
+			scene.add(tv);
+			allObjects.push(tv);
+
+		} else if (screenTrack.kind == "audio") {
+			tvAudio = new THREE.Object3D();
+			addPositionalAudioToObject(stream, tvAudio);
 		}
-
-		tv = new THREE.Mesh(
-			new THREE.PlaneBufferGeometry(width, height, 1, 1),
-			new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: texture } )
-		);
-		tv.position.z = -(maxZ - 1);
-		tv.position.y += wallHeight / 2;
-
-		scene.add(tv);
-		allObjects.push(tv);
+	} else {
+		scene.remove(tv);
+		scene.remove(tvAudio);
 	}
 }
 
@@ -317,6 +358,7 @@ function changeUserPosition(id, x, y, z) {
 	if (connections[id].stream) {
 		updateVideoList(id);
 	}
+	user.avatar.model.getObjectByName('text').lookAt(camera.position.x, 0, camera.position.z);
 }
 
 function setUserRotation(id, angleY) {
@@ -464,7 +506,6 @@ function userLeft3D(id) {
 
 // Load 3D-object from file "resource" and add it to scene
 function loadNewObject(resource){
-	console.log("Loading object from: " + resource);
 	let avatar = {};
 	avatar['model'] = new THREE.Object3D();
 

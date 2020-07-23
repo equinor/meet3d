@@ -5,7 +5,19 @@ import { openVideoPage,
 open3D,
 shareCamera,
 shareScreen,
-openChat, clearHTML, appendConnectionHTMLList, addLocalTracksToConnection, addVideoStream, addScreenCapture, advertiseFile, dataChannelReceive, removeVideoStream, userLeft, updateShareScreen, initChat } from './modules/client.js';
+openChat,
+clearHTML,
+appendConnectionHTMLList,
+addLocalTracksToConnection,
+addVideoStream,
+addScreenCapture,
+advertiseFile,
+dataChannelReceive,
+removeVideoStream,
+userLeft,
+updateShareScreen,
+sendChat,
+initChat } from './modules/client.js';
 
 var roomName = document.getElementById("roomName");
 var username = document.getElementById("username");
@@ -16,6 +28,8 @@ var chatButton = document.getElementById("chatMode");
 var videoButton = document.getElementById("videoButton");
 var shareButton = document.getElementById("shareButton");
 var cameraButton = document.getElementById("cameraButton");
+var chatSendButton = document.getElementById("chatSendButton");
+var chatSend = document.getElementById("chatSend");
 
 startButton.onclick = function () { init(startButton) };
 roomButton.onclick = function () { open3D() };
@@ -23,6 +37,13 @@ chatButton.onclick = function () { openChat() };
 videoButton.onclick = function () { openVideoPage() };
 shareButton.onclick = function () { shareScreen(shareButton) };
 cameraButton.onclick = function () { shareCamera(cameraButton) };
+chatSendButton.onclick = function () { sendChat() };
+chatSend.addEventListener("keyup", function(event) {
+    if (event.keyCode === 13) { // This is the 'enter' key-press
+      event.preventDefault();
+      sendChat(); // Send chat message by pressing enter in the chat
+    }
+  });
 
 var socket; // This is the SocketIO connection to the signalling server
 var connections = {};
@@ -36,8 +57,8 @@ var connections = {};
  *    }
  */
 var ourID;
-const signalServer = 'signaling-server-meet3d-master.radix.equinor.com'; // The signaling server
-//const signalServer = 'localhost:3000'; // The signaling server
+//const signalServer = 'signaling-server-meet3d-master.radix.equinor.com'; // The signaling server
+const signalServer = 'localhost:3000'; // The signaling server
 
 // The configuration containing our STUN and TURN servers.
 const pcConfig = {
@@ -124,7 +145,7 @@ async function init(button) {
     ourID = connectionInfo.id;
     await initChat(ourID, connections);
     await init3D(ourID, connections, document.getElementById("3D")); // Renders the 3D environment
-    console.log('ready')
+    console.log('We are ready to receive offers');
     socket.emit('ready', startInfo.name);
   });
 
@@ -264,26 +285,27 @@ async function createPeerConnection(id) {
     pc.ontrack = function (event) {
       console.log('Remote stream added.');
 
+      if (!event.streams[0]) return;
+
       let newStream = new MediaStream([event.track]);
 
       if (event.track.kind == "audio") {
+        connections[id].audiostream = event.streams[0];
         userGotMedia(id, newStream); // Adds audio track to 3D environment
       }
 
       if (event.track.kind == "video") {
-        if (event.streams.length == 0) { // Screen capture video
-          updateShareScreen(newStream); // Add the video track to the 3D environment
+
+        if (event.streams[0].id !== connections[id].audiostream.id) { // Screen capture video
+          updateShareScreen(event.track); // Add the video track to the 3D environment
         } else { // Web camera video
           // Web camera videos should always be in a stream
           addVideoStream(id, event.track);
-        }
-      }
-
-      if (event.streams[0]) {
-        event.streams[0].onremovetrack = function (event) { // A track has been removed
-          console.log(connections[id].name + ' removed a track from their stream.')
-          if (event.track.kind == "video") {
-            removeVideoStream(id);
+          event.streams[0].onremovetrack = function (event) { // A track has been removed
+            console.log(connections[id].name + ' removed a track from their stream.')
+            if (event.track.kind == "video") {
+              removeVideoStream(id);
+            }
           }
         }
       }
