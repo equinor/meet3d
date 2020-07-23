@@ -676,7 +676,15 @@ function addVideoStream(id, track) {
   streamElement.width = cameraConstraints.video.width;
   streamElement.height = cameraConstraints.video.height;
 
+  let nameTag = document.createElement("nametag");
+  if (id !== ourID) {
+    nameTag.innerHTML = connections[id].name + '⮭';
+  } else {
+    nameTag.innerHTML = username.value + '⮭';
+  }
+
   streamElementLi.appendChild(streamElement);
+  streamElementLi.appendChild(nameTag);
   videoElement.hidden = false;
 
   if (id == ourID && videoElement.children[0].children.length > 0) {
