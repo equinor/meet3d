@@ -1,23 +1,14 @@
 import * as threeD from '../../public/modules/3D.js'
 import * as THREE from '../../public/modules/three.module.js'
 
-test('set name', () => {
-
-  threeD.init3D(3, {"5" : {id: 5}}, document.body);
-  threeD.newUserJoined3D(5, "myName");
-
-  expect(threeD.UserMap[5].name).toBe("myName");
-});
-
-
 test('changeUserPosition - small value - all axis', () => {
-
   threeD.init3D(3, {"5" : {id: 5}}, document.body);
   threeD.newUserJoined3D(5, "test");
+
   let text = new THREE.Mesh();
   text.name = "text";
   threeD.UserMap[5].avatar.model.add(text);
-  
+
   threeD.changeUserPosition(5, 1, 2, 3);
 
   expect(threeD.UserMap[5].avatar.model.position.x).toBe(1);
@@ -26,10 +17,21 @@ test('changeUserPosition - small value - all axis', () => {
 });
 
 
-test('changeUserPosition - big values - all axis', () => {
-
+test('set name', () => {
   threeD.init3D(3, {"5" : {id: 5}}, document.body);
   threeD.newUserJoined3D(5, "myName");
+  expect(threeD.UserMap[5].name).toBe("myName");
+});
+
+
+test('changeUserPosition - big values - all axis', () => {
+  threeD.init3D(3, {"5" : {id: 5}}, document.body);
+  threeD.newUserJoined3D(5, "test");
+
+  let text = new THREE.Mesh();
+  text.name = "text";
+  threeD.UserMap[5].avatar.model.add(text);
+
   threeD.changeUserPosition(5, 777777, 123456789, 1000000000);
 
   expect(threeD.UserMap[5].avatar.model.position.x).toBe(777777);
@@ -38,10 +40,14 @@ test('changeUserPosition - big values - all axis', () => {
 });
 
 
-test('changeUserPosition - negative value - all axis', () => {
-
+test('changeUserPosition - negative values - all axis', () => {
   threeD.init3D(3, {"5" : {id: 5}}, document.body);
-  threeD.newUserJoined3D(5, "myName");
+  threeD.newUserJoined3D(5, "test");
+
+  let text = new THREE.Mesh();
+  text.name = "text";
+  threeD.UserMap[5].avatar.model.add(text);
+
   threeD.changeUserPosition(5, -77, -44444400, -1);
 
   expect(threeD.UserMap[5].avatar.model.position.x).toBe(-77);
