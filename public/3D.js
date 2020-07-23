@@ -80,7 +80,7 @@ function init3D() {
 	addSkyBox();
 	addWalls();
 	addDecoration();
-	addVideoCube();
+	
 	// RENDERER
 	renderer = new THREE.WebGLRenderer({alpha: true, antiAliasing: true});
 	renderer.setClearColor( 0x000000, 0 );
@@ -270,35 +270,6 @@ function addWalls() {
 	allObjects.push( wallFront );
 }
 
-function addVideoCube(){
-	/*let material = new THREE.MeshBasicMaterial({ wireframe: true });
-	let geometry = new THREE.PlaneGeometry();
-	let planeMesh= new THREE.Mesh( geometry, material );
-// add it to the WebGL scene
-	scene.add(planeMesh);*/
-	
-	let youtube = document.getElementById( 'youtubev');
-	youtube.hidden = false;
-	let object = new THREE.CSS3DObject(youtube);
-	object.position = 0;
-	virtualCamera.lookAt(object);
-	//object.rotation = planeMesh.rotation;
-	cssscene.add(object);
-
-	//var Vtexture = new THREE.VideoTexture( youtube );
-	/*
-	Vtexture.minFilter = THREE.LinearFilter;
-	Vtexture.magFilter = THREE.LinearFilter;
-	Vtexture.format = THREE.RGBFormat;
-	*/
-	/*let geometry = new THREE.BoxGeometry(50,50,50);
-	let Vmaterial = new THREE.MeshBasicMaterial ({}); //FIXME! WANT TO PLACE VIDEO HEREmap: video)
-	let videoCube = new THREE.Mesh(geometry, Vmaterial);
-	videoCube.position.x = maxX+50;
-	videoCube.position.y = 26;
-	scene.add(videoCube);*/
-
-}
 
 function addDecoration() {
 	// PLANT
