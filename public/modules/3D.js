@@ -1,3 +1,9 @@
+import * as THREE from './three.module.js';
+
+import { GLTFLoader } from './GLTFLoader.js';
+
+import { PointerLockControls } from './PointerLockControls.js';
+
 // GLOBAL CONSTANTS
 const maxX = 100;
 const maxY = 100; // This is probably not needed
@@ -21,16 +27,17 @@ var controls;
 var requestID;
 var listener;
 var loader;
+var time;
 
 var objectSize = new THREE.Vector3(); // A Vector3 representing size of each 3D-object
 
 var tv; // The object which stores the screen sharing video
+var tvAudio;
 
 var moveForward = false;
 var moveBackward = false;
 var moveLeft = false;
 var moveRight = false;
-var moved = false;
 
 var prevUpdateTime = performance.now();
 var prevPosTime = performance.now();
@@ -46,9 +53,13 @@ var videoList = []; // The list of remote videos to display
 var videoListLength = 0; // The number of videos to show at a time, not including our own
 const resourceList = ['objects/obj/pawn.glb']; //List of 3D-object-files
 var resourceIndex = 0;
+var connections;
+var ourID;
 
+async function init3D(id, connectionsObject, div) {
+	ourID = id;
+	connections = connectionsObject;
 
-function init3D() {
 	scene = new THREE.Scene();
 	cssscene = new THREE.Scene();
 
@@ -70,8 +81,9 @@ function init3D() {
 	allObjects.push(directionalLight);
 
 	//load models
-	loader = new THREE.GLTFLoader();
 	addSkyBox();
+	loader = new GLTFLoader();
+
 	addWalls();
 	addDecoration();
 	addVideoCube();
@@ -84,7 +96,7 @@ function init3D() {
 	renderer.domElement.style.top = 0;
 	renderer.domElement.style.zIndex = "0";
 	renderer.domElement.id = "scene"; // Adds an ID to the canvas element
-	document.getElementById("3D").appendChild(renderer.domElement);
+	div.appendChild(renderer.domElement);
 
 	cssrenderer = new THREE.CSS3DRenderer();
 	cssrenderer.setSize(window.innerWidth, window.innerHeight);
@@ -93,9 +105,8 @@ function init3D() {
 	cssrenderer.domElement.id="cssscenes";
 	document.getElementById("3D").appendChild(cssrenderer.domElement);
 	
+	controls = new PointerLockControls( camera, div );
 
-
-	controls = new THREE.PointerLockControls( camera, document.body );
 	scene.add(controls.getObject());
 	allObjects.push(controls.getObject());
 
@@ -114,10 +125,53 @@ function init3D() {
 	update();
 }
 
-/**
- * Places the given video stream in the 3D environment. If it is null, then we
- * only remove the existing one.
- */
+function getVideoRatio(height, width) {
+	let ratio = width / height;
+
+	// This block of code makes the video fit the screen whilst maintaining the original aspect ratio
+	if (height > wallHeight) {
+		var width2 = wallHeight * ratio;
+		if (width2 > maxX * 2) {
+			height = (maxX * 2) / ratio;
+			width = maxX * 2
+		} else {
+			width = width2;
+			height = wallHeight;
+		}
+	}	else if (width > maxX * 2) {
+		var height2 = (maxX * 2) / ratio;
+		if (height2 > wallHeight) {
+			width = wallHeight / ratio;
+			height = wallHeight;
+		} else {
+			width = maxX * 2;
+			height = height2;
+		}
+	}
+	return { height: height, width: width };
+}
+
+function addPositionalAudioToObject(stream, object) {
+	var posAudio = new THREE.PositionalAudio(listener);
+	posAudio.setRefDistance(20);
+	posAudio.setRolloffFactor(2);
+
+	let n = document.createElement("audio"); // Create HTML element to store audio stream
+	n.srcObject = stream;
+	n.muted = true; // We only want audio from the positional audio
+
+	const audio1 = posAudio.context.createMediaStreamSource(n.srcObject);
+
+	try {
+		posAudio.setNodeSource(audio1);
+		object.model.add(posAudio);
+	} catch(err) {
+		console.error(err);
+	};
+	return n;
+}
+
+
 
 function addSkyBox(){
 
@@ -146,48 +200,46 @@ function addSkyBox(){
 	
 };
 
-function updateShareScreen3D(screenObject) {
-	scene.remove(tv);
-	if (screenObject) { // If someone is sharing their screen, display it
-		texture = new THREE.VideoTexture(screenObject);
-		texture.minFilter = THREE.LinearFilter;
-		texture.magFilter = THREE.LinearFilter;
-		texture.format = THREE.RGBFormat;
+/**
+ * Places the given video stream in the 3D environment. If it is null, then we
+ * only remove the existing one.
+ */
+function updateShareScreen3D(screenTrack, details) {
+	if (screenTrack) { // If someone is sharing their screen, display it
 
-		let height = screenObject.srcObject.getVideoTracks()[0].getSettings().height;
-		let width = screenObject.srcObject.getVideoTracks()[0].getSettings().width;
-		let ratio = width / height;
+		let stream = new MediaStream([screenTrack]);
+		if (screenTrack.kind == "video") {
+			let screenObject = document.createElement("video")
+			screenObject.autoplay = true;
+			screenObject.srcObject = stream;
 
-		// This block of code makes the video fit the screen whilst maintaining the original aspect ratio
-		if (height > wallHeight) {
-			var width2 = wallHeight * ratio;
-			if (width2 > maxX * 2) {
-				height = (maxX * 2) / ratio;
-				width = maxX * 2
-			} else {
-				width = width2;
-				height = wallHeight;
-			}
-		}	else if (width > maxX * 2) {
-			var height2 = (maxX * 2) / ratio;
-			if (height2 > wallHeight) {
-				width = wallHeight / ratio;
-				height = wallHeight;
-			} else {
-				width = maxX * 2;
-				height = height2;
-			}
+			let texture = new THREE.VideoTexture(screenObject);
+			texture.minFilter = THREE.LinearFilter;
+			texture.magFilter = THREE.LinearFilter;
+			texture.format = THREE.RGBFormat;
+
+			let height = details.height;
+			let width = details.width;
+
+			let ratio = getVideoRatio(height, width);
+
+			tv = new THREE.Mesh(
+				new THREE.PlaneBufferGeometry(ratio.width, ratio.height, 1, 1),
+				new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: texture } )
+			);
+			tv.position.z = -(maxZ - 1);
+			tv.position.y += wallHeight / 2;
+
+			scene.add(tv);
+			allObjects.push(tv);
+
+		} else if (screenTrack.kind == "audio") {
+			tvAudio = new THREE.Object3D();
+			addPositionalAudioToObject(stream, tvAudio);
 		}
-
-		tv = new THREE.Mesh(
-			new THREE.PlaneBufferGeometry(width, height, 1, 1),
-			new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: texture } )
-		);
-		tv.position.z = -(maxZ - 1);
-		tv.position.y += wallHeight / 2;
-
-		scene.add(tv);
-		allObjects.push(tv);
+	} else {
+		scene.remove(tv);
+		scene.remove(tvAudio);
 	}
 }
 
@@ -219,7 +271,7 @@ function addWalls() {
 
 	// WALLS
 	let walltext = textureLoader.load( "objects/obj/wall1.jpg" );
-	wallLeft = new THREE.Mesh(
+	let wallLeft = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, wallHeight, 1, 1),
 		new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: walltext } )
 	);
@@ -228,7 +280,7 @@ function addWalls() {
 	wallLeft.position.x = -maxX;
 	wallLeft.position.y += wallHeight / 2;
 
-	wallRight = new THREE.Mesh(
+	let wallRight = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, wallHeight, 1, 1),
 		new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: walltext } )
 	);
@@ -237,8 +289,7 @@ function addWalls() {
 	wallRight.position.x = maxX;
 	wallRight.position.y += wallHeight / 2;
 
-
-	wallBack = new THREE.Mesh(
+	let wallBack = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, wallHeight, 1, 1),
 		new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: walltext } )
 	);
@@ -246,7 +297,7 @@ function addWalls() {
 	wallBack.position.z = maxZ;
 	wallBack.position.y += wallHeight / 2;
 
-	wallFront = new THREE.Mesh(
+	let wallFront = new THREE.Mesh(
 		new THREE.PlaneBufferGeometry(maxX * 2, wallHeight, 1, 1),
 		new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: walltext } )
 	);
@@ -359,7 +410,7 @@ function addText(name, model) {
 	});
 } // end of function addText()
 
-function newUserJoined(id, name) {
+function newUserJoined3D(id, name) {
 	console.log("Adding new user to the 3D environment: " + name);
 	let newUser = {};
 
@@ -384,6 +435,7 @@ function changeUserPosition(id, x, y, z) {
 	if (connections[id].stream) {
 		updateVideoList(id);
 	}
+	user.avatar.model.getObjectByName('text').lookAt(camera.position.x, 0, camera.position.z);
 }
 
 function setUserRotation(id, angleY) {
@@ -413,7 +465,7 @@ function updateVideoList(id) {
 		videoList = []; // Reset the list of videos to display
 		videoListLength = 0;
 		for (const testID in UserMap) {
-			if (testID == ourID || !connections[testID].stream || videoList.includes(testID)) {
+			if (testID == ourID || !connections[testID] || !connections[testID].stream || videoList.includes(testID)) {
 				continue; // Ignore our own user, those who do not have video and those already in the list
 			}
 
@@ -477,9 +529,31 @@ function shiftVideoList(id) {
  * user in the 3D space.
  */
 function getDistance(id) {
-	let otherUser = UserMap[id];
-	return (otherUser.avatar.model.position.x - camera.position.x) ** 2 +
-		(otherUser.avatar.model.position.z - camera.position.z) ** 2;
+	let otherPos = UserMap[id].avatar.model.position;
+	return (otherPos.x - camera.position.x) ** 2 +
+		(otherPos.z - camera.position.z) ** 2;
+}
+
+/**
+ * True if keypress suggests that the user wants to move,
+ * false otherwise.
+ */
+function hasMoved() {
+	return direction.lengthSq();
+}
+
+/**
+ * This function updates which videos are visible on the screen. The list of
+ * videos to display is 'videoList' in 3D.js.
+ */
+function updateVideoVisibility() {
+	for (let i = 0; i < videoListLength; i++) {
+    let id = videoList[i];
+    if (id == 0 || !connections[id].stream.id) continue;
+
+    document.getElementById(connections[id].stream.id).hidden = false;
+    document.getElementById(connections[id].stream.id).children[0].autoplay = true;
+  }
 }
 
 function userGotMedia(id, mediaStream) {
@@ -517,7 +591,6 @@ function userLeft3D(id) {
 
 // Load 3D-object from file "resource" and add it to scene
 function loadNewObject(resource){
-	console.log("Loading object from: " + resource);
 	let avatar = {};
 	avatar['model'] = new THREE.Object3D();
 
@@ -547,22 +620,18 @@ function onDocumentKeyDown(event) {
 
 		case 87: //w
 			moveForward = true;
-			moved = true;
 			break;
 
 		case 65: // a
 			moveLeft = true;
-			moved = true;
 			break;
 
 		case 83: // s
 			moveBackward = true;
-			moved = true;
 			break;
 
 		case 68: // d
 			moveRight = true;
-			moved = true;
 			break;
 
 		case 38://up
@@ -599,7 +668,6 @@ function onDocumentKeyUp(event) {
 }
 
 function onWindowResize() {
-
 	camera.aspect = window.innerWidth / window.innerHeight;
 	camera.updateProjectionMatrix();
 	resizeCanvas(-1);
@@ -621,7 +689,7 @@ function resizeCanvas(newWidth) {
 function update() {
 	requestID = requestAnimationFrame(update);
 	if (controls.isLocked === true) {
-		var time = performance.now();
+		time = performance.now();
 		var delta = ( time - prevUpdateTime ) / 1000;
 
 		velocity.x -= velocity.x * 10.0 * delta;
@@ -639,20 +707,18 @@ function update() {
 
 	
 		// Only call costly functions if we have moved and some time has passed since the last time we called them
-		if (moved && time - prevPosTime > 50 ) {
+		if ( hasMoved() && time - prevPosTime > 50 ) {
 			changePos(camera.position.x, 0, camera.position.z); // Update our position for others
 			updateVideoList(ourID); // Update which videos to show
-			prevPosTime = time;
-
+			
 			for (let keyId in UserMap) { // Makes the usernames point towards the user
 				UserMap[keyId].avatar.model.getObjectByName('text').lookAt(camera.position.x, 0, camera.position.z);
 			}
-
-			// Add functionality to update direction based on camera direction OR movement direction
+			
+			prevPosTime = time;
 		}
 
 		prevUpdateTime = time;
-		moved = false;
 	}
 	cssrenderer.render(cssscene, camera);
 	renderer.render(scene, camera);
@@ -664,8 +730,18 @@ function update() {
  * This is a wrapper function which can be used to update our current position
  * for other users without needing to access 3D.js variables.
  */
-function changePos3D() {
+function updatePos() {
 	changePos(camera.position.x, 0, camera.position.z);
+}
+
+/**
+ * Function which tells other users our new 3D position.
+ */
+function changePos(x, y, z) {
+  let jsonPos = JSON.stringify({type: "pos", x: x, y: y, z: z});
+  for (let id in connections) { // Send it to everyone
+    connections[id].dataChannel.send(jsonPos);
+  }
 }
 
 function leave3D() {
@@ -673,11 +749,11 @@ function leave3D() {
 	updateShareScreen3D(null);
 
 	for (let id in UserMap) {
-		if (UserMap[id].audioElement.srcObject) {
+		if (UserMap[id].audioElement) {
 			UserMap[id].audioElement.srcObject.getTracks().forEach(track => track.stop());
+			UserMap[id].audioElement.srcObject = null;
+			UserMap[id].audioElement = null;
 		}
-		UserMap[id].audioElement.srcObject = null;
-		UserMap[id].audioElement = null;
 		delete UserMap[id];
 	}
 
@@ -705,3 +781,23 @@ function leave3D() {
 	videoListLength = 0;
 	resourceIndex = 0;
 }
+
+export {
+	UserMap,
+	ourID,
+	objectScale,
+	newUserJoined3D,
+	userGotMedia,
+	updatePos,
+	userLeft3D,
+	init3D,
+	updateShareScreen3D,
+	getVideoList,
+	updateVideoList,
+	resizeCanvas,
+	leave3D,
+	onDocumentKeyDown,
+	onDocumentKeyUp,
+	changeUserPosition,
+	controls
+};

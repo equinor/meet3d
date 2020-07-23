@@ -1,9 +1,53 @@
-var socket; // This is the SocketIO connection to the signalling server
-const signalServer = 'localhost:3000'; // The signaling server
+'use strict';
 
-/*  These variables are present on both client.js and connect.js:
- *  ourID: This is our unique ID
- *  connections: The key is the socket id, and the value is:
+import { newUserJoined3D, userGotMedia, updatePos, updateShareScreen3D, userLeft3D, init3D, leave3D } from './modules/3D.js';
+import { openVideoPage,
+open3D,
+shareCamera,
+shareScreen,
+openChat,
+clearHTML,
+appendConnectionHTMLList,
+addLocalTracksToConnection,
+addVideoStream,
+addScreenCapture,
+advertiseFile,
+dataChannelReceive,
+removeVideoStream,
+userLeft,
+updateShareScreen,
+sendChat,
+initChat } from './modules/client.js';
+
+var roomName = document.getElementById("roomName");
+var username = document.getElementById("username");
+
+var startButton = document.getElementById("start/leave");
+var roomButton = document.getElementById("3Droom");
+var chatButton = document.getElementById("chatMode");
+var videoButton = document.getElementById("videoButton");
+var shareButton = document.getElementById("shareButton");
+var cameraButton = document.getElementById("cameraButton");
+var chatSendButton = document.getElementById("chatSendButton");
+var chatSend = document.getElementById("chatSend");
+
+startButton.onclick = function () { init(startButton) };
+roomButton.onclick = function () { open3D() };
+chatButton.onclick = function () { openChat() };
+videoButton.onclick = function () { openVideoPage() };
+shareButton.onclick = function () { shareScreen(shareButton) };
+cameraButton.onclick = function () { shareCamera(cameraButton) };
+chatSendButton.onclick = function () { sendChat() };
+chatSend.addEventListener("keyup", function(event) {
+    if (event.keyCode === 13) { // This is the 'enter' key-press
+      event.preventDefault();
+      sendChat(); // Send chat message by pressing enter in the chat
+    }
+  });
+
+var socket; // This is the SocketIO connection to the signalling server
+var connections = {};
+/*
  *    {
  *      name: String,
  *      stream: MediaStream,
@@ -12,6 +56,9 @@ const signalServer = 'localhost:3000'; // The signaling server
  *      video: RTCRtpSender
  *    }
  */
+var ourID;
+const signalServer = 'signaling-server-meet3d-master.radix.equinor.com'; // The signaling server
+// const signalServer = 'localhost:3000'; // The signaling server
 
 // The configuration containing our STUN and TURN servers.
 const pcConfig = {
@@ -24,28 +71,53 @@ const pcConfig = {
   ]
 };
 
+username.addEventListener("keyup", function(event) {
+    if (event.keyCode === 13) { // This is the 'enter' key-press
+      event.preventDefault();
+      init(startButton); // Join the conference by pressing enter in the username input box
+    }
+  });
+
+roomName.addEventListener("keyup", function(event) {
+    if (event.keyCode === 13) { // This is the 'enter' key-press
+      event.preventDefault();
+      init(startButton); // Join the conference by pressing enter in the room name input box
+    }
+  });
+
 /**
  * This function is run in order to join a conference. It establishes contact
  * with the signal server which helps create PeerConnection and DataChannel
- * connections with the other users in the conference.
+ * connections with the other users in the conference. The HTML and 3D canvas
+ * are then updated to reflect this.
  */
-function initSignaling(room, name) {
+async function init(button) {
+
+  if (username.value === '') { // No username given
+    alert('Please enter a username');
+    return;
+  }
+
+  if (roomName.value === '') { // No room name given
+    alert('Please enter a room name');
+    return;
+  }
+
+  button.value = "Leave";
+  button.onclick = function() { leave(button) };
+  username.readOnly = true; // Do not allow the user to edit their name, but show it
+  roomName.readOnly = true; // Do not allow the user to edit the room name, but show it
+
   socket = io(signalServer); // Connect to the signaling server
 
   let startInfo = {
-    room: room, // The room we want to join
-    name: name // Our username
+    room: roomName.value, // The room we want to join
+    name: username.value // Our username
   };
 
   socket.emit('join', startInfo);
 
-  console.log('Attempting to join ' + room);
-
-  // We created and joined a room
-  socket.on('created', function(connectionInfo) {
-    console.log('Created room ' + connectionInfo.room);
-    ourID = connectionInfo.id;
-  });
+  console.log('Attempting to join ' + roomName.value);
 
   // The room we tried to join is full
   socket.on('full', function(room) {
@@ -54,23 +126,27 @@ function initSignaling(room, name) {
   });
 
   // A new user joined the room
-  socket.on('join', function (startInfo) {
-    if (startInfo.id === ourID) return;
+  socket.on('join', function (message) {
+    if (message.id === ourID) return;
 
-    connections[startInfo.id] = {};
-    connections[startInfo.id].name = startInfo.name;
+    connections[message.id] = {};
+    connections[message.id].name = message.name;
 
-    console.log('User ' + startInfo.name + ' joined room ' + room);
+    console.log('User ' + message.name + ' joined the room');
 
-    sendOffer(startInfo.id); // Send the user your local description in order to create a connection
-    newUserJoined(startInfo.id, startInfo.name); // Add the new user to the 3D environment
-    appendConnectionHTMLList(startInfo.id);
+    sendOffer(message.id); // Send the user your local description in order to create a connection
+    newUserJoined3D(message.id, message.name); // Add the new user to the 3D environment
+    appendConnectionHTMLList(message.id);
   });
 
   // We joined a conference
-  socket.on('joined', function(connectionInfo) {
+  socket.on('joined', async function(connectionInfo) {
     console.log('We joined: ' + connectionInfo.room);
     ourID = connectionInfo.id;
+    await initChat(ourID, connections);
+    await init3D(ourID, connections, document.getElementById("3D")); // Renders the 3D environment
+    console.log('We are ready to receive offers');
+    socket.emit('ready', startInfo.name);
   });
 
   // A user moved in the 3D space
@@ -83,7 +159,6 @@ function initSignaling(room, name) {
   socket.on('left', function(id) {
     if (connections[id]) {
       console.log("User " + connections[id].name + " left");
-      userLeft3D(id); // Removes the user from the 3D environment
       userLeft(id);
     }
   });
@@ -100,7 +175,7 @@ function initSignaling(room, name) {
       connections[id] = {};
       connections[id].name = name;
       appendConnectionHTMLList(id); // Add their username to the list of connections on the webpage
-      newUserJoined(id, name); // Add new user to 3D environment
+      newUserJoined3D(id, name); // Add new user to 3D environment
     }
     console.log("Received offer from " + connections[id].name)
     sendAnswer(id, offerDescription); // Reply to the offer with our details
@@ -210,33 +285,27 @@ async function createPeerConnection(id) {
     pc.ontrack = function (event) {
       console.log('Remote stream added.');
 
+      if (!event.streams[0]) return;
+
       let newStream = new MediaStream([event.track]);
 
       if (event.track.kind == "audio") {
+        connections[id].audiostream = event.streams[0];
         userGotMedia(id, newStream); // Adds audio track to 3D environment
       }
 
       if (event.track.kind == "video") {
-        if (event.streams.length == 0) { // Screen capture video
-          screenShare.srcObject = newStream; // Create a new stream containing the received track
 
-          screenShare.srcObject = null;
-          screenShare.autoplay = true;
-          screenShare.srcObject = newStream;
-          updateShareScreen3D(screenShare); // Add the video track to the 3D environment
-
+        if (event.streams[0].id !== connections[id].audiostream.id) { // Screen capture video
+          updateShareScreen(event.track); // Add the video track to the 3D environment
         } else { // Web camera video
-
           // Web camera videos should always be in a stream
           addVideoStream(id, event.track);
-        }
-      }
-
-      if (event.streams[0]) {
-        event.streams[0].onremovetrack = function (event) { // A track has been removed
-          console.log(connections[id].name + ' removed a track from their stream.')
-          if (event.track.kind == "video") {
-            removeVideoStream(id);
+          event.streams[0].onremovetrack = function (event) { // A track has been removed
+            console.log(connections[id].name + ' removed a track from their stream.')
+            if (event.track.kind == "video") {
+              removeVideoStream(id);
+            }
           }
         }
       }
@@ -253,7 +322,9 @@ async function createPeerConnection(id) {
       });
 
       event.channel.addEventListener("close", () => {
-        console.log("A DataChannel closed");
+        console.log("DataChannel to " + connections[id].name + " has closed");
+        userLeft3D(id); // Removes the user from the 3D environment
+        userLeft(id);
       });
 
       event.channel.addEventListener("message", (message) => {
@@ -278,6 +349,14 @@ async function createPeerConnection(id) {
       });
     };
 
+    pc.onconnectionstatechange = function (event) {
+      if (pc.connectionState == "closed") {
+        console.log("Lost connection to " + connections[id].name);
+        userLeft3D(id); // Removes the user from the 3D environment
+        userLeft(id);
+      }
+    };
+
   } catch (e) {
     console.error('Failed to create PeerConnection. Exception: ' + e.message);
     alert('Cannot create RTCPeerConnection.');
@@ -297,7 +376,7 @@ function createDataChannel(id) {
     console.log("Datachannel established to " + connections[id].name);
     advertiseFile();
     addScreenCapture(id);
-    changePos3D();
+    updatePos();
   };
 
   tempConnection.onclose = function () {
@@ -326,10 +405,18 @@ function handleIceCandidate(event) {
 }
 
 /**
- * Signifies to the signal server that we are leaving the conference, and then
- * closes the connection.
+ * Signifies to the signal server that we are leaving the conference, then
+ * closes the connection and resets the HTML page.
  */
-function leaveRoom() {
+function leave(button) {
   socket.emit('left');
   socket.disconnect(true);
+
+  leave3D(); // Closes the 3D environment
+  clearHTML();
+
+  connections = {};
+
+  button.value = "Join";
+  button.onclick = function() { init(button) };
 }
