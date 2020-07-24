@@ -727,21 +727,6 @@ function removeVideoStream(id) {
 }
 
 /**
- * This function updates which videos are visible on the screen. The list of
- * videos to display is 'videoList' in 3D.js.
- */
-function updateVideoVisibility() {
-  let vidList = getVideoList();
-	for (let i = 0; i < vidList.length; i++) {
-    let id = vidList[i];
-    if (id == 0 || !connections[id].stream.id) continue;
-
-    document.getElementById(connections[id].stream.id).hidden = false;
-    document.getElementById(connections[id].stream.id).children[0].autoplay = true;
-  }
-}
-
-/**
  * Open the chat and hide the 3D environment.
  */
 function openChat() {

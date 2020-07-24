@@ -59,8 +59,8 @@ var connections = {};
  *    }
  */
 var ourID;
-// const signalServer = 'signaling-server-meet3d-master.radix.equinor.com'; // The signaling server
-const signalServer = 'localhost:3000'; // The signaling server
+const signalServer = 'signaling-server-meet3d-master.radix.equinor.com'; // The signaling server
+// const signalServer = 'localhost:3000'; // The signaling server
 
 // The configuration containing our STUN and TURN servers.
 const pcConfig = {
@@ -252,19 +252,6 @@ async function sendAnswer(id, offerDescription) {
     id: id,
     answer: connections[id].connection.localDescription
   });
-  /*
-
-  connections[id].connection.createAnswer().then(function(description) {
-    connections[id].connection.setLocalDescription(description);
-    socket.emit('answer', {
-      id: id,
-      answer: description
-    });
-  }, function (e) {
-    console.error("Failed to create answer: " + e);
-    return;
-  });
-  */
 }
 
 /**
@@ -354,22 +341,7 @@ async function createPeerConnection(id) {
         name: username.value,
         offer: connections[id].connection.localDescription
       });
-
-      /*
-      connections[id].connection.createOffer().then(function(description) {
-        connections[id].connection.setLocalDescription(description);
-        socket.emit('offer', {
-          id: id,
-          name: username.value,
-          offer: description
-        });
-      }, function (e) {
-        console.error("Failed to create offer: " + e);
-        return;
-      });
-      */
     };
-
 
     pc.onconnectionstatechange = function (event) {
       if (pc.connectionState == "closed" && connections[id]) {
@@ -384,8 +356,25 @@ async function createPeerConnection(id) {
     alert('Cannot create RTCPeerConnection.');
     return;
   }
+
   console.log('Created RTCPeerConnection to user ' + connections[id].name);
   return pc;
+}
+
+/**
+ * Transmit local ICE candidates.
+ */
+function handleIceCandidate(event) {
+  if (event.candidate) {
+    socket.emit('candidate', {
+      type: 'candidate',
+      label: event.candidate.sdpMLineIndex,
+      id: event.candidate.sdpMid,
+      candidate: event.candidate.candidate
+    });
+  } else {
+    console.log('End of candidates.');
+  }
 }
 
 /**
@@ -412,22 +401,6 @@ async function createDataChannel(id) {
   tempConnection.onmessage = function (event) {
     dataChannelReceive(id, event.data); // Called when we receive a DataChannel message
   };
-}
-
-/**
- * Transmit local ICE candidates.
- */
-function handleIceCandidate(event) {
-  if (event.candidate) {
-    socket.emit('candidate', {
-      type: 'candidate',
-      label: event.candidate.sdpMLineIndex,
-      id: event.candidate.sdpMid,
-      candidate: event.candidate.candidate
-    });
-  } else {
-    console.log('End of candidates.');
-  }
 }
 
 /**

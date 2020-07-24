@@ -30,7 +30,6 @@ var time;
 var objectSize = new THREE.Vector3(); // A Vector3 representing size of each 3D-object
 
 var tv; // The object which stores the screen sharing video
-var table;
 
 var moveForward = false;
 var moveBackward = false;
@@ -48,7 +47,7 @@ var speed = 400.0; // The speed at which we move
 var UserMap = {}; //json-object to store the Users
 var allObjects = []; // Stores all 3D objects so that they can be removed later
 var videoList = []; // The list of remote videos to display
-var videoListLength = 0; // The number of videos to show at a time, not including our own
+var videoListLength = 2; // The number of videos to show at a time, not including our own
 const resourceList = ['objects/obj/pawn.glb']; //List of 3D-object-files
 var resourceIndex = 0;
 var connections;
@@ -80,8 +79,6 @@ async function init3D(id, connectionsObject, div) {
 
 	// GLTF LOADER
 	loader = new GLTFLoader();
-	console.log("boop");
-	console.log(loader);
 
 	// ADD SCENERY
 	addWalls();
@@ -174,10 +171,7 @@ async function updateShareScreen3D(screenTrack, details, name) {
 		texture.magFilter = THREE.LinearFilter;
 		texture.format = THREE.RGBFormat;
 
-		let height = details.height;
-		let width = details.width;
-
-		let ratio = getVideoRatio(height, width);
+		let ratio = getVideoRatio(details.height, details.width);
 
 		tv = new THREE.Mesh(
 			new THREE.PlaneBufferGeometry(ratio.width, ratio.height, 1, 1),
@@ -192,7 +186,6 @@ async function updateShareScreen3D(screenTrack, details, name) {
 }
 
 function addWalls() {
-
 	let textureLoader = new THREE.TextureLoader();
 
 	// FLOOR
@@ -218,11 +211,11 @@ function addWalls() {
 
 	// WALLS
 	let walltext = textureLoader.load( "objects/obj/wall1.jpg" );
+
 	let wallLeft = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, wallHeight, 1, 1),
 		new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: walltext } )
 	);
-
 	wallLeft.rotation.y += Math.PI / 2;
 	wallLeft.position.x = -maxX;
 	wallLeft.position.y += wallHeight / 2;
@@ -231,7 +224,6 @@ function addWalls() {
 		new THREE.PlaneGeometry(maxX * 2, wallHeight, 1, 1),
 		new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: walltext } )
 	);
-
 	wallRight.rotation.y += Math.PI / 2;
 	wallRight.position.x = maxX;
 	wallRight.position.y += wallHeight / 2;
@@ -240,7 +232,6 @@ function addWalls() {
 		new THREE.PlaneGeometry(maxX * 2, wallHeight, 1, 1),
 		new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: walltext } )
 	);
-
 	wallBack.position.z = maxZ;
 	wallBack.position.y += wallHeight / 2;
 
@@ -248,7 +239,6 @@ function addWalls() {
 		new THREE.PlaneBufferGeometry(maxX * 2, wallHeight, 1, 1),
 		new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: walltext } )
 	);
-
 	wallFront.position.z = -maxZ;
 	wallFront.position.y += wallHeight / 2;
 
@@ -426,7 +416,6 @@ function shiftVideoList(id) {
 	let thisDistance = getDistance(id);
 	let shiftedID = 0;
 	for (let i = 0; i < videoListLength; i++) {
-
 		if (shiftedID) { // If an ID has been inserted, shift the later entries along
 			let tempID = shiftedID
 			shiftedID = videoList[i];
@@ -448,14 +437,6 @@ function getDistance(id) {
 	let otherPos = UserMap[id].avatar.model.position;
 	return (otherPos.x - camera.position.x) ** 2 +
 		(otherPos.z - camera.position.z) ** 2;
-}
-
-/**
- * True if keypress suggests that the user wants to move,
- * false otherwise.
- */
-function hasMoved() {
-	return direction.lengthSq();
 }
 
 /**
@@ -511,9 +492,6 @@ function userLeft3D(id) {
 function loadNewObject(resource) {
 	let avatar = {};
 	avatar.model = new THREE.Object3D();
-
-	console.log("beep");
-	console.log(loader);
 
 	loader.load(resource, function(gltf) { // this could probably be vastly improved
 		avatar.model.add(gltf.scene);
@@ -626,7 +604,7 @@ function update() {
 		else if (camera.position.z < minZcam) camera.position.z = minZcam;
 
 		// Only call costly functions if we have moved and some time has passed since the last time we called them
-		if ( hasMoved() && time - prevPosTime > 50 ) {
+		if ( direction.lengthSq() && time - prevPosTime > 50 ) {
 			changePos(camera.position.x, 0, camera.position.z); // Update our position for others
 			updateVideoList(ourID); // Update which videos to show
 
@@ -699,6 +677,10 @@ function leave3D() {
 	resourceIndex = 0;
 }
 
+// These are for testing
+export function setVideoList(list) { videoList = list };
+export function setVideoListLength(n) { videoListLength = n };
+
 export {
 	UserMap,
 	ourID,
@@ -724,5 +706,9 @@ export {
 	moveForward,
 	moveLeft,
 	moveRight,
-	moveBackward
+	moveBackward,
+	getDistance,
+	videoList,
+	videoListLength,
+	shiftVideoList
 };
