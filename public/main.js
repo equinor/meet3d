@@ -58,7 +58,7 @@ var connections = {};
  */
 var ourID;
 const signalServer = 'signaling-server-meet3d-master.radix.equinor.com'; // The signaling server
-// const signalServer = 'localhost:3000'; // The signaling server
+//const signalServer = 'localhost:3000'; // The signaling server
 
 // The configuration containing our STUN and TURN servers.
 const pcConfig = {

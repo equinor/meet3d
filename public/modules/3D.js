@@ -50,8 +50,13 @@ var UserMap = {}; //json-object to store the Users
 var allObjects = []; // Stores all 3D objects so that they can be removed later
 var videoList = []; // The list of remote videos to display
 var videoListLength = 0; // The number of videos to show at a time, not including our own
-const resourceList = ['objects/obj/pawn.glb']; //List of 3D-object-files
-var resourceIndex = 0;
+var resourceList = ["objects/Anglerfish/Anglerfish.glb","objects/ArmoredCatfish/ArmoredCatfish.glb","objects/Betta/Betta.glb", "objects/BlackLionFish/BlackLionFish.glb", "objects/Blobfish/Blobfish.glb", "objects/BlueGoldfish.glb", "objects/Clownfish.glb",
+"objects/Flatfish/Flatfish.glb", "objects/FlowerHorn/FlowerHorn.glb", "objects/GoblinShark/GoblinShark.glb", "objects/Goldfish/Goldfish.glb",
+"objects/Huphhead/HumphHead.glb", "objects/Koi/Koi.glb", "objects/Lionfish/Lionfish.glb", "objects/MandarinFish/MandarinFish.glb",
+"objects/MoorishIdol/MoorishIdol.glb","objects/ParrotFish/ParrotFish.glb", "objects/Piranha/Piranha.glb", "objects/Puffer/Puffer.glb",
+"objects/RedSnapper/RedSnapper.glb", "objects/RoyalGramma/RoyalGramma.glb", "objects/Shark/Shark.glb", "objects/Sunfish/Sunfish.glb",
+"objects/Swordfish/Swordfish.glb", "objects/Tang/Tang.glb", "objects/Tetra/Tetra.glb", "objects/Tuna/Tuna.glb", "objects/Turbot/Turbot.glb",
+"objects/YellowTang/YellowTang", "objects/ZebraClownFish/ZebraClownFish.glb"]; //List of 3D-object-files
 var connections;
 var ourID;
 
@@ -373,12 +378,33 @@ function addText(name, model) {
 
 function newUserJoined3D(id, name) {
 	console.log("Adding new user to the 3D environment: " + name);
-	let newUser = {};
+	var newUser = {};
 
 	newUser['name'] = name;
-	newUser['avatar'] = loadNewObject(resourceList[resourceIndex]);
-	resourceIndex++;
-	resourceIndex %= resourceList.length; // Make sure the index never exceeds the size of the list
+
+	var avatar = {};
+	avatar['resource'] = resourceList.shift();
+	avatar['model'] = new THREE.Object3D();
+	loader.load(avatar.resource, function(gltf) { // this could probably be vastly improved
+		avatar.model.add(gltf.scene);
+		/*avatar.model.scale.x = objectScale;
+		avatar.model.scale.y = objectScale;
+		avatar.model.scale.z = objectScale;*/
+
+		avatar['mixer'] = new THREE.AnimationMixer(gltf.scene);
+		avatar['action'] = avatar.mixer.clipAction(gltf.animations[0]);
+		avatar.action.play(); // FIXME Currently not working
+
+		let boundingBox = new THREE.Box3().setFromObject(avatar.model);
+		objectSize = boundingBox.getSize(); // Returns Vector3
+
+		scene.add(avatar.model);
+		allObjects.push(avatar.model);
+	});
+	avatar.model.scale.x = objectScale;
+	avatar.model.scale.y = objectScale;
+	avatar.model.scale.z = objectScale;
+	newUser['avatar'] = avatar;
 
 	addText(name, newUser.avatar.model);
 
@@ -386,10 +412,25 @@ function newUserJoined3D(id, name) {
 	UserMap[id] = newUser;
 
 	updateVideoList(id);
+	return newUser;
 }
 
 function changeUserPosition(id, x, y, z) {
 	let user = UserMap[id];
+
+	let changeX = x - user.avatar.model.position.x;
+	let changeZ = z - user.avatar.model.position.z;
+	let distance = Math.sqrt(changeX ** 2 + changeZ ** 2);
+	let ratioedChangeZ = changeZ / distance;
+	if(changeX >= 0){
+		user.avatar.model.rotation.y = Math.acos(ratioedChangeZ);
+		//console.log("Rotation : " + Math.acos(ratioedChangeZ) * 180 / Math.PI);
+	}else{
+		user.avatar.model.rotation.y = (0 - Math.acos(ratioedChangeZ));
+		//console.log("Rotation : " + (0 - Math.acos(ratioedChangeZ)) * 180 / Math.PI );
+	}
+	//console.log(user.avatar.model.rotation.y);
+
 	user.avatar.model.position.x = x;
 	user.avatar.model.position.y = y;
 	user.avatar.model.position.z = z;
@@ -397,10 +438,6 @@ function changeUserPosition(id, x, y, z) {
 		updateVideoList(id);
 	}
 	user.avatar.model.getObjectByName('text').lookAt(camera.position.x, 0, camera.position.z);
-}
-
-function setUserRotation(id, angleY) {
-	UserMap[id].avatar.model.rotation.y = angleY;
 }
 
 /**
@@ -539,6 +576,7 @@ function userGotMedia(id, mediaStream) {
 }
 
 function userLeft3D(id) {
+	resourceList.push(UserMap[id].resource);
 	scene.remove(UserMap[id].avatar.model);
 	if (UserMap[id].audioElement.srcObject) {
 		UserMap[id].audioElement.srcObject.getTracks().forEach(track => track.stop());
@@ -547,28 +585,6 @@ function userLeft3D(id) {
 	UserMap[id].audioElement = null;
 	delete UserMap[id];
 	updateVideoList(ourID);
-}
-
-
-// Load 3D-object from file "resource" and add it to scene
-function loadNewObject(resource){
-	let avatar = {};
-	avatar['model'] = new THREE.Object3D();
-
-	loader.load(resource, function(gltf) { // this could probably be vastly improved
-		avatar.model.add(gltf.scene);
-		avatar.model.scale.x = objectScale;
-		avatar.model.scale.y = objectScale;
-		avatar.model.scale.z = objectScale;
-
-
-		let boundingBox = new THREE.Box3().setFromObject(avatar.model);
-		objectSize = boundingBox.getSize(); // Returns Vector3
-
-		scene.add(avatar.model);
-		allObjects.push(avatar.model);
-	});
-	return avatar;
 }
 
 function onDocumentKeyDown(event) {
@@ -644,9 +660,16 @@ function resizeCanvas(newWidth) {
 //function to update frame
 function update() {
 	requestID = requestAnimationFrame(update);
+	var time = performance.now();
+	var delta = ( time - prevUpdateTime ) / 1000;
+
+	//updating animation
+	for(let u in UserMap){
+		if(UserMap[u].avatar.mixer){
+			UserMap[u].avatar.mixer.update(delta);
+		}
+	}
 	if (controls.isLocked === true) {
-		time = performance.now();
-		var delta = ( time - prevUpdateTime ) / 1000;
 
 		velocity.x -= velocity.x * 10.0 * delta;
 		velocity.z -= velocity.z * 10.0 * delta;
@@ -674,9 +697,8 @@ function update() {
 			prevPosTime = time;
 		}
 
-		prevUpdateTime = time;
 	}
-
+	prevUpdateTime = time;
 	renderer.render(scene, camera);
 	
 
