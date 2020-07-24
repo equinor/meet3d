@@ -4,6 +4,12 @@ import { GLTFLoader } from './GLTFLoader.js';
 
 import { PointerLockControls } from './PointerLockControls.js';
 
+import {CSS3DRenderer} from './CSS3DRenderer.js'
+
+import{CSS3DObject} from './CSS3DRenderer.js'
+
+
+
 // GLOBAL CONSTANTS
 const maxX = 100;
 const maxY = 100; // This is probably not needed
@@ -98,12 +104,12 @@ async function init3D(id, connectionsObject, div) {
 	renderer.domElement.id = "scene"; // Adds an ID to the canvas element
 	div.appendChild(renderer.domElement);
 
-	cssrenderer = new THREE.CSS3DRenderer();
+	cssrenderer = new CSS3DRenderer();
 	cssrenderer.setSize(window.innerWidth, window.innerHeight);
 	cssrenderer.domElement.style.position = 'absolute';
 	cssrenderer.domElement.style.top = 0;
-	cssrenderer.domElement.id="cssscenes";
-	document.getElementById("3D").appendChild(cssrenderer.domElement);
+	cssrendere.r.domElement.id="cssscenes";
+	div.appendChild(cssrenderer.domElement);
 	
 	controls = new PointerLockControls( camera, div );
 
@@ -120,7 +126,6 @@ async function init3D(id, connectionsObject, div) {
 	cssrenderer.render(cssscene, camera);
 	renderer.render(scene, camera);
 
-	
 
 	update();
 }
@@ -324,7 +329,7 @@ function addVideoCube(){
 	
 	let youtube = document.getElementById( 'youtubev');
 	youtube.hidden = false;
-	let object = new THREE.CSS3DObject(youtube);
+	let object = new CSS3DObject(youtube);
 	object.position = 0;
 	
 	//object.rotation = planeMesh.rotation;
