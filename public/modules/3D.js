@@ -19,7 +19,6 @@ const minZcam = -maxZ + 1;
 // GLOBAL VARIABLES
 var scene;
 var camera;
-var virtualCamera;
 var renderer;
 var controls;
 
