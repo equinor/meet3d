@@ -177,6 +177,7 @@ function addSkyBox(){
 	let loader = new THREE.CubeTextureLoader();
 	scene.background = loader.load(urls);
 
+	//Extra floor to make rooom look real.
 	let textureLoader = new THREE.TextureLoader();
 	let floortext = textureLoader.load( "objects/obj/sh_dn.png" );
 	floortext.wrapS = THREE.RepeatWrapping;
@@ -560,11 +561,6 @@ function loadNewObject(resource){
 		avatar.model.scale.y = objectScale;
 		avatar.model.scale.z = objectScale;
 
-		//FIXME errors when these are uncommented
-		//avatar['clips'] = gltf.animations;
-		//avatar['mixer'] = new THREE.AnimationMixer(gltf.scene);
-		//avatar['swim'] = avatar.mixer.clipAction(gltf.animations[0]);
-		//avatar.swim.play(); // FIXME Currently not working
 
 		let boundingBox = new THREE.Box3().setFromObject(avatar.model);
 		objectSize = boundingBox.getSize(); // Returns Vector3
