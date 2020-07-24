@@ -24,7 +24,7 @@ const minZcam = -maxZ + 1;
 
 // GLOBAL VARIABLES
 var scene;
-var cssscene;
+var cssScene;
 var camera;
 var renderer;
 var cssrenderer;
@@ -67,7 +67,7 @@ async function init3D(id, connectionsObject, div) {
 	connections = connectionsObject;
 
 	scene = new THREE.Scene();
-	cssscene = new THREE.Scene();
+	cssScene = new THREE.Scene();
 
 	// CAMERA
 	camera = new THREE.PerspectiveCamera(75, (window.innerWidth / window.outerWidth), 0.1, 300000);
@@ -106,15 +106,15 @@ async function init3D(id, connectionsObject, div) {
 
 	cssrenderer = new CSS3DRenderer();
 	cssrenderer.setSize(window.innerWidth, window.innerHeight);
-	cssrenderer.domElement.style.position = 'absolute';
+	cssrenderer.domElement.style.position = 'relative';
 	cssrenderer.domElement.style.top = 0;
-	cssrenderer.domElement.id="cssscenes";
+	cssrenderer.domElement.id="cssScene";
 	div.appendChild(cssrenderer.domElement);
 	
 	controls = new PointerLockControls( camera, div );
 
 	scene.add(controls.getObject());
-	cssscene.add(controls.getObject());
+	cssScene.add(controls.getObject());
 	allObjects.push(controls.getObject());
 
 	listener = new THREE.AudioListener();
@@ -124,7 +124,7 @@ async function init3D(id, connectionsObject, div) {
 	document.addEventListener( 'keydown', onDocumentKeyDown, false );
 	document.addEventListener( 'keyup', onDocumentKeyUp, false );
    
-	cssrenderer.render(cssscene, camera);
+	cssrenderer.render(cssScene, camera);
 	renderer.render(scene, camera);
 
 
@@ -330,11 +330,13 @@ function addVideoCube(){
 	var youtube = document.getElementById( 'youtubev');
 	youtube.hidden = false;
 	let object = new CSS3DObject(youtube);
-	object.position.x = 0;
+	object.position.y = wallHeight/2;
+	object.position.z = -(maxZ-1);
+	object.scale.set(0.075, 0.075, 0.075);
 
 	
 	//object.rotation = planeMesh.rotation;
-	cssscene.add(object);
+	cssScene.add(object);
 
 	//var Vtexture = new THREE.VideoTexture( youtube );
 	/*
@@ -726,10 +728,8 @@ function update() {
 
 		prevUpdateTime = time;
 	}
-	cssrenderer.render(cssscene, camera);
 	renderer.render(scene, camera);
-	
-
+	cssrenderer.render(cssScene, camera);
 }
 
 /**
