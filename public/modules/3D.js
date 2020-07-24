@@ -108,12 +108,13 @@ async function init3D(id, connectionsObject, div) {
 	cssrenderer.setSize(window.innerWidth, window.innerHeight);
 	cssrenderer.domElement.style.position = 'absolute';
 	cssrenderer.domElement.style.top = 0;
-	cssrendere.r.domElement.id="cssscenes";
+	cssrenderer.domElement.id="cssscenes";
 	div.appendChild(cssrenderer.domElement);
 	
 	controls = new PointerLockControls( camera, div );
 
 	scene.add(controls.getObject());
+	cssscene.add(controls.getObject());
 	allObjects.push(controls.getObject());
 
 	listener = new THREE.AudioListener();
@@ -324,13 +325,13 @@ function addVideoCube(){
 	/*let material = new THREE.MeshBasicMaterial({ wireframe: true });
 	let geometry = new THREE.PlaneGeometry();
 	let planeMesh= new THREE.Mesh( geometry, material );
-// add it to the WebGL scene
+	// add it to the WebGL scene
 	scene.add(planeMesh);*/
-	
-	let youtube = document.getElementById( 'youtubev');
+	var youtube = document.getElementById( 'youtubev');
 	youtube.hidden = false;
 	let object = new CSS3DObject(youtube);
-	object.position = 0;
+	object.position.x = 0;
+
 	
 	//object.rotation = planeMesh.rotation;
 	cssscene.add(object);
