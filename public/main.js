@@ -47,6 +47,7 @@ chatSend.addEventListener("keyup", function(event) {
   });
 uploadButton.onclick = function() { advertiseFile() };
 
+var ready = false;
 var socket; // This is the SocketIO connection to the signalling server
 var connections = {};
 /*    {
@@ -58,8 +59,8 @@ var connections = {};
  *    }
  */
 var ourID;
-const signalServer = 'signaling-server-meet3d-master.radix.equinor.com'; // The signaling server
-// const signalServer = 'localhost:3000'; // The signaling server
+// const signalServer = 'signaling-server-meet3d-master.radix.equinor.com'; // The signaling server
+const signalServer = 'localhost:3000'; // The signaling server
 
 // The configuration containing our STUN and TURN servers.
 const pcConfig = {
@@ -128,7 +129,7 @@ async function init(button) {
 
   // A new user joined the room
   socket.on('join', function (message) {
-    if (message.id === ourID) return;
+    if (!ready || message.id === ourID) return;
 
     connections[message.id] = {};
     connections[message.id].name = message.name;
@@ -148,6 +149,7 @@ async function init(button) {
     await init3D(ourID, connections, document.getElementById("3D")); // Renders the 3D environment
     console.log('We are ready to receive offers');
     socket.emit('ready', startInfo.name);
+    ready = true;
   });
 
   // A user moved in the 3D space
@@ -161,6 +163,7 @@ async function init(button) {
     if (connections[id]) {
       console.log("User " + connections[id].name + " left");
       userLeft(id);
+      userLeft3D(id);
     }
   });
 
@@ -183,19 +186,19 @@ async function init(button) {
   });
 
   // We have received an answer to our PeerConnection offer
-  socket.on('answer', function(message) {
+  socket.on('answer', async function(message) {
     let id = message.id;
     let answerDescription = message.answer;
 
+    if (id === ourID || connections[id].signalingState == "stable") return;
+
     console.log("Received answer from " + connections[id].name)
 
-    if (id === ourID) return;
-
-    connections[id].connection.setRemoteDescription(new RTCSessionDescription(answerDescription));
+    await connections[id].connection.setRemoteDescription(new RTCSessionDescription(answerDescription));
   });
 
   // We have received an ICE candidate from a user we are connecting to
-  socket.on('candidate', function(message) {
+  socket.on('candidate', async function(message) {
 
     let id = message.id;
     let candidates = message.candidateData;
@@ -208,7 +211,7 @@ async function init(button) {
       candidate: candidates.candidate
     });
 
-    connections[id].connection.addIceCandidate(candidate);
+    await connections[id].connection.addIceCandidate(candidate);
   });
 }
 
@@ -216,14 +219,11 @@ async function init(button) {
  * Sends an offer to a new user with our local PeerConnection description.
  */
 async function sendOffer(id) {
-
-  console.log('Sending offer to user ' + connections[id].name);
-
   if (!connections[id].connection) {
-    console.log('Creating peer connection to user ' + connections[id].name);
+    console.log('Sending offer to user ' + connections[id].name);
     connections[id].connection = await createPeerConnection(id);
-    createDataChannel(id);
-    addLocalTracksToConnection(id); // This triggers 'renegotiations'
+    await createDataChannel(id);
+    await addLocalTracksToConnection(id); // This triggers 'renegotiations'
   }
 }
 
@@ -235,12 +235,25 @@ async function sendAnswer(id, offerDescription) {
   if (!connections[id].connection) {
     console.log('Creating RTCPeerConnection to user ' + connections[id].name);
     connections[id].connection = await createPeerConnection(id);
-    addLocalTracksToConnection(id);
+    await addLocalTracksToConnection(id);
   }
 
   console.log('Sending answer to connection to user ' + connections[id].name);
 
-  connections[id].connection.setRemoteDescription(new RTCSessionDescription(offerDescription));
+  if (connections[id].signalingState == "stable" || connections[id].signalingState == "have-remote-offer") return;
+
+  await connections[id].connection.setRemoteDescription(new RTCSessionDescription(offerDescription));
+
+  if (connections[id].signalingState == "stable") return;
+
+  await connections[id].connection.setLocalDescription(await connections[id].connection.createAnswer());
+
+  socket.emit('answer', {
+    id: id,
+    answer: connections[id].connection.localDescription
+  });
+  /*
+
   connections[id].connection.createAnswer().then(function(description) {
     connections[id].connection.setLocalDescription(description);
     socket.emit('answer', {
@@ -251,6 +264,7 @@ async function sendAnswer(id, offerDescription) {
     console.error("Failed to create answer: " + e);
     return;
   });
+  */
 }
 
 /**
@@ -261,9 +275,7 @@ async function createPeerConnection(id) {
   let pc;
 
   try {
-    if (connections[id] == undefined) {
-      connections[id] = {};
-    }
+    console.log('Creating peer connection to user ' + connections[id].name);
 
     pc = new RTCPeerConnection(pcConfig);
 
@@ -279,17 +291,15 @@ async function createPeerConnection(id) {
           }
         });
       } else {
-        console.log('End of candidates.');
+        console.log('End of candidates from ' + connections[id].name);
       }
     };
 
     pc.ontrack = function (event) {
-      console.log('Remote track added.');
-
-      let newStream = new MediaStream([event.track]);
+      console.log('Remote track added from ' + connections[id].name);
 
       if (event.track.kind == "audio") {
-        userGotMedia(id, newStream); // Adds audio track to 3D environment
+        userGotMedia(id, new MediaStream([event.track])); // Adds audio track to 3D environment
       }
 
       if (event.track.kind == "video") {
@@ -319,9 +329,11 @@ async function createPeerConnection(id) {
       });
 
       event.channel.addEventListener("close", () => {
-        console.log("DataChannel to " + connections[id].name + " has closed");
-        userLeft3D(id); // Removes the user from the 3D environment
-        userLeft(id);
+        if (connections[id]) {
+          console.log("DataChannel to " + connections[id].name + " has closed");
+          userLeft3D(id); // Removes the user from the 3D environment
+          userLeft(id);
+        }
       });
 
       event.channel.addEventListener("message", (message) => {
@@ -329,10 +341,21 @@ async function createPeerConnection(id) {
       });
     };
 
-    pc.onnegotiationneeded = function (event) {
+    pc.onnegotiationneeded = async function (event) {
 
-      console.log("Renegotiations needed, sending new offer to " + connections[id].name);
+      console.log("Negotiations needed, sending offer to " + connections[id].name);
 
+      if (connections[id].signalingState == "have-remote-offer") return;
+
+      await connections[id].connection.setLocalDescription(await connections[id].connection.createOffer());
+
+      socket.emit('offer', {
+        id: id,
+        name: username.value,
+        offer: connections[id].connection.localDescription
+      });
+
+      /*
       connections[id].connection.createOffer().then(function(description) {
         connections[id].connection.setLocalDescription(description);
         socket.emit('offer', {
@@ -344,10 +367,12 @@ async function createPeerConnection(id) {
         console.error("Failed to create offer: " + e);
         return;
       });
+      */
     };
 
+
     pc.onconnectionstatechange = function (event) {
-      if (pc.connectionState == "closed") {
+      if (pc.connectionState == "closed" && connections[id]) {
         console.log("Lost connection to " + connections[id].name);
         userLeft3D(id); // Removes the user from the 3D environment
         userLeft(id);
@@ -359,14 +384,14 @@ async function createPeerConnection(id) {
     alert('Cannot create RTCPeerConnection.');
     return;
   }
-  console.log('Created RTCPeerConnection');
+  console.log('Created RTCPeerConnection to user ' + connections[id].name);
   return pc;
 }
 
 /**
  * Creates a new data channel to the user with the given id.
  */
-function createDataChannel(id) {
+async function createDataChannel(id) {
   let tempConnection = connections[id].connection.createDataChannel("Conference");
   tempConnection.onopen = function () {
     connections[id].dataChannel = tempConnection;
@@ -377,7 +402,11 @@ function createDataChannel(id) {
   };
 
   tempConnection.onclose = function () {
-    console.log("A DataChannel closed");
+    if (connections[id]) {
+      console.log("DataChannel to " + connections[id].name + " has closed");
+      userLeft3D(id); // Removes the user from the 3D environment
+      userLeft(id);
+    }
   };
 
   tempConnection.onmessage = function (event) {
@@ -408,6 +437,7 @@ function handleIceCandidate(event) {
 function leave(button) {
   socket.emit('left');
   socket.disconnect(true);
+  ready = false;
 
   leave3D(); // Closes the 3D environment
   clearHTML();

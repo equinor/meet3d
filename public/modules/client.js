@@ -161,7 +161,7 @@ async function addLocalTrack(constraint) {
 /**
  * Adds all local streams to the PeerConnection to the user with the given ID.
  */
-function addLocalTracksToConnection(id) {
+async function addLocalTracksToConnection(id) {
   if (!localStream || localStream.getTracks().length == 0) {
     console.error("There is no track to add to the new connection.");
     return;
@@ -272,9 +272,7 @@ async function shareScreen(button) {
   sharing.width = screenCapture.getVideoTracks()[0].getSettings().width;
   sharing.height = screenCapture.getVideoTracks()[0].getSettings().height;
   screenShare.srcObject = screenCapture;
-  updateShareScreen3D(screenCapture.getVideoTracks()[0], sharing); // Add the stream to the 3D environment
-  if (screenCapture.getAudioTracks()[0])
-    updateShareScreen3D(screenCapture.getAudioTracks()[0], sharing); // Add the stream to the 3D environment
+  updateShareScreen3D(screenCapture.getVideoTracks()[0], sharing, username.value); // Add the stream to the 3D environment
   addScreenCapture(null); // Notify other users and add the stream to the connections
 }
 
@@ -325,7 +323,7 @@ function stopShareScreen(button) {
   sharing.id = null; // This indicates that noone is sharing their screen
   sharing.width = 0;
   sharing.height = 0;
-  updateShareScreen3D(null, sharing); // Re-add the 3D walls without the video texture
+  updateShareScreen3D(null, sharing, null); // Re-add the 3D walls without the video texture
 
   let shareJSON = JSON.stringify({
     type: "share",
@@ -343,7 +341,7 @@ function stopShareScreen(button) {
  */
 function updateShareScreen(videoStream) {
   if (sharing.id) {
-    updateShareScreen3D(videoStream, sharing);
+    updateShareScreen3D(videoStream, sharing, connections[sharing.id].name);
   }
 }
 
@@ -412,7 +410,7 @@ function dataChannelReceive(id, data) {
 
       shareButton.hidden = false; // Unhide the share screen button
       screenShare.srcObject = null;
-      updateShareScreen3D(null, sharing); // Re-add the 3D walls without the video texture
+      updateShareScreen3D(null, sharing, null); // Re-add the 3D walls without the video texture
     }
   }
 }
@@ -515,7 +513,8 @@ function advertiseFile() {
   };
 
   for (let id in connections) {
-    connections[id].dataChannel.send(JSON.stringify(filesJSON)); // Send the JSON to all users
+    if (connections[id].dataChannel)
+      connections[id].dataChannel.send(JSON.stringify(filesJSON)); // Send the JSON to all users
   }
 }
 
@@ -834,7 +833,7 @@ function userLeft(id) {
     sharing.height = 0;
     screenShare.srcObject = null;
     shareButton.hidden = false;
-    updateShareScreen3D(null, sharing);
+    updateShareScreen3D(null, sharing, null);
   }
   if (connections[id].stream) document.getElementById(connections[id].stream.id).outerHTML = ''; // Remove video
   if (connections[id].dataChannel) connections[id].dataChannel.close(); // Close DataChannel

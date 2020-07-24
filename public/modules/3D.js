@@ -30,7 +30,7 @@ var time;
 var objectSize = new THREE.Vector3(); // A Vector3 representing size of each 3D-object
 
 var tv; // The object which stores the screen sharing video
-var tvAudio;
+var table;
 
 var moveForward = false;
 var moveBackward = false;
@@ -80,6 +80,8 @@ async function init3D(id, connectionsObject, div) {
 
 	// GLTF LOADER
 	loader = new GLTFLoader();
+	console.log("boop");
+	console.log(loader);
 
 	// ADD SCENERY
 	addWalls();
@@ -159,7 +161,7 @@ function addPositionalAudioToObject(stream, object) {
  * Places the given video stream in the 3D environment. If it is null, then we
  * only remove the existing one.
  */
-function updateShareScreen3D(screenTrack, details) {
+async function updateShareScreen3D(screenTrack, details, name) {
 	scene.remove(tv);
 	if (screenTrack) { // If someone is sharing their screen, display it
 		let stream = new MediaStream([screenTrack]);
@@ -271,7 +273,7 @@ function addDecoration() {
 	});
 
 	// TABLE
-	const table = new THREE.Object3D();
+	table = new THREE.Object3D();
 	loader.load('objects/obj/table.glb', function(gltf) {
 		table.add(gltf.scene);
 		table.scale.x = 20; table.scale.y = 20; table.scale.z = 20;
@@ -291,8 +293,7 @@ function getVideoList() {
 }
 
 // Add username as text on top of 3D-object
-function addText(name, model) {
-	var text = new THREE.Mesh();
+async function addText(name, model) {
 	var fontLoader = new THREE.FontLoader();
 	fontLoader.load('helvetiker_regular.typeface.json', function(font) {
 
@@ -307,7 +308,7 @@ function addText(name, model) {
 
 		const letterSize = 2;
 
-		// Creates an array of Shapes representing nameShowed
+		// Creates an array of Shapes representing name
 		let shapes = font.generateShapes(name, letterSize / objectScale);
 
 		let textGeometry = new THREE.ShapeBufferGeometry(shapes);
@@ -316,10 +317,10 @@ function addText(name, model) {
 		textGeometry.computeBoundingBox();
 		textGeometry.center();
 
-		// Determine position of text object realtive to 3D-object
+		// Determine position of text object relative to 3D-object
 		textGeometry.translate(0, (objectSize.y + letterSize) / objectScale, 0);
 
-		text = new THREE.Mesh(textGeometry, textMaterial);
+		let text = new THREE.Mesh(textGeometry, textMaterial);
 		text.name = "text";
 		model.add(text);
 	});
@@ -365,7 +366,6 @@ function setUserRotation(id, angleY) {
  * done using a basic insertion sort algorithm.
  */
 function updateVideoList(id) {
-
 	if (connections[id] && !connections[id].stream) {
 		return; // Ignore users who do not share video
 	}
@@ -423,7 +423,6 @@ function updateVideoList(id) {
  * element gets shifted out of the array then their ID is returned, and 0 otherwise
  */
 function shiftVideoList(id) {
-
 	let thisDistance = getDistance(id);
 	let shiftedID = 0;
 	for (let i = 0; i < videoListLength; i++) {
@@ -509,9 +508,12 @@ function userLeft3D(id) {
 
 
 // Load 3D-object from file "resource" and add it to scene
-function loadNewObject(resource){
+function loadNewObject(resource) {
 	let avatar = {};
-	avatar['model'] = new THREE.Object3D();
+	avatar.model = new THREE.Object3D();
+
+	console.log("beep");
+	console.log(loader);
 
 	loader.load(resource, function(gltf) { // this could probably be vastly improved
 		avatar.model.add(gltf.scene);
@@ -661,7 +663,7 @@ function changePos(x, y, z) {
 
 function leave3D() {
 
-	updateShareScreen3D(null);
+	if (tv) scene.remove(tv);
 
 	for (let id in UserMap) {
 		if (UserMap[id].audioElement) {
