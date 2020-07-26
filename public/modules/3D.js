@@ -15,6 +15,8 @@ const maxXcam = maxX - 1;
 const minXcam = -maxX + 1;
 const maxZcam = maxZ - 1;
 const minZcam = -maxZ + 1;
+const maxYcam = maxY - 1;
+const minYcam = -maxY + 1;
 
 // GLOBAL VARIABLES
 var scene;
@@ -36,6 +38,8 @@ var moveForward = false;
 var moveBackward = false;
 var moveLeft = false;
 var moveRight = false;
+var moveUp = false;
+var moveDown = false;
 
 var prevUpdateTime = performance.now();
 var prevPosTime = performance.now();
@@ -391,18 +395,46 @@ function newUserJoined3D(id, name) {
 function changeUserPosition(id, x, y, z) {
 	let user = UserMap[id];
 
+	//updating Y-rotation
 	let changeX = x - user.avatar.model.position.x;
 	let changeZ = z - user.avatar.model.position.z;
 	let distance = Math.sqrt(changeX ** 2 + changeZ ** 2);
-	let ratioedChangeZ = changeZ / distance;
-	if(changeX >= 0){
-		user.avatar.model.rotation.y = Math.acos(ratioedChangeZ);
-		//console.log("Rotation : " + Math.acos(ratioedChangeZ) * 180 / Math.PI);
+	if(distance > 0){
+		let ratioedChangeZ = changeZ / distance;
+		if(changeX >= 0){
+			user.avatar.model.rotation.y = Math.acos(ratioedChangeZ);
+			//console.log("Rotation : " + Math.acos(ratioedChangeZ) * 180 / Math.PI);
+		}else{
+			user.avatar.model.rotation.y = (0 - Math.acos(ratioedChangeZ));
+			//console.log("Rotation : " + (0 - Math.acos(ratioedChangeZ)) * 180 / Math.PI );
+		}
+		//console.log(user.avatar.model.rotation.y);
 	}else{
-		user.avatar.model.rotation.y = (0 - Math.acos(ratioedChangeZ));
-		//console.log("Rotation : " + (0 - Math.acos(ratioedChangeZ)) * 180 / Math.PI );
+		user.avatar.model.rotation.y = 0;
 	}
-	//console.log(user.avatar.model.rotation.y);
+
+	//updating X-rotation
+	let changeY = y - user.avatar.model.position.y;
+	if(changeY != 0){
+		if(distance > 0){
+			let hypothenuse = Math.sqrt(distance ** 2 + changeY ** 2);
+			user.avatar.model.rotation.x = (0 - Math.asin(changeY / hypothenuse));
+			console.log("Rotation : " + (0 - Math.asin(changeY / hypothenuse)) * 180 / Math.PI);
+			/*user.avatar.model.rotation.x = (Math.asin(changeY / hypothenuse));
+			console.log("Rotation : " + Math.asin(changeY / hypothenuse) * 180 / Math.PI);*/	
+		}else{
+			if(changeY > 0){
+				user.avatar.model.rotation.x = - 90 * Math.PI / 180;
+				console.log("Rotation : - 90");
+			}else if(changeY < 0){
+				user.avatar.model.rotation.x = 90 * Math.PI / 180;
+				console.log("Rotation : 90");
+			}
+		}
+		console.log(user.avatar.model.rotation.x);
+	}else{
+		user.avatar.model.rotation.x = 0;
+	}
 
 	user.avatar.model.position.x = x;
 	user.avatar.model.position.y = y;
@@ -410,7 +442,7 @@ function changeUserPosition(id, x, y, z) {
 	if (connections[id].stream) {
 		updateVideoList(id);
 	}
-	user.avatar.model.getObjectByName('text').lookAt(camera.position.x, 0, camera.position.z);
+	user.avatar.model.getObjectByName('text').lookAt(camera.position.x, camera.position.y, camera.position.z);
 }
 
 /**
@@ -588,6 +620,14 @@ function onDocumentKeyDown(event) {
 		case 40: // down
 			controls.unlock();
 			break;
+
+		case 81: // q
+			moveUp = true;
+			break;
+
+		case 69: // e
+			moveDown = true;
+			break;
 	}
 }
 
@@ -608,6 +648,14 @@ function onDocumentKeyUp(event) {
 
 		case 68: // d
 			moveRight = false;
+			break;
+
+		case 81: // q
+			moveUp = false;
+			break;
+
+		case 69: // e
+			moveDown = false;
 			break;
 	}
 }
@@ -646,29 +694,35 @@ function update() {
 
 		velocity.x -= velocity.x * 10.0 * delta;
 		velocity.z -= velocity.z * 10.0 * delta;
+		velocity.y -= velocity.y * 10.0 * delta;
 
 		direction.z = Number( moveForward ) - Number( moveBackward );
 		direction.x = Number( moveRight ) - Number( moveLeft );
-		direction.normalize(); // this ensures consistent movements in all directions
+		direction.y = Number( moveUp ) - Number( moveDown );
+		direction.normalize(); // this ensures consistent movements in all directions (usefulness in question)
 
 		if ( moveForward || moveBackward ) velocity.z -= direction.z * speed * delta;
 		if ( moveLeft || moveRight ) velocity.x -= direction.x * speed * delta;
+		if ( moveUp || moveDown ) velocity.y -= direction.y * speed * delta;
 
 		controls.moveRight( - velocity.x * delta );
 		controls.moveForward( - velocity.z * delta );
+		controls.getObject().position.y += ( velocity.y * delta ); //controls.moveUp( - velocity.y * delta );
 
 		if (camera.position.x > maxXcam) camera.position.x = maxXcam;
 		else if (camera.position.x < minXcam) camera.position.x = minXcam;
 		if (camera.position.z > maxZcam) camera.position.z = maxZcam;
 		else if (camera.position.z < minZcam) camera.position.z = minZcam;
+		if (camera.position.y > maxYcam) camera.position.y = maxYcam;
+		else if (camera.position.y < minYcam) camera.position.y = minYcam;
 
 		// Only call costly functions if we have moved and some time has passed since the last time we called them
 		if ( hasMoved() && time - prevPosTime > 50 ) {
-			changePos(camera.position.x, 0, camera.position.z); // Update our position for others
+			changePos(camera.position.x, camera.position.y, camera.position.z); // Update our position for others
 			updateVideoList(ourID); // Update which videos to show
 			
 			for (let keyId in UserMap) { // Makes the usernames point towards the user
-				UserMap[keyId].avatar.model.getObjectByName('text').lookAt(camera.position.x, 0, camera.position.z);
+				UserMap[keyId].avatar.model.getObjectByName('text').lookAt(camera.position.x, camera.position.y, camera.position.z);
 			}
 			
 			prevPosTime = time;
@@ -684,7 +738,7 @@ function update() {
  * for other users without needing to access 3D.js variables.
  */
 function updatePos() {
-	changePos(camera.position.x, 0, camera.position.z);
+	changePos(camera.position.x, camera.position.y, camera.position.z);
 }
 
 /**
