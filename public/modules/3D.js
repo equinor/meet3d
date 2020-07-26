@@ -48,6 +48,7 @@ var UserMap = {}; //json-object to store the Users
 var allObjects = []; // Stores all 3D objects so that they can be removed later
 var videoList = []; // The list of remote videos to display
 var videoListLength = 0; // The number of videos to show at a time, not including our own
+/*
 var resourceList = ["objects/Anglerfish/Anglerfish.glb","objects/ArmoredCatfish/ArmoredCatfish.glb","objects/Betta/Betta.glb", "objects/BlackLionFish/BlackLionFish.glb", "objects/Blobfish/Blobfish.glb", "objects/BlueGoldfish.glb", "objects/Clownfish.glb",
 "objects/Flatfish/Flatfish.glb", "objects/FlowerHorn/FlowerHorn.glb", "objects/GoblinShark/GoblinShark.glb", "objects/Goldfish/Goldfish.glb",
 "objects/Huphhead/HumphHead.glb", "objects/Koi/Koi.glb", "objects/Lionfish/Lionfish.glb", "objects/MandarinFish/MandarinFish.glb",
@@ -55,8 +56,12 @@ var resourceList = ["objects/Anglerfish/Anglerfish.glb","objects/ArmoredCatfish/
 "objects/RedSnapper/RedSnapper.glb", "objects/RoyalGramma/RoyalGramma.glb", "objects/Shark/Shark.glb", "objects/Sunfish/Sunfish.glb",
 "objects/Swordfish/Swordfish.glb", "objects/Tang/Tang.glb", "objects/Tetra/Tetra.glb", "objects/Tuna/Tuna.glb", "objects/Turbot/Turbot.glb",
 "objects/YellowTang/YellowTang", "objects/ZebraClownFish/ZebraClownFish.glb"]; //List of 3D-object-files
+*/
 var connections;
 var ourID;
+
+const resourceList = ['objects/obj/pawn.glb']; //List of 3D-object-files
+var resourceIndex = 0;
 
 async function init3D(id, connectionsObject, div) {
 	ourID = id;
@@ -347,21 +352,34 @@ async function addText(name, model) {
 } // end of function addText()
 
 function newUserJoined3D(id, name) {
+	let newUser = {};
+
 	if (name == null || name === '') throw new Error("Name cannot be empty");
 	if (typeof name !== "string") throw new Error("Name must be a string");
 
-	var newUser = {};
 	newUser.name = name;
+	newUser.avatar = loadNewObject(resourceList[resourceIndex]);
+	resourceIndex++;
+	resourceIndex %= resourceList.length; // Make sure the index never exceeds the size of the list
 
-	var avatar = {};
-	avatar.resource = resourceList.shift();
+	addText(name, newUser.avatar.model);
+
+	// Add new user to UserMap
+	UserMap[id] = newUser;
+
+	updateVideoList(id);
+}
+
+// Load 3D-object from file "resource" and add it to scene
+function loadNewObject(resource) {
+	let avatar = {};
 	avatar.model = new THREE.Object3D();
 
-	loader.load(avatar.resource, function(gltf) { // this could probably be vastly improved
+	loader.load(resource, function(gltf) { // this could probably be vastly improved
 		avatar.model.add(gltf.scene);
-		avatar.mixer = new THREE.AnimationMixer(gltf.scene);
-		avatar.action = avatar.mixer.clipAction(gltf.animations[0]);
-		avatar.action.play(); // FIXME Currently not working
+		avatar.model.scale.x = objectScale;
+		avatar.model.scale.y = objectScale;
+		avatar.model.scale.z = objectScale;
 
 		let boundingBox = new THREE.Box3().setFromObject(avatar.model);
 		objectSize = boundingBox.getSize(); // Returns Vector3
@@ -369,15 +387,7 @@ function newUserJoined3D(id, name) {
 		scene.add(avatar.model);
 		allObjects.push(avatar.model);
 	});
-
-	avatar.model.scale.x = objectScale;
-	avatar.model.scale.y = objectScale;
-	avatar.model.scale.z = objectScale;
-	newUser.avatar = avatar;
-
-	addText(name, newUser.avatar.model); // Add their names in the 3D scene
-	UserMap[id] = newUser; // Add new user to UserMap
-	updateVideoList(id);
+	return avatar;
 }
 
 function changeUserPosition(id, x, y, z) {
@@ -613,21 +623,13 @@ function resizeCanvas(newWidth) {
 	renderer.setSize( window.innerWidth - videoWidth, window.innerHeight - 30 );
 }
 
-
 // Function to update frame
 function update() {
 	requestID = requestAnimationFrame(update);
 	var time = performance.now();
 	var delta = ( time - prevUpdateTime ) / 1000;
 
-	// Updating animation
-	for (let u in UserMap) {
-		if (UserMap[u].avatar.mixer) {
-			UserMap[u].avatar.mixer.update(delta);
-		}
-	}
-
-	if (controls.isLocked === true) {
+	if (controls.isLocked === true) { // Update our position
 
 		velocity.x -= velocity.x * 10.0 * delta;
 		velocity.z -= velocity.z * 10.0 * delta;
