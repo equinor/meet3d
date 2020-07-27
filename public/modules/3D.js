@@ -621,11 +621,11 @@ function onDocumentKeyDown(event) {
 			controls.unlock();
 			break;
 
-		case 81: // q
+		case 69: // e
 			moveUp = true;
 			break;
 
-		case 69: // e
+		case 81: // q
 			moveDown = true;
 			break;
 	}
@@ -650,11 +650,11 @@ function onDocumentKeyUp(event) {
 			moveRight = false;
 			break;
 
-		case 81: // q
+		case 69: // e
 			moveUp = false;
 			break;
 
-		case 69: // e
+		case 81: // q
 			moveDown = false;
 			break;
 	}
