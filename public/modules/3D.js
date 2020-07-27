@@ -59,6 +59,8 @@ var resourceList = ["objects/Anglerfish/Anglerfish.glb","objects/ArmoredCatfish/
 "objects/YellowTang/YellowTang", "objects/ZebraClownFish/ZebraClownFish.glb"]; //List of 3D-object-files
 var connections;
 var ourID;
+var videofile = document.getElementById("videofile");
+var bunny = document.getElementById("bunny");
 
 async function init3D(id, connectionsObject, div) {
 	console.log("Dette skjer");
@@ -94,7 +96,8 @@ async function init3D(id, connectionsObject, div) {
 	addSkyBox();
 	addWalls();
 	addDecoration();
-	addVideofile();
+	addVideofile(videofile, 300, 20, 0);
+	addVideofile(bunny, -300, 20, 0);
 
 	// RENDERER
 	renderer = new THREE.WebGLRenderer({alpha: true, antiAliasing: true});
@@ -150,7 +153,7 @@ function getVideoRatio(height, width) {
 	}
 	return { height: height, width: width };
 }
-
+/*
 function addPositionalAudioToObject(stream, object) {
 	var posAudio = new THREE.PositionalAudio(listener);
 	posAudio.setRefDistance(20);
@@ -169,7 +172,7 @@ function addPositionalAudioToObject(stream, object) {
 		console.error(err);
 	};
 	//return n;
-}
+}*/
 
 /**
  * Places the given video stream in the 3D environment. If it is null, then we
@@ -315,23 +318,23 @@ function addWalls() {
 	allObjects.push( wallFront );
 }
 
-function addVideofile(){
+function addVideofile(filename, xposition, yposition, zposition){
 
-let videofile = document.getElementById("videofile"); //HTML element
+let videofile = filename; //HTML element
 videofile.play();
  let Vtexture = new THREE.VideoTexture(videofile);
  let geometry = new THREE.PlaneGeometry(50,50,50);
  let Vmaterial = new THREE.MeshBasicMaterial ({side: THREE.DoubleSide, map: Vtexture}); //FIXME! WANT TO PLACE VIDEO HEREmap: video)
  let videoPlane = new THREE.Mesh(geometry, Vmaterial);
- videoPlane.position.x = 0;
- videoPlane.position.y = wallHeight/2;
- videoPlane.position.z= -(maxZ - 1);
+ videoPlane.position.x = xposition
+ videoPlane.position.y = yposition
+ videoPlane.position.z= zposition
  
  let audiofile = document.createElement("audio");
  audiofile.srcObject = videofile.mozCaptureStream();
  audiofile.muted = true;
  
- var vPosAudio = new THREE.PositionalAudio(videoFileListener);
+ let vPosAudio = new THREE.PositionalAudio(videoFileListener);
  vPosAudio.setRefDistance(20);
  vPosAudio.setRolloffFactor(2);
  vPosAudio.setDistanceModel("exponential");
@@ -341,10 +344,6 @@ videofile.play();
  try {
  console.log("Adding positional audio for videofile...");
  vPosAudio.setNodeSource(audio2);
- vPosAudio.autoplay = true;
- if(vPosAudio.hasPlaybackControl) console.log("has playback control");
- if(vPosAudio.autoplay) console.log("autoplay == true");
- vPosAudio.play();
  videoPlane.add(vPosAudio);
  scene.add(videoPlane);
  } catch(err) {
