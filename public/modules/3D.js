@@ -61,6 +61,7 @@ var connections;
 var ourID;
 
 async function init3D(id, connectionsObject, div) {
+	console.log("Dette skjer");
 	ourID = id;
 	connections = connectionsObject;
 
@@ -167,7 +168,7 @@ function addPositionalAudioToObject(stream, object) {
 	} catch(err) {
 		console.error(err);
 	};
-	return n;
+	//return n;
 }
 
 /**
@@ -315,37 +316,42 @@ function addWalls() {
 }
 
 function addVideoCube(){
-	let videofile = document.getElementById("videofile"); //HTML element
-	let audiofile = document.createElement("audiofile");
-	let sound = new THREE.PositionalAudio(videoFileListener);//create PositionalAudio object
-	sound.setRefDistance(20);
-	sound.setRolloffFactor(2);
 
-	audiofile.srcObject = videofile.getTracks();
-	audiofile.muted = true;
-	const audio2 = sound.context.createMediaStreamSource(audiofile.srcObject)
-	sound.setNodeSource(audio2);
-	
+let videofile = document.getElementById("videofile"); //HTML element
+ videofile.muted = false;
+ videofile.play();
+ let Vtexture = new THREE.VideoTexture(videofile);
+ let geometry = new THREE.PlaneGeometry(50,50,50);
+ let Vmaterial = new THREE.MeshBasicMaterial ({side: THREE.DoubleSide, map: Vtexture}); //FIXME! WANT TO PLACE VIDEO HEREmap: video)
+ let videoPlane = new THREE.Mesh(geometry, Vmaterial);
+ videoPlane.position.x = 0;
+ videoPlane.position.y = wallHeight/2;
+ videoPlane.position.z= -(maxZ - 1);
+ 
+ let audiofile = document.createElement("audio");
+ audiofile.srcObject = videofile.mozCaptureStream();
+ audiofile.muted = true;
+ 
+ var vPosAudio = new THREE.PositionalAudio(videoFileListener);
+ vPosAudio.setRefDistance(20);
+ vPosAudio.setRolloffFactor(2);
+ vPosAudio.setDistanceModel("exponential");
+ 
+ const audio2 = vPosAudio.context.createMediaStreamSource(audiofile.srcObject);
+ 
+ try {
+ console.log("Adding positional audio for videofile...");
+ vPosAudio.setNodeSource(audio2);
+ vPosAudio.autoplay = true;
+ if(vPosAudio.hasPlaybackControl) console.log("has playback control");
+ if(vPosAudio.autoplay) console.log("autoplay == true");
+ vPosAudio.play();
+ videoPlane.add(vPosAudio);
+ scene.add(videoPlane);
+ } catch(err) {
+ console.error(err);
+ };
 
-	let Vtexture = new THREE.VideoTexture(videofile);
-	/*var vposAudio = new THREE.PositionalAudio(videoFileListener);
-	let media = new MediaStream(videofile.getAudioTracks())
-	vposAudio.setRefDistance(20);
-	vposAudio.setRolloffFactor(2);
-	vposAudio.setMediaStreamSource(media);
-*/
-	Vtexture.minFilter = THREE.LinearFilter;
-	Vtexture.magFilter = THREE.LinearFilter;
-	Vtexture.format = THREE.RGBFormat;
-
-	let geometry = new THREE.PlaneGeometry(50,50,50);
-	let Vmaterial = new THREE.MeshBasicMaterial ({side: THREE.DoubleSide, map: Vtexture}); //FIXME! WANT TO PLACE VIDEO HEREmap: video)
-	let videoPlane = new THREE.Mesh(geometry, Vmaterial);
-	videoPlane.position.x = 0;
-	videoPlane.position.y = 20;
-	videoPlane.position.z=0;
-	videoPlane.add(sound);
-	scene.add(videoPlane);
 }
 
 
