@@ -57,6 +57,7 @@ var connections = {};
  *    }
  */
 var ourID;
+var myResource;
 const signalServer = 'signaling-server-meet3d-master.radix.equinor.com'; // The signaling server
 //const signalServer = 'localhost:3000'; // The signaling server
 
@@ -126,7 +127,7 @@ async function init(button) {
   });
 
   // A new user joined the room
-  socket.on('join', function (message) {
+  socket.on('join', async function (message) {
     if (message.id === ourID) return;
 
     connections[message.id] = {};
@@ -134,10 +135,10 @@ async function init(button) {
 
     console.log('User ' + message.name + ' joined the room');
 
-    reserveResource(); //To preserve avatar coherence among all users
-
+    myResource = await reserveResource();
+    console.log("myResource is : " + myResource);
     sendOffer(message.id); // Send the user your local description in order to create a connection
-    newUserJoined3D(message.id, message.name); // Add the new user to the 3D environment
+    newUserJoined3D(message.id, message.name, ''); // Add the new user to the 3D environment without resource
     appendConnectionHTMLList(message.id);
   });
 
@@ -170,6 +171,7 @@ async function init(button) {
     let id = message.id;
     let name = message.name;
     let offerDescription = message.offer;
+    let resource = message.resource;
 
     if (id === ourID) return;
 
@@ -177,7 +179,7 @@ async function init(button) {
       connections[id] = {};
       connections[id].name = name;
       appendConnectionHTMLList(id); // Add their username to the list of connections on the webpage
-      newUserJoined3D(id, name); // Add new user to 3D environment
+      newUserJoined3D(id, name, resource); // Add new user to 3D environment with resource
     }
     console.log("Received offer from " + connections[id].name)
     sendAnswer(id, offerDescription); // Reply to the offer with our details
@@ -343,7 +345,8 @@ async function createPeerConnection(id) {
         socket.emit('offer', {
           id: id,
           name: username.value,
-          offer: description
+          offer: description,
+          resource: myResource
         });
       }, function (e) {
         console.error("Failed to create offer: " + e);

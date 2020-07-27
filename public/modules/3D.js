@@ -114,13 +114,15 @@ async function init3D(id, connectionsObject, div) {
 
 //called to preserve avatar coherence among all users, can only be executed once
 var reserveResource = (function() {
-    var executed = false;
+	var executed = false;
+	var resource;
     return function() {
         if (!executed) {
             executed = true;
-			resourceList.shift();
+			resource = resourceList.shift();
 			console.log("We have reserved our resource!");
-        }
+		}
+		return resource;
     };
 })();
 
@@ -349,14 +351,20 @@ function addText(name, model) {
 	});
 } // end of function addText()
 
-function newUserJoined3D(id, name) {
-	console.log("Adding new user to the 3D environment: " + name);
+function newUserJoined3D(id, name, resource) {
+	//console.log("Adding new user to the 3D environment: " + name);
 	var newUser = {};
 
 	newUser['name'] = name;
 
 	var avatar = {};
-	avatar['resource'] = resourceList.shift();
+	if(resourceList.find(element => element == resource)){
+		avatar['resource'] = resourceList.splice(resourceList.indexOf(resource), 1);
+		console.log("Adding new user to the 3D environment: " + name + ", with resource: " + avatar.resource);
+	}else{
+		avatar['resource'] = resourceList.shift();
+		console.log("Adding new user to the 3D environment: " + name + ", without resource");
+	}
 	avatar['model'] = new THREE.Object3D();
 	loader.load(avatar.resource, function(gltf) { // this could probably be vastly improved
 		avatar.model.add(gltf.scene);

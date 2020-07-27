@@ -15,7 +15,7 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('offer', function(data) {
-    users[data.id].socket.emit('offer', {id: socket.id, offer: data.offer, name: data.name});
+    users[data.id].socket.emit('offer', {id: socket.id, offer: data.offer, name: data.name, resource: data.resource});
   });
 
   socket.on('answer', function(data) {
