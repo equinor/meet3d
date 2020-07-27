@@ -115,7 +115,7 @@ async function init3D(id, connectionsObject, div) {
 	
 
 
-	addVideofile(roomVideo, 0, wallHeight/2, -(maxZ-1));
+	//addVideofile(roomVideo, 0, wallHeight/2, -(maxZ-1));
 	addVideofile(bunny, 300, 20, 0);
 	addVideofile(bunny2, -300, 20, 0);
 
@@ -332,15 +332,12 @@ videofile.play(); // FIXME This should be synchronized between users
 	videoPlane.position.y = yPos;
 	videoPlane.position.z = zPos;
 	
-	let audiofile = document.createElement("audio");
-	audiofile.srcObject = videofile.mozCaptureStream();
-	
 	let vPosAudio = new THREE.PositionalAudio(listener);
 	vPosAudio.setRefDistance(20);
 	vPosAudio.setRolloffFactor(2);
 	vPosAudio.setDistanceModel("exponential");
 	
-	const audio2 = vPosAudio.context.createMediaStreamSource(audiofile.srcObject);
+	const audio2 = vPosAudio.context.createMediaStreamSource(videofile.mozCaptureStream());
 	
 	try {
 		vPosAudio.setNodeSource(audio2);
