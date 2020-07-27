@@ -419,19 +419,19 @@ function changeUserPosition(id, x, y, z) {
 		if(distance > 0){
 			let hypothenuse = Math.sqrt(distance ** 2 + changeY ** 2);
 			user.avatar.model.rotation.x = (0 - Math.asin(changeY / hypothenuse));
-			console.log("Rotation : " + (0 - Math.asin(changeY / hypothenuse)) * 180 / Math.PI);
+			//console.log("Rotation : " + (0 - Math.asin(changeY / hypothenuse)) * 180 / Math.PI);
 			/*user.avatar.model.rotation.x = (Math.asin(changeY / hypothenuse));
 			console.log("Rotation : " + Math.asin(changeY / hypothenuse) * 180 / Math.PI);*/	
 		}else{
 			if(changeY > 0){
 				user.avatar.model.rotation.x = - 90 * Math.PI / 180;
-				console.log("Rotation : - 90");
+				//console.log("Rotation : - 90");
 			}else if(changeY < 0){
 				user.avatar.model.rotation.x = 90 * Math.PI / 180;
-				console.log("Rotation : 90");
+				//console.log("Rotation : 90");
 			}
 		}
-		console.log(user.avatar.model.rotation.x);
+		//console.log(user.avatar.model.rotation.x);
 	}else{
 		user.avatar.model.rotation.x = 0;
 	}
@@ -698,7 +698,7 @@ function update() {
 
 		direction.z = Number( moveForward ) - Number( moveBackward );
 		direction.x = Number( moveRight ) - Number( moveLeft );
-		direction.y = Number( moveUp ) - Number( moveDown );
+		direction.y = Number( moveDown ) - Number( moveUp );
 		direction.normalize(); // this ensures consistent movements in all directions (usefulness in question)
 
 		if ( moveForward || moveBackward ) velocity.z -= direction.z * speed * delta;
@@ -707,7 +707,7 @@ function update() {
 
 		controls.moveRight( - velocity.x * delta );
 		controls.moveForward( - velocity.z * delta );
-		controls.getObject().position.y += ( velocity.y * delta ); //controls.moveUp( - velocity.y * delta );
+		controls.getObject().position.y += ( velocity.y * delta );
 
 		if (camera.position.x > maxXcam) camera.position.x = maxXcam;
 		else if (camera.position.x < minXcam) camera.position.x = minXcam;
