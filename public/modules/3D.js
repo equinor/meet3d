@@ -4,6 +4,9 @@ import { GLTFLoader } from './GLTFLoader.js';
 
 import { PointerLockControls } from './PointerLockControls.js';
 
+// GLOBAL HTML-elements
+var videofile = document.getElementById("videofile"); //HTML element
+
 // GLOBAL CONSTANTS
 const maxX = 100;
 const maxY = 100; // This is probably not needed
@@ -24,7 +27,6 @@ var controls;
 
 var requestID;
 var listener;
-var videoFileListener;
 var loader;
 var time;
 
@@ -60,6 +62,7 @@ var resourceList = ["objects/Anglerfish/Anglerfish.glb","objects/ArmoredCatfish/
 var connections;
 var ourID;
 
+
 async function init3D(id, connectionsObject, div) {
 	ourID = id;
 	connections = connectionsObject;
@@ -83,18 +86,13 @@ async function init3D(id, connectionsObject, div) {
 	allObjects.push(ambientLight);
 	allObjects.push(directionalLight);
 
-	videoFileListener = new THREE.AudioListener(); //FIXME
-	camera.add(videoFileListener);
-
-
 	//load models
 	loader = new GLTFLoader();
 
 	addSkyBox();
 	addWalls();
 	addDecoration();
-	addVideoCube();
-
+	
 	// RENDERER
 	renderer = new THREE.WebGLRenderer({alpha: true, antiAliasing: true});
 	renderer.setClearColor( 0x000000, 0 );
@@ -104,14 +102,15 @@ async function init3D(id, connectionsObject, div) {
 	renderer.domElement.style.top = 0;
 	renderer.domElement.id = "scene"; // Adds an ID to the canvas element
 	div.appendChild(renderer.domElement);
-
+	
 	controls = new PointerLockControls( camera, div );
 	scene.add(controls.getObject());
 	allObjects.push(controls.getObject());
-
+	
 	listener = new THREE.AudioListener();
 	controls.getObject().add(listener)
-
+	
+	addVideoCube();
 
 	window.addEventListener( 'resize', onWindowResize, false );
 	document.addEventListener( 'keydown', onDocumentKeyDown, false );
@@ -315,39 +314,44 @@ function addWalls() {
 }
 
 function addVideoCube(){
-	let videofile = document.getElementById("videofile"); //HTML element
-	let audiofile = document.createElement("audiofile");
-	let sound = new THREE.PositionalAudio(videoFileListener);//create PositionalAudio object
-	sound.setRefDistance(20);
-	sound.setRolloffFactor(2);
-
-	audiofile.srcObject = videofile.getTracks();
-	audiofile.muted = true;
-	const audio2 = sound.context.createMediaStreamSource(audiofile.srcObject)
-	sound.setNodeSource(audio2);
-	
+	videofile.play();
 
 	let Vtexture = new THREE.VideoTexture(videofile);
-	/*var vposAudio = new THREE.PositionalAudio(videoFileListener);
-	let media = new MediaStream(videofile.getAudioTracks())
-	vposAudio.setRefDistance(20);
-	vposAudio.setRolloffFactor(2);
-	vposAudio.setMediaStreamSource(media);
-*/
-	Vtexture.minFilter = THREE.LinearFilter;
-	Vtexture.magFilter = THREE.LinearFilter;
-	Vtexture.format = THREE.RGBFormat;
-
 	let geometry = new THREE.PlaneGeometry(50,50,50);
 	let Vmaterial = new THREE.MeshBasicMaterial ({side: THREE.DoubleSide, map: Vtexture}); //FIXME! WANT TO PLACE VIDEO HEREmap: video)
 	let videoPlane = new THREE.Mesh(geometry, Vmaterial);
 	videoPlane.position.x = 0;
-	videoPlane.position.y = 20;
-	videoPlane.position.z=0;
-	videoPlane.add(sound);
+	videoPlane.position.y = wallHeight/2;
+	videoPlane.position.z= -(maxZ - 1);
+	
+	let audiofile = document.createElement("audiofile");
+	audiofile.srcObject = videofile.mozCaptureStream();
+
+	var vPosAudio = new THREE.PositionalAudio(listener);
+	vPosAudio.setRefDistance(20);
+	vPosAudio.setRolloffFactor(2);
+	//vPosAudio.setDistanceModel("exponential");
+
+	const audio2 = vPosAudio.context.createMediaStreamSource(audiofile.srcObject);
+
+	try {
+		vPosAudio.setNodeSource(audio2);
+		videoPlane.add(vPosAudio);
+	} catch(err) {
+		console.error(err);
+	};
+
 	scene.add(videoPlane);
 }
 
+/**
+ * Returns true if the camera is inside the room with 
+ * center roomPos, false otherwise.
+ */
+function isInsideRoom(roomPosX, roomPosZ) {
+	return (Math.abs(camera.position.x - roomPosX) < maxX &&
+		Math.abs(camera.position.z - roomPosZ) < maxZ);
+}
 
 function addDecoration() {
 	// PLANT
@@ -701,6 +705,9 @@ function update() {
 	var time = performance.now();
 	var delta = ( time - prevUpdateTime ) / 1000;
 
+
+
+
 	//updating animation
 	for(let u in UserMap){
 		if(UserMap[u].avatar.mixer){
@@ -735,6 +742,8 @@ function update() {
 			prevPosTime = time;
 		}
 
+		if(isInsideRoom(0,0)) videofile.muted = false;
+		else videofile.muted = true;
 	}
 	prevUpdateTime = time;
 	renderer.render(scene, camera);
