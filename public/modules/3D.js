@@ -318,8 +318,7 @@ function addWalls() {
 function addVideofile(){
 
 let videofile = document.getElementById("videofile"); //HTML element
- videofile.muted = false;
- videofile.play();
+videofile.play();
  let Vtexture = new THREE.VideoTexture(videofile);
  let geometry = new THREE.PlaneGeometry(50,50,50);
  let Vmaterial = new THREE.MeshBasicMaterial ({side: THREE.DoubleSide, map: Vtexture}); //FIXME! WANT TO PLACE VIDEO HEREmap: video)
