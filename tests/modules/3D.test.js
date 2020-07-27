@@ -7,7 +7,7 @@ beforeAll(() => {
   threeD.init3D(3, {"5" : {id: 5}, "1" : {id: 1}, "6" : {id: 6}}, document.body);
 });
 
-beforeEach(() => {
+beforeEach(async () => {
   //threeD.videoList = [];
   //threeD.videoListLength = 0;
 
@@ -19,17 +19,17 @@ beforeEach(() => {
   threeD.moveRight = false;
   threeD.moveLeft = false;
 
-  threeD.newUserJoined3D(5, "test");
+  await threeD.newUserJoined3D(5, "test");
   let text5 = new THREE.Mesh();
   text5.name = "text";
   threeD.UserMap[5].avatar.model.add(text5);
 
-  threeD.newUserJoined3D(1, "test1");
+  await threeD.newUserJoined3D(1, "test1");
   let text1 = new THREE.Mesh();
   text1.name = "text";
   threeD.UserMap[1].avatar.model.add(text1);
 
-  threeD.newUserJoined3D(6, "test6");
+  await threeD.newUserJoined3D(6, "test6");
   let text6 = new THREE.Mesh();
   text6.name = "text";
   threeD.UserMap[6].avatar.model.add(text6);
