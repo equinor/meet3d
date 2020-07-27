@@ -1,7 +1,5 @@
 import * as THREE from './three.module.js';
-
 import { GLTFLoader } from './GLTFLoader.js';
-
 import { PointerLockControls } from './PointerLockControls.js';
 
 // GLOBAL CONSTANTS
@@ -11,10 +9,6 @@ const maxZ = 100;
 const wallHeight = 100;
 const objectScale = 7;
 const videoCount = 3;
-const maxXcam = maxX - 1;
-const minXcam = -maxX + 1;
-const maxZcam = maxZ - 1;
-const minZcam = -maxZ + 1;
 
 // GLOBAL VARIABLES
 var scene;
@@ -81,6 +75,7 @@ async function init3D(id, connectionsObject, div) {
 	loader = new GLTFLoader();
 
 	// ADD SCENERY
+	addSkyBox();
 	addWalls();
 	addDecoration();
 
@@ -185,6 +180,32 @@ async function updateShareScreen3D(screenTrack, details, name) {
 	}
 }
 
+function addSkyBox(){
+
+	let urls = [
+		"objects/obj/sh_ft.png", "objects/obj/sh_bk.png ",
+		"objects/obj/sh_up.png", "objects/obj/sh_dn.png",
+		"objects/obj/sh_rt.png", "objects/obj/sh_lf.png",
+	]
+
+	let loader = new THREE.CubeTextureLoader();
+	scene.background = loader.load(urls);
+
+	//Extra floor to make rooom look real.
+	let textureLoader = new THREE.TextureLoader();
+	let floortext = textureLoader.load( "objects/obj/sh_dn.png" );
+	floortext.wrapS = THREE.RepeatWrapping;
+	floortext.wrapT = THREE.RepeatWrapping;
+	floortext.repeat.set( 100,100 );
+	let floor = new THREE.Mesh(
+		new THREE.PlaneGeometry(10000,10000),
+		new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: floortext })
+	);
+	floor.rotation.x += Math.PI / 2;
+	floor.position.y = 0;
+	scene.add(floor);
+}
+
 function addWalls() {
 	let textureLoader = new THREE.TextureLoader();
 
@@ -263,7 +284,7 @@ function addDecoration() {
 	});
 
 	// TABLE
-	table = new THREE.Object3D();
+	let table = new THREE.Object3D();
 	loader.load('objects/obj/table.glb', function(gltf) {
 		table.add(gltf.scene);
 		table.scale.x = 20; table.scale.y = 20; table.scale.z = 20;
@@ -273,13 +294,6 @@ function addDecoration() {
 
 	allObjects.push(table);
 	allObjects.push(plant);
-}
-
-/**
- * Returns a list containing the currently displayed videos.
- */
-function getVideoList() {
-	return videoList.slice(0, videoListLength);
 }
 
 // Add username as text on top of 3D-object
@@ -598,11 +612,6 @@ function update() {
 		controls.moveRight( - velocity.x * delta );
 		controls.moveForward( - velocity.z * delta );
 
-		if (camera.position.x > maxXcam) camera.position.x = maxXcam;
-		else if (camera.position.x < minXcam) camera.position.x = minXcam;
-		if (camera.position.z > maxZcam) camera.position.z = maxZcam;
-		else if (camera.position.z < minZcam) camera.position.z = minZcam;
-
 		// Only call costly functions if we have moved and some time has passed since the last time we called them
 		if ( direction.lengthSq() && time - prevPosTime > 50 ) {
 			changePos(camera.position.x, 0, camera.position.z); // Update our position for others
@@ -691,7 +700,6 @@ export {
 	userLeft3D,
 	init3D,
 	updateShareScreen3D,
-	getVideoList,
 	updateVideoList,
 	resizeCanvas,
 	leave3D,

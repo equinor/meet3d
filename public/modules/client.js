@@ -1,6 +1,5 @@
 import {
   updateShareScreen3D,
-  getVideoList,
   updateVideoList,
   resizeCanvas,
   onDocumentKeyDown,
