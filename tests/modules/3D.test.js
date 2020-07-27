@@ -47,6 +47,7 @@ afterAll(() => {
 
 // --------------------------- TESTS ---------------------------
 
+// ---changeUserPosition---
 test('changeUserPosition - small value - all axis', () => {
   threeD.changeUserPosition(5, 1, 1, 1);
 
@@ -63,6 +64,7 @@ test('changeUserPosition - large value - all axis', () => {
   expect(threeD.UserMap[5].avatar.model.position.z).toBe(70000001);
 });
 
+// ---getDistance---
 test('getDistance - small x movement', () => {
   threeD.changeUserPosition(5, 5, 0, 0);
   expect(threeD.getDistance(5)).toBe(25);
@@ -93,12 +95,12 @@ test('getDistance - same positions', () => {
   expect(threeD.getDistance(5)).toBe(0);
 });
 
+// ---set name---
 test('set name normal', async () => {
   threeD.userLeft3D(5);
   await threeD.newUserJoined3D(5, "myName");
   expect(threeD.UserMap[5].name).toBe("myName");
 });
-
 
 test('set name empty', async () => {
   threeD.userLeft3D(5);
@@ -115,8 +117,7 @@ test('set name number', async () => {
   expect(await threeD.newUserJoined3D(5, 2)).toEqual(false);
 });
 
-
-
+// ---getVideoRatio---
 test('getVideoRatio - no adjustment', () => {
   expect(threeD.getVideoRatio(50, 50)).toEqual({ height: 50, width: 50 });
 });
@@ -129,9 +130,9 @@ test('getVideoRatio - horizontal adjustment', () => {
   expect(threeD.getVideoRatio(50, 50)).toEqual({ height: 50, width: 50 });
 });
 
+// ---setUserRotation---
 test('setUserRotation - small value', () => {
   threeD.setUserRotation(5, 1);
-
   expect(threeD.UserMap[5].avatar.model.rotation.y).toBe(1);
 });
 
@@ -144,6 +145,7 @@ test('setUserRotation - several values', () => {
   expect(threeD.UserMap[5].avatar.model.rotation.y).toBe(-100);
 });
 
+// ---onDocumentKeyDown---
 test('onDocumentKeyDown - user moved forwards', () => {
   threeD.onDocumentKeyDown({ keyCode: 87 });
   expect(threeD.moveForward && !threeD.moveBackward && !threeD.moveRight && !threeD.moveLeft).toBe(true);
@@ -164,6 +166,7 @@ test('onDocumentKeyDown - user moved right', () => {
   expect(!threeD.moveForward && !threeD.moveBackward && threeD.moveRight && !threeD.moveLeft).toBe(true);
 });
 
+// ---onDocumentKeyUp---
 test('onDocumentKeyUp - user stopped moving forwards', () => {
   threeD.moveForward = true;
   threeD.moveBackward = true;
@@ -200,11 +203,13 @@ test('onDocumentKeyUp - user stopped moving right', () => {
   expect(threeD.moveForward && threeD.moveBackward && !threeD.moveRight && threeD.moveLeft).toBe(true);
 });
 
+// ---userLeft3D---
 test('userLeft3D - user removed correctly', () => {
   threeD.userLeft3D(5);
   expect(threeD.UserMap[5]).toBeUndefined();
 });
 
+// ---shiftVideoList---
 test('shiftVideoList - empty list, none pushed out', () => {
   threeD.setVideoList([]);
   threeD.setVideoListLength(0);
