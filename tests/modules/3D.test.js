@@ -8,9 +8,6 @@ beforeAll(() => {
 });
 
 beforeEach(async () => {
-  //threeD.videoList = [];
-  //threeD.videoListLength = 0;
-
   threeD.setVideoList([]);
   threeD.setVideoListLength(0);
 
@@ -96,28 +93,39 @@ test('getDistance - same positions', () => {
   expect(threeD.getDistance(5)).toBe(0);
 });
 
-test('set name normal', () => {
+test('set name normal', async () => {
   threeD.userLeft3D(5);
-  threeD.newUserJoined3D(5, "myName");
+  await threeD.newUserJoined3D(5, "myName");
   expect(threeD.UserMap[5].name).toBe("myName");
 });
 
-test('set name empty', () => {
+
+test('set name empty', async () => {
   threeD.userLeft3D(5);
-  expect(() => {threeD.newUserJoined3D(5, '')}).toThrow("Name cannot be empty");
+  expect(await threeD.newUserJoined3D(5, '')).toEqual(false);
 });
 
-test('set name null', () => {
+test('set name null', async () => {
   threeD.userLeft3D(5);
-  expect(() => {threeD.newUserJoined3D(5, null)}).toThrow("Name cannot be empty");
+  expect(await threeD.newUserJoined3D(5, null)).toEqual(false);
 });
 
-test('set name number', () => {
+test('set name number', async () => {
   threeD.userLeft3D(5);
-  expect(() => {threeD.newUserJoined3D(5, 2)}).toThrow("Name must be a string");
+  expect(await threeD.newUserJoined3D(5, 2)).toEqual(false);
 });
 
-test('set name number', () => {
+
+
+test('getVideoRatio - no adjustment', () => {
+  expect(threeD.getVideoRatio(50, 50)).toEqual({ height: 50, width: 50 });
+});
+
+test('getVideoRatio - vertical adjustment', () => {
+  expect(threeD.getVideoRatio(50, 50)).toEqual({ height: 50, width: 50 });
+});
+
+test('getVideoRatio - horizontal adjustment', () => {
   expect(threeD.getVideoRatio(50, 50)).toEqual({ height: 50, width: 50 });
 });
 

@@ -340,19 +340,21 @@ async function addText(name, model) {
 
 async function newUserJoined3D(id, name) {
 
-	if (name == null || name === '') throw new Error("Name cannot be empty");
-	if (typeof name !== "string") throw new Error("Name must be a string");
+	if (name == null || name === '' || typeof name !== "string") {
+		return false; // Name needs to be a non-empty string
+	}
 
 	var newUser = {};
 	newUser.name = name;
-	newUser.avatar = loadNewObject(resourceList.shift());
+	newUser.resource = resourceList.shift();
+	newUser.avatar = loadNewObject(newUser.resource);
 
 	addText(name, newUser.avatar.model);
 
 	UserMap[id] = newUser; // Add new user to UserMap
 
 	updateVideoList(id);
-	return newUser;
+	return true;
 }
 
 // Load 3D-object from file "resource" and add it to scene
@@ -533,6 +535,7 @@ function userGotMedia(id, mediaStream) {
 }
 
 function userLeft3D(id) {
+	resourceList.push(UserMap[id].resource);
 	scene.remove(UserMap[id].avatar.model);
 	if (UserMap[id].audioElement) { // Needed for testing
 		if (UserMap[id].audioElement.srcObject) {

@@ -137,7 +137,8 @@ async function init(button) {
     console.log('User ' + message.name + ' joined the room');
 
     sendOffer(message.id); // Send the user your local description in order to create a connection
-    newUserJoined3D(message.id, message.name); // Add the new user to the 3D environment
+    if (!newUserJoined3D(message.id, message.name) // Add the new user to the 3D environment
+      console.error("Unable to add " + message.name + " to the 3D environment");
     appendConnectionHTMLList(message.id);
   });
 
