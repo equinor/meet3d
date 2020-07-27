@@ -94,7 +94,7 @@ async function init3D(id, connectionsObject, div) {
 	addSkyBox();
 	addWalls();
 	addDecoration();
-	addVideoCube();
+	addVideofile();
 
 	// RENDERER
 	renderer = new THREE.WebGLRenderer({alpha: true, antiAliasing: true});
@@ -315,7 +315,7 @@ function addWalls() {
 	allObjects.push( wallFront );
 }
 
-function addVideoCube(){
+function addVideofile(){
 
 let videofile = document.getElementById("videofile"); //HTML element
  videofile.muted = false;
