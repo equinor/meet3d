@@ -6,7 +6,7 @@ import { PointerLockControls } from './PointerLockControls.js';
 
 // GLOBAL HTML-elements
 var roomVideo = document.getElementById("roomVideo");
-var bunny = document.getElementById("bunny");
+//var bunny = document.getElementById("bunny");
 
 // GLOBAL CONSTANTS
 const maxX = 100;
@@ -114,8 +114,8 @@ async function init3D(id, connectionsObject, div) {
 	
 
 
-	//addVideofile(roomVideo, 0, wallHeight/2, -(maxZ-1));
-	addVideofile(bunny, 300, 20, 0);
+	addVideofile(roomVideo, 0, wallHeight/2, -(maxZ-1));
+	//addVideofile(bunny, 300, 20, 0);
 
 	window.addEventListener( 'resize', onWindowResize, false );
 	document.addEventListener( 'keydown', onDocumentKeyDown, false );
