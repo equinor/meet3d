@@ -42,7 +42,7 @@ var UserMap = {}; //json-object to store the Users
 var allObjects = []; // Stores all 3D objects so that they can be removed later
 var videoList = []; // The list of remote videos to display
 var videoListLength = 2; // The number of videos to show at a time, not including our own
-const resourceList = ['objects/obj/pawn.glb']; //List of 3D-object-files
+const resourceList = ["objects/obj/pawn.glb", "objects/ParrotFish/ParrotFish.glb", "objects/AnglerFish/Anglerfish.glb"]; // List of 3D-object-files
 var resourceIndex = 0;
 var connections;
 var ourID;
@@ -330,6 +330,68 @@ async function addText(name, model) {
 	});
 } // end of function addText()
 
+/*
+function newUserJoined3D(id, name) {
+	console.log("Adding new user to the 3D environment: " + name);
+	var newUser = {};
+
+	newUser.name = name;
+
+	var avatar = {};
+	avatar.resource = resourceList.shift();
+	console.log(avatar.resource)
+	avatar.model = new THREE.Object3D();
+	loader.load(avatar.resource, function(gltf) { // this could probably be vastly improved
+		avatar.model.add(gltf.scene);
+
+		avatar.mixer = new THREE.AnimationMixer(gltf.scene);
+		avatar.action = avatar.mixer.clipAction(gltf.animations[0]);
+		avatar.action.play(); // FIXME Currently not working
+
+		let boundingBox = new THREE.Box3().setFromObject(avatar.model);
+		objectSize = boundingBox.getSize(); // Returns Vector3
+
+		scene.add(avatar.model);
+		allObjects.push(avatar.model);
+	}, function () {}, function (e) {
+		console.error(e);
+	});
+	avatar.model.scale.x = objectScale;
+	avatar.model.scale.y = objectScale;
+	avatar.model.scale.z = objectScale;
+	newUser.avatar = avatar;
+
+	addText(name, newUser.avatar.model);
+
+	// Add new user to UserMap
+	UserMap[id] = newUser;
+
+	updateVideoList(id);
+	return newUser;
+}
+*/
+
+// Load 3D-object from file "resource" and add it to scene
+function loadNewObject(resource) {
+	let avatar = {};
+	avatar.model = new THREE.Object3D();
+
+	loader.load(resource, function(gltf) { // this could probably be vastly improved
+		avatar.model.add(gltf.scene);
+		avatar.model.scale.x = objectScale;
+		avatar.model.scale.y = objectScale;
+		avatar.model.scale.z = objectScale;
+
+		let boundingBox = new THREE.Box3().setFromObject(avatar.model);
+		objectSize = boundingBox.getSize(); // Returns Vector3
+
+		scene.add(avatar.model);
+		allObjects.push(avatar.model);
+	});
+	return avatar;
+}
+
+
 function newUserJoined3D(id, name) {
 	let newUser = {};
 
@@ -349,6 +411,31 @@ function newUserJoined3D(id, name) {
 	updateVideoList(id);
 }
 
+
+
+function changeUserPosition(id, x, y, z) {
+	let user = UserMap[id];
+
+	let changeX = x - user.avatar.model.position.x;
+	let changeZ = z - user.avatar.model.position.z;
+	let distance = Math.sqrt(changeX ** 2 + changeZ ** 2);
+	let ratioedChangeZ = changeZ / distance;
+	if (changeX >= 0) {
+		//user.avatar.model.rotation.y = Math.acos(ratioedChangeZ);
+	} else {
+		//user.avatar.model.rotation.y = (0 - Math.acos(ratioedChangeZ));
+	}
+
+	user.avatar.model.position.x = x;
+	user.avatar.model.position.y = y;
+	user.avatar.model.position.z = z;
+	if (connections[id].stream) {
+		updateVideoList(id);
+	}
+	user.avatar.model.getObjectByName('text').lookAt(camera.position.x, 0, camera.position.z);
+}
+
+/*
 function changeUserPosition(id, x, y, z) {
 	let user = UserMap[id];
 	user.avatar.model.position.x = x;
@@ -359,6 +446,8 @@ function changeUserPosition(id, x, y, z) {
 	}
 	user.avatar.model.getObjectByName('text').lookAt(camera.position.x, 0, camera.position.z);
 }
+*/
+
 
 function setUserRotation(id, angleY) {
 	UserMap[id].avatar.model.rotation.y = angleY;
@@ -501,27 +590,6 @@ function userLeft3D(id) {
 	updateVideoList(ourID);
 }
 
-
-// Load 3D-object from file "resource" and add it to scene
-function loadNewObject(resource) {
-	let avatar = {};
-	avatar.model = new THREE.Object3D();
-
-	loader.load(resource, function(gltf) { // this could probably be vastly improved
-		avatar.model.add(gltf.scene);
-		avatar.model.scale.x = objectScale;
-		avatar.model.scale.y = objectScale;
-		avatar.model.scale.z = objectScale;
-
-		let boundingBox = new THREE.Box3().setFromObject(avatar.model);
-		objectSize = boundingBox.getSize(); // Returns Vector3
-
-		scene.add(avatar.model);
-		allObjects.push(avatar.model);
-	});
-	return avatar;
-}
-
 function onDocumentKeyDown(event) {
 	switch (event.keyCode) {
 
@@ -591,10 +659,16 @@ function resizeCanvas(newWidth) {
 	renderer.setSize( window.innerWidth - videoWidth, window.innerHeight - 30 );
 }
 
-
-//function to update frame
+// Function to update frame
 function update() {
 	requestID = requestAnimationFrame(update);
+
+	// Updating animation
+	for (let u in UserMap) {
+		if (UserMap[u].avatar.mixer) {
+			UserMap[u].avatar.mixer.update(delta);
+		}
+	}
 	if (controls.isLocked === true) {
 		time = performance.now();
 		var delta = ( time - prevUpdateTime ) / 1000;
