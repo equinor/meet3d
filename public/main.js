@@ -60,7 +60,7 @@ var connections = {};
  */
 var ourID;
 const signalServer = 'signaling-server-meet3d-master.radix.equinor.com'; // The signaling server
-// const signalServer = 'localhost:3000'; // The signaling server
+//const signalServer = 'localhost:3000'; // The signaling server
 
 // The configuration containing our STUN and TURN servers.
 const pcConfig = {
@@ -137,7 +137,7 @@ async function init(button) {
     console.log('User ' + message.name + ' joined the room');
 
     sendOffer(message.id); // Send the user your local description in order to create a connection
-    if (!newUserJoined3D(message.id, message.name) // Add the new user to the 3D environment
+    if (!newUserJoined3D(message.id, message.name)) // Add the new user to the 3D environment
       console.error("Unable to add " + message.name + " to the 3D environment");
     appendConnectionHTMLList(message.id);
   });

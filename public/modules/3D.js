@@ -57,7 +57,6 @@ async function init3D(id, connectionsObject, div) {
 	connections = connectionsObject;
 
 	scene = new THREE.Scene();
-	scene.background = new THREE.Color(0xf0f0f0);
 
 	// CAMERA
 	camera = new THREE.PerspectiveCamera(75, (window.innerWidth / window.outerWidth), 0.1, 300000);
@@ -281,6 +280,7 @@ function addWalls() {
 	allObjects.push( wallFront );
 }
 
+
 function addDecoration() {
 	// PLANT
 	const plant = new THREE.Object3D();
@@ -404,10 +404,6 @@ function changeUserPosition(id, x, y, z) {
 		updateVideoList(id);
 	if (user.avatar.model.getObjectByName('text'))
 		user.avatar.model.getObjectByName('text').lookAt(camera.position.x, 0, camera.position.z);
-}
-
-function setUserRotation(id, angleY) {
-	UserMap[id].avatar.model.rotation.y = angleY;
 }
 
 /**
@@ -629,6 +625,7 @@ function update() {
 			UserMap[u].avatar.mixer.update(delta);
 		}
 	}
+	
 	if (controls.isLocked === true) {
 		velocity.x -= velocity.x * 10.0 * delta;
 		velocity.z -= velocity.z * 10.0 * delta;
@@ -714,6 +711,7 @@ function leave3D() {
 }
 
 // These are for testing
+export function setUserRotation(id, angleY) { UserMap[id].avatar.model.rotation.y = angleY };
 export function setVideoList(list) { videoList = list };
 export function setVideoListLength(n) { videoListLength = n };
 
@@ -737,7 +735,6 @@ export {
 
 	// For tests
 	getVideoRatio,
-	setUserRotation,
 	moveForward,
 	moveLeft,
 	moveRight,
