@@ -5,7 +5,9 @@ import { GLTFLoader } from './GLTFLoader.js';
 import { PointerLockControls } from './PointerLockControls.js';
 
 // GLOBAL HTML-elements
-var videofile = document.getElementById("videofile"); //HTML element
+var roomVideo = document.getElementById("roomVideo");
+var bunny = document.getElementById("bunny");
+var bunny2 = document.getElementById("bunny2");
 
 // GLOBAL CONSTANTS
 const maxX = 100;
@@ -92,7 +94,8 @@ async function init3D(id, connectionsObject, div) {
 	addSkyBox();
 	addWalls();
 	addDecoration();
-	
+
+
 	// RENDERER
 	renderer = new THREE.WebGLRenderer({alpha: true, antiAliasing: true});
 	renderer.setClearColor( 0x000000, 0 );
@@ -110,7 +113,11 @@ async function init3D(id, connectionsObject, div) {
 	listener = new THREE.AudioListener();
 	controls.getObject().add(listener)
 	
-	addVideoCube();
+
+
+	addVideofile(roomVideo, 0, wallHeight/2, -(maxZ-1));
+	addVideofile(bunny, 300, 20, 0);
+	addVideofile(bunny2, -300, 20, 0);
 
 	window.addEventListener( 'resize', onWindowResize, false );
 	document.addEventListener( 'keydown', onDocumentKeyDown, false );
@@ -148,7 +155,7 @@ function getVideoRatio(height, width) {
 	}
 	return { height: height, width: width };
 }
-
+/*
 function addPositionalAudioToObject(stream, object) {
 	var posAudio = new THREE.PositionalAudio(listener);
 	posAudio.setRefDistance(20);
@@ -166,8 +173,8 @@ function addPositionalAudioToObject(stream, object) {
 	} catch(err) {
 		console.error(err);
 	};
-	return n;
-}
+	//return n;
+}*/
 
 /**
  * Places the given video stream in the 3D environment. If it is null, then we
@@ -313,35 +320,36 @@ function addWalls() {
 	allObjects.push( wallFront );
 }
 
-function addVideoCube(){
-	videofile.play();
+function addVideofile(videofile, xPos, yPos, zPos) {
+videofile.play(); // FIXME This should be synchronized between users
 
 	let Vtexture = new THREE.VideoTexture(videofile);
 	let geometry = new THREE.PlaneGeometry(50,50,50);
 	let Vmaterial = new THREE.MeshBasicMaterial ({side: THREE.DoubleSide, map: Vtexture}); //FIXME! WANT TO PLACE VIDEO HEREmap: video)
 	let videoPlane = new THREE.Mesh(geometry, Vmaterial);
-	videoPlane.position.x = 0;
-	videoPlane.position.y = wallHeight/2;
-	videoPlane.position.z= -(maxZ - 1);
 	
-	let audiofile = document.createElement("audiofile");
+	videoPlane.position.x = xPos;
+	videoPlane.position.y = yPos;
+	videoPlane.position.z = zPos;
+	
+	let audiofile = document.createElement("audio");
 	audiofile.srcObject = videofile.mozCaptureStream();
-
-	var vPosAudio = new THREE.PositionalAudio(listener);
+	
+	let vPosAudio = new THREE.PositionalAudio(listener);
 	vPosAudio.setRefDistance(20);
 	vPosAudio.setRolloffFactor(2);
-	//vPosAudio.setDistanceModel("exponential");
-
+	vPosAudio.setDistanceModel("exponential");
+	
 	const audio2 = vPosAudio.context.createMediaStreamSource(audiofile.srcObject);
-
+	
 	try {
 		vPosAudio.setNodeSource(audio2);
 		videoPlane.add(vPosAudio);
+		scene.add(videoPlane);
 	} catch(err) {
 		console.error(err);
-	};
+ };
 
-	scene.add(videoPlane);
 }
 
 /**
@@ -742,8 +750,8 @@ function update() {
 			prevPosTime = time;
 		}
 
-		if(isInsideRoom(0,0)) videofile.muted = false;
-		else videofile.muted = true;
+		if(isInsideRoom(0,0)) roomVideo.muted = false;
+		else roomVideo.muted = true;
 	}
 	prevUpdateTime = time;
 	renderer.render(scene, camera);
