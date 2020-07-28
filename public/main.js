@@ -386,16 +386,16 @@ function handleIceCandidate(event) {
  * Creates a new data channel to the user with the given id.
  */
 async function createDataChannel(id) {
-  let tempConnection = connections[id].connection.createDataChannel("Conference");
-  tempConnection.onopen = function () {
-    connections[id].dataChannel = tempConnection;
+  let dc = connections[id].connection.createDataChannel("Conference");
+  dc.onopen = function () {
+    connections[id].dataChannel = dc;
     console.log("Datachannel established to " + connections[id].name);
     advertiseFile();
     addScreenCapture(id);
     updatePos();
   };
 
-  tempConnection.onclose = function () {
+  dc.onclose = function () {
     if (connections[id]) {
       console.log("DataChannel to " + connections[id].name + " has closed");
       userLeft3D(id); // Removes the user from the 3D environment
@@ -403,7 +403,7 @@ async function createDataChannel(id) {
     }
   };
 
-  tempConnection.onmessage = function (event) {
+  dc.onmessage = function (event) {
     dataChannelReceive(id, event.data); // Called when we receive a DataChannel message
   };
 }
