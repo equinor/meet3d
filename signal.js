@@ -40,8 +40,10 @@ io.sockets.on('connection', function(socket) {
     }
   });
 
-  socket.on('ready', function(name) {
-    io.sockets.in(users[socket.id].room).emit('join', { name: name, id: socket.id } );
+  socket.on('ready', function(info) {
+    socket.join(info.room); // Add this user to the room
+
+    io.sockets.in(users[socket.id].room).emit('join', { name: info.name, id: socket.id } );
   });
 
   socket.on('join', function(startInfo) {
@@ -56,12 +58,12 @@ io.sockets.on('connection', function(socket) {
       if (numClients === 0) {
         rooms[room] = []; // Create a new entry for this room in the dictionary storing the rooms
       }
-
       rooms[room].push(socket); // Add the client ID to the list of clients in the room
+
       users[socket.id] = { room: room, socket: socket }; // Add the User object to the list of users
 
       socket.emit('joined', { room: room, id: socket.id } ); // Let the user know they joined the room
-      socket.join(room); // Add this user to the room
+
     } else { // Someone tried to join a full room
       socket.emit('full', room);
     }

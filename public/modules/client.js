@@ -163,7 +163,7 @@ async function addLocalTrack(constraint) {
 async function addLocalTracksToConnection(id) {
   if (!localStream || localStream.getTracks().length == 0) {
     console.error("There is no track to add to the new connection.");
-    return false;
+    return;
   }
   for (let i in localStream.getTracks()) {
     let track = localStream.getTracks()[i];
@@ -178,7 +178,6 @@ async function addLocalTracksToConnection(id) {
       } catch (e) { console.log(e)}
     }
   }
-  return true;
 }
 
 /**

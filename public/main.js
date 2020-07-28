@@ -61,7 +61,8 @@ var connections = {};
  *    }
  */
 var ourID;
-const signalServer = 'signaling-server-meet3d-master.radix.equinor.com'; // The signaling server
+//const signalServer = 'signaling-server-meet3d-master.radix.equinor.com'; // The signaling server
+const signalServer = 'localhost:3000'; // The signaling server
 
 // The configuration containing our STUN and TURN servers.
 const pcConfig = {
@@ -130,6 +131,7 @@ async function init(button) {
 
   // A new user joined the room
   socket.on('join', function (message) {
+
     if (!ready || message.id === ourID) return;
 
     connections[message.id] = {};
@@ -150,7 +152,7 @@ async function init(button) {
     await initChat(ourID, connections);
     await init3D(ourID, connections, document.getElementById("3D")); // Renders the 3D environment
     console.log('We are ready to receive offers');
-    socket.emit('ready', startInfo.name);
+    socket.emit('ready', startInfo);
     ready = true; // We are ready to receive and send offers
   });
 
@@ -182,23 +184,24 @@ async function init(button) {
       connections[id].name = name;
       appendConnectionHTMLList(id); // Add their username to the list of connections on the webpage
       newUserJoined3D(id, name); // Add new user to 3D environment
-    } else if (connections[id].signalingState == "have-local-offer") {
-      return;
     }
-    console.log("Received offer from " + connections[id].name)
+
+    console.log("Received offer from " + connections[id].name);
+
     sendAnswer(id, offerDescription); // Reply to the offer with our details
   });
 
   // We have received an answer to our PeerConnection offer
-  socket.on('answer', async function(message) {
+  socket.on('answer', function(message) {
     let id = message.id;
     let answerDescription = message.answer;
 
-    if (id === ourID || connections[id].signalingState == "stable" || connections[id].signalingState == "have-remote-offer") return;
+    if (id === ourID) return;
 
-    console.log("Received answer from " + connections[id].name)
+    console.log("Received answer from " + connections[id].name);
 
-    await connections[id].connection.setRemoteDescription(new RTCSessionDescription(answerDescription));
+    connections[id].connection.setRemoteDescription(new RTCSessionDescription(answerDescription))
+      .catch(function (e) { console.error(e) });
   });
 
   // We have received an ICE candidate from a user we are connecting to
@@ -348,6 +351,9 @@ async function createPeerConnection(id) {
     };
 
     pc.onconnectionstatechange = function (event) {
+      if (pc.connectionState == "connected") {
+        console.log("Fully connected to " + connections[id].name)
+      }
       if (pc.connectionState == "closed" && connections[id]) {
         console.log("Lost connection to " + connections[id].name);
         userLeft3D(id); // Removes the user from the 3D environment
