@@ -1,6 +1,6 @@
 'use strict';
 
-import { newUserJoined3D, userGotMedia, updatePos, updateShareScreen3D, userLeft3D, init3D, leave3D } from './modules/3D.js';
+import { newUserJoined3D, userGotMedia, updatePos, updateShareScreen3D, userLeft3D, init3D, leave3D, reserveResource } from './modules/3D.js';
 import { openVideoPage,
 open3D,
 shareCamera,
@@ -135,6 +135,8 @@ async function init(button) {
     connections[message.id].name = message.name;
 
     console.log('User ' + message.name + ' joined the room');
+
+    reserveResource(); //To preserve avatar coherence among all users
 
     sendOffer(message.id); // Send the user your local description in order to create a connection
     if (!newUserJoined3D(message.id, message.name)) // Add the new user to the 3D environment
