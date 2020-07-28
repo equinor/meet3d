@@ -332,16 +332,13 @@ videofile.play(); // FIXME This should be synchronized between users
 	videoPlane.position.z = zPos;
 	videoPlane.rotation.y = rotation;
 	
-	let audiofile = document.createElement("audio");
-	audiofile.srcObject = videofile.mozCaptureStream();
-	
 	let vPosAudio = new THREE.PositionalAudio(listener);
 	vPosAudio.setRefDistance(50);
 	vPosAudio.setRolloffFactor(1);
 	vPosAudio.setDistanceModel("exponential");
 	vPosAudio.setDirectionalCone(rotation - Math.PI/2, rotation + Math.PI/2, 0.1);
 	
-	const audio2 = vPosAudio.context.createMediaStreamSource(audiofile.srcObject);
+	const audio2 = vPosAudio.context.createMediaStreamSource(videofile.mozCaptureStream());
 	
 	try {
 		vPosAudio.setNodeSource(audio2);
