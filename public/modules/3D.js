@@ -7,6 +7,7 @@ import { PointerLockControls } from './PointerLockControls.js';
 // GLOBAL HTML-elements
 var roomVideo = document.getElementById("roomVideo");
 var summerInternsVideo = document.getElementById("summerInterns2020");
+var shuttleAnimationVideo = document.getElementById("shuttleAnimation");
 
 // GLOBAL CONSTANTS
 const maxX = 100;
@@ -116,7 +117,9 @@ async function init3D(id, connectionsObject, div) {
 
 	addVideofile( roomVideo, 0, wallHeight / 2, maxZ - 1, Math.PI );
 	addVideofile( summerInternsVideo, 3 * maxX, 20, - 2 * maxZ, - Math.PI / 8 );
-	//addVideofile( roomVideo, - 3 * maxX, 20, - 2 * maxZ, Math.PI / 8 );
+	addVideofile( shuttleAnimationVideo, - 3 * maxX, 20, - 2 * maxZ, Math.PI / 8 );
+
+	updateVideofilesPlayed();
 
 	window.addEventListener( 'resize', onWindowResize, false );
 	document.addEventListener( 'keydown', onDocumentKeyDown, false );
@@ -334,7 +337,7 @@ videofile.play(); // FIXME This should be synchronized between users
 	
 	let vPosAudio = new THREE.PositionalAudio(listener);
 	vPosAudio.setRefDistance(50);
-	vPosAudio.setRolloffFactor(1);
+	vPosAudio.setRolloffFactor(2);
 	vPosAudio.setDistanceModel("exponential");
 	vPosAudio.setDirectionalCone(rotation - Math.PI/2, rotation + Math.PI/2, 0.1);
 	
@@ -350,14 +353,6 @@ videofile.play(); // FIXME This should be synchronized between users
 
 }
 
-/**
- * Returns true if the camera is inside the room with 
- * center roomPos, false otherwise.
- */
-function isInsideRoom(roomPosX, roomPosZ) {
-	return (Math.abs(camera.position.x - roomPosX) < maxX &&
-		Math.abs(camera.position.z - roomPosZ) < maxZ);
-}
 
 function addDecoration() {
 	// PLANT
@@ -602,6 +597,25 @@ function updateVideoVisibility() {
   }
 }
 
+/**
+ * Pause videofiles outside when in the room and visa-versa.
+ */
+function updateVideofilesPlayed() {
+	let isInsideRoom = Math.abs(camera.position.x) < maxX &&
+		Math.abs(camera.position.z) < maxZ;
+
+	if (isInsideRoom) {
+		summerInternsVideo.pause();
+		shuttleAnimationVideo.pause();
+	}
+	else {
+		roomVideo.pause();
+		summerInternsVideo.play();
+		shuttleAnimationVideo.play();
+	}
+}
+
+
 function userGotMedia(id, mediaStream) {
 	UserMap[id]["media"] = mediaStream;
 	var posAudio = new THREE.PositionalAudio(listener);
@@ -737,25 +751,18 @@ function update() {
 
 	
 		// Only call costly functions if we have moved and some time has passed since the last time we called them
-		if ( hasMoved() && time - prevPosTime > 50 ) {
+		if ( hasMoved() && time - prevPosTime > 100 ) {
 			changePos(camera.position.x, 0, camera.position.z); // Update our position for others
 			updateVideoList(ourID); // Update which videos to show
 			
 			for (let keyId in UserMap) { // Makes the usernames point towards the user
 				UserMap[keyId].avatar.model.getObjectByName('text').lookAt(camera.position.x, 0, camera.position.z);
 			}
+
+			updateVideofilesPlayed();
 			
 			prevPosTime = time;
-		}
-
-		if(isInsideRoom(0,0)) {
-			roomVideo.muted = false;
-			summerInternsVideo.muted = true;
-		}
-		else {
-			roomVideo.muted = true;
-			summerInternsVideo.muted = false;
-		}
+		}	
 	}
 	prevUpdateTime = time;
 	renderer.render(scene, camera);
