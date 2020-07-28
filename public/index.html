@@ -51,7 +51,7 @@
 				<br/>
 				<uploadFile>
 	      	<input type="file" id="sendFile" multiple>
-	      	<button onclick="advertiseFile()" id="uploadButton">Share File</button>
+	      	<button id="uploadButton">Share File</button>
 				</uploadFile>
 				<p id="remoteFiles" hidden> Remote Files: </p>
 	    </files>
@@ -79,6 +79,7 @@
 
 		<div id="3D">
 			<notification id="notification"></notification>
+			
 			<!-- This is where the 3D canvas goes -->
 		</div>
 
@@ -92,7 +93,7 @@
 
 		<video id="screenShare" hidden autoplay >
 
-	  <script src="socket.io.js"></script>
+	  <script src="socket.io.min.js"></script>
 	  <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
 	  <script type="module" src="main.js"></script>
 	</body>
