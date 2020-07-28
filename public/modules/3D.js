@@ -6,7 +6,7 @@ import { PointerLockControls } from './PointerLockControls.js';
 
 // GLOBAL HTML-elements
 var roomVideo = document.getElementById("roomVideo");
-var bunny = document.getElementById("bunny");
+var summerInternsVideo = document.getElementById("summerInterns2020");
 
 // GLOBAL CONSTANTS
 const maxX = 100;
@@ -114,8 +114,9 @@ async function init3D(id, connectionsObject, div) {
 	
 
 
-	addVideofile(roomVideo, 0, wallHeight/2, -(maxZ-1));
-	addVideofile(bunny, 300, 20, 0);
+	addVideofile( roomVideo, 0, wallHeight / 2, maxZ - 1, Math.PI );
+	addVideofile( summerInternsVideo, 3 * maxX, 20, - 2 * maxZ, - Math.PI / 8 );
+	//addVideofile( roomVideo, - 3 * maxX, 20, - 2 * maxZ, Math.PI / 8 );
 
 	window.addEventListener( 'resize', onWindowResize, false );
 	document.addEventListener( 'keydown', onDocumentKeyDown, false );
@@ -318,7 +319,7 @@ function addWalls() {
 	allObjects.push( wallFront );
 }
 
-function addVideofile(videofile, xPos, yPos, zPos) {
+function addVideofile(videofile, xPos, yPos, zPos, rotation = 0) {
 videofile.play(); // FIXME This should be synchronized between users
 
 	let Vtexture = new THREE.VideoTexture(videofile);
@@ -329,14 +330,16 @@ videofile.play(); // FIXME This should be synchronized between users
 	videoPlane.position.x = xPos;
 	videoPlane.position.y = yPos;
 	videoPlane.position.z = zPos;
+	videoPlane.rotation.y = rotation;
 	
 	let audiofile = document.createElement("audio");
 	audiofile.srcObject = videofile.mozCaptureStream();
 	
 	let vPosAudio = new THREE.PositionalAudio(listener);
-	vPosAudio.setRefDistance(20);
-	vPosAudio.setRolloffFactor(2);
+	vPosAudio.setRefDistance(50);
+	vPosAudio.setRolloffFactor(1);
 	vPosAudio.setDistanceModel("exponential");
+	vPosAudio.setDirectionalCone(rotation - Math.PI/2, rotation + Math.PI/2, 0.1);
 	
 	const audio2 = vPosAudio.context.createMediaStreamSource(audiofile.srcObject);
 	
@@ -748,8 +751,14 @@ function update() {
 			prevPosTime = time;
 		}
 
-		if(isInsideRoom(0,0)) roomVideo.muted = false;
-		else roomVideo.muted = true;
+		if(isInsideRoom(0,0)) {
+			roomVideo.muted = false;
+			summerInternsVideo.muted = true;
+		}
+		else {
+			roomVideo.muted = true;
+			summerInternsVideo.muted = false;
+		}
 	}
 	prevUpdateTime = time;
 	renderer.render(scene, camera);
