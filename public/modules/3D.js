@@ -418,7 +418,7 @@ function changeUserPosition(id, x, y, z) {
 	if (connections[id].stream) {
 		updateVideoList(id);
 	}
-	user.avatar.model.getObjectByName('text').lookAt(camera.position.x, 0, camera.position.z);
+	user.avatar.model.getObjectByName('text').lookAt(camera.position.x, camera.position.y, camera.position.z);
 }
 
 /**
