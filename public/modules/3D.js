@@ -46,7 +46,7 @@ var connections; // JS-object to store the user network connections
 var allObjects = []; // Stores all 3D objects so that they can be removed later
 var videoList = []; // The list of remote videos to display
 const resourceList = ["objects/Anglerfish/Anglerfish.glb", "objects/ArmoredCatfish/ArmoredCatfish.glb", "objects/Betta/Betta.glb",
-"objects/BlackLionFish/BlackLionFish.glb", "objects/Blobfish/Blobfish.glb", "objects/BlueGoldfish/BlueGoldfish.glb", "objects/Clownfish/Clownfish.glb",
+"objects/BlackLionFish/BlackLionFish.glb", "objects/Blobfish/Blobfish.glb", "objects/BlueGoldfish.glb", "objects/Clownfish.glb",
 "objects/Flatfish/Flatfish.glb", "objects/FlowerHorn/FlowerHorn.glb", "objects/GoblinShark/GoblinShark.glb", "objects/Goldfish/Goldfish.glb",
 "objects/Huphhead/HumphHead.glb", "objects/Koi/Koi.glb", "objects/Lionfish/Lionfish.glb", "objects/MandarinFish/MandarinFish.glb",
 "objects/MoorishIdol/MoorishIdol.glb", "objects/ParrotFish/ParrotFish.glb", "objects/Piranha/Piranha.glb", "objects/Puffer/Puffer.glb",
@@ -154,7 +154,7 @@ function addPositionalAudioToObject(stream, object) {
 		object.model.add(posAudio);
 	} catch(err) {
 		console.error(err);
-	}
+	};
 	return n;
 }
 
@@ -296,6 +296,7 @@ function addWalls() {
 	allObjects.push( wallFront );
 }
 
+
 function addDecoration() {
 	// PLANT
 	const plant = new THREE.Object3D();
@@ -360,10 +361,10 @@ async function newUserJoined3D(id, name, resource) {
 
 	var newUser = {};
 	newUser.name = name;
-	if (resourceList.find(element => element == resource)) {
+	if(resourceList.find(element => element == resource)){
 		newUser.resource = resourceList.splice(resourceList.indexOf(resource), 1);
 		console.log("Adding new user to the 3D environment: " + name + ", with resource: " + avatar.resource);
-	} else {
+	}else{
 		newUser.resource = resourceList.shift();
 		console.log("Adding new user to the 3D environment: " + name + ", without resource");
 	}
@@ -410,38 +411,38 @@ function changeUserPosition(id, x, y, z) {
 	let changeX = x - user.avatar.model.position.x;
 	let changeZ = z - user.avatar.model.position.z;
 	let distance = Math.sqrt(changeX ** 2 + changeZ ** 2);
-	if (distance > 0) {
+	if(distance > 0){
 		let ratioedChangeZ = changeZ / distance;
-		if (changeX >= 0) {
+		if(changeX >= 0){
 			user.avatar.model.rotation.y = Math.acos(ratioedChangeZ);
 			//console.log("Rotation : " + Math.acos(ratioedChangeZ) * 180 / Math.PI);
-		} else {
+		}else{
 			user.avatar.model.rotation.y = (0 - Math.acos(ratioedChangeZ));
 			//console.log("Rotation : " + (0 - Math.acos(ratioedChangeZ)) * 180 / Math.PI );
 		}
 		//console.log(user.avatar.model.rotation.y);
-	} else {
+	}else{
 		user.avatar.model.rotation.y = 0;
 	}
 
 	//updating X-rotation
 	let changeY = y - user.avatar.model.position.y;
-	if (changeY != 0) {
-		if (distance > 0) {
+	if(changeY != 0){
+		if(distance > 0){
 			let hypothenuse = Math.sqrt(distance ** 2 + changeY ** 2);
 			user.avatar.model.rotation.x = (0 - Math.asin(changeY / hypothenuse));
 			//console.log("Rotation : " + (0 - Math.asin(changeY / hypothenuse)) * 180 / Math.PI);
-		} else {
-			if (changeY > 0) {
+		}else{
+			if(changeY > 0){
 				user.avatar.model.rotation.x = - 90 * Math.PI / 180;
 				//console.log("Rotation : - 90");
-			} else if (changeY < 0) {
+			}else if(changeY < 0){
 				user.avatar.model.rotation.x = 90 * Math.PI / 180;
 				//console.log("Rotation : 90");
 			}
 		}
 		//console.log(user.avatar.model.rotation.x);
-	} else {
+	}else{
 		user.avatar.model.rotation.x = 0;
 	}
 
@@ -595,7 +596,8 @@ function userLeft3D(id) {
 
 function onDocumentKeyDown(event) {
 	switch (event.keyCode) {
-		case 87: // w
+
+		case 87: //w
 			moveForward = true;
 			break;
 
@@ -611,7 +613,7 @@ function onDocumentKeyDown(event) {
 			moveRight = true;
 			break;
 
-		case 38:// up
+		case 38://up
 			time = performance.now();
 			prevUpdateTime = time;
 			controls.lock();
@@ -633,6 +635,7 @@ function onDocumentKeyDown(event) {
 
 function onDocumentKeyUp(event) {
 	switch ( event.keyCode ) {
+
 		case 87: // w
 			moveForward = false;
 			break;
@@ -688,7 +691,7 @@ function update() {
 			UserMap[u].avatar.mixer.update(delta);
 		}
 	}
-
+	
 	if (controls.isLocked === true) {
 		velocity.x -= velocity.x * 10.0 * delta;
 		velocity.z -= velocity.z * 10.0 * delta;

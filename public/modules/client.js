@@ -168,14 +168,9 @@ async function addLocalTracksToConnection(id) {
   for (let i in localStream.getTracks()) {
     let track = localStream.getTracks()[i];
     if (track.kind == "video") {
-      try {
-        connections[id].video = connections[id].connection.addTrack(track, localStream);
-      } catch (e) { console.log(e)}
-
+      connections[id].video = connections[id].connection.addTrack(track, localStream);
     } else if (track.kind == "audio") {
-      try {
-        connections[id].audio = connections[id].connection.addTrack(track, localStream);
-      } catch (e) { console.log(e)}
+      connections[id].audio = connections[id].connection.addTrack(track, localStream);
     }
   }
 }
