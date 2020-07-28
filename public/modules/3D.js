@@ -354,32 +354,41 @@ async function addText(name, model) {
 	});
 } // end of function addText()
 
-function newUserJoined3D(id, name, resource) {
+async function newUserJoined3D(id, name, resource) {
 	if (name == null || name === '' || typeof name !== "string") {
 		return false; // Name needs to be a non-empty string
 	}
+
 	var newUser = {};
-
-	newUser['name'] = name;
-
-	var avatar = {};
+	newUser.name = name;
 	if(resourceList.find(element => element == resource)){
-		avatar['resource'] = resourceList.splice(resourceList.indexOf(resource), 1);
+		newUser.resource = resourceList.splice(resourceList.indexOf(resource), 1);
 		console.log("Adding new user to the 3D environment: " + name + ", with resource: " + avatar.resource);
 	}else{
-		avatar['resource'] = resourceList.shift();
+		newUser.resource = resourceList.shift();
 		console.log("Adding new user to the 3D environment: " + name + ", without resource");
 	}
-	avatar['model'] = new THREE.Object3D();
+	newUser.avatar = loadNewObject(newUser.resource);
+
+	addText(name, newUser.avatar.model);
+
+	UserMap[id] = newUser; // Add new user to UserMap
+
+	updateVideoList(id);
+	return true;
+}
+
+// Load 3D-object from file "resource" and add it to scene
+function loadNewObject(resource) {
+	var avatar = {};
+	avatar.resource = resource;
+	avatar.model = new THREE.Object3D();
 	loader.load(avatar.resource, function(gltf) { // this could probably be vastly improved
 		avatar.model.add(gltf.scene);
-		/*avatar.model.scale.x = objectScale;
-		avatar.model.scale.y = objectScale;
-		avatar.model.scale.z = objectScale;*/
 
-		avatar['mixer'] = new THREE.AnimationMixer(gltf.scene);
-		avatar['action'] = avatar.mixer.clipAction(gltf.animations[0]);
-		avatar.action.play(); // FIXME Currently not working
+		avatar.mixer = new THREE.AnimationMixer(gltf.scene);
+		avatar.action = avatar.mixer.clipAction(gltf.animations[0]);
+		avatar.action.play();
 
 		let boundingBox = new THREE.Box3().setFromObject(avatar.model);
 		objectSize = boundingBox.getSize(); // Returns Vector3
@@ -392,15 +401,7 @@ function newUserJoined3D(id, name, resource) {
 	avatar.model.scale.x = objectScale;
 	avatar.model.scale.y = objectScale;
 	avatar.model.scale.z = objectScale;
-	newUser['avatar'] = avatar;
-
-	addText(name, newUser.avatar.model);
-
-	// Add new user to UserMap
-	UserMap[id] = newUser;
-
-	updateVideoList(id);
-	return true;
+	return avatar;
 }
 
 function changeUserPosition(id, x, y, z) {
