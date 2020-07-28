@@ -1,20 +1,26 @@
 import * as THREE from './three.module.js';
+
 import { GLTFLoader } from './GLTFLoader.js';
+
 import { PointerLockControls } from './PointerLockControls.js';
 
 // GLOBAL CONSTANTS
 const maxX = 100;
+const maxY = 100; // This is probably not needed
 const maxZ = 100;
 const wallHeight = 100;
 const objectScale = 7;
-const videoCount = 3; // The number of videos to show on the side of the screen, not including ours
+const videoCount = 3;
+const maxXcam = maxX - 1;
+const minXcam = -maxX + 1;
+const maxZcam = maxZ - 1;
+const minZcam = -maxZ + 1;
 
 // GLOBAL VARIABLES
 var scene;
 var camera;
 var renderer;
 var controls;
-var tv; // The object which stores the screen sharing video
 
 var requestID;
 var listener;
@@ -22,6 +28,9 @@ var loader;
 var time;
 
 var objectSize = new THREE.Vector3(); // A Vector3 representing size of each 3D-object
+
+var tv; // The object which stores the screen sharing video
+var tvAudio;
 
 var moveForward = false;
 var moveBackward = false;
@@ -35,51 +44,58 @@ var direction = new THREE.Vector3();
 var videoWidth = 0; // The width that is used up by videos on the side
 var speed = 400.0; // The speed at which we move
 
-var ourID;
-var videoListLength = 0; // The number of videos to show at a time, not including our own
-
 // GLOBAL CONTAINERS
-var UserMap = {}; // JS-object to store the users' 3D information
-var connections; // JS-object to store the user network connections
+var UserMap = {}; //json-object to store the Users
 var allObjects = []; // Stores all 3D objects so that they can be removed later
 var videoList = []; // The list of remote videos to display
-const resourceList = ["objects/Anglerfish/Anglerfish.glb", "objects/ArmoredCatfish/ArmoredCatfish.glb", "objects/Betta/Betta.glb",
-"objects/BlackLionFish/BlackLionFish.glb", "objects/Blobfish/Blobfish.glb", "objects/BlueGoldfish.glb", "objects/Clownfish.glb",
+var videoListLength = 0; // The number of videos to show at a time, not including our own
+var resourceList = ["objects/Anglerfish/Anglerfish.glb","objects/ArmoredCatfish/ArmoredCatfish.glb","objects/Betta/Betta.glb", "objects/BlackLionFish/BlackLionFish.glb", "objects/Blobfish/Blobfish.glb", "objects/BlueGoldfish.glb", "objects/Clownfish.glb",
 "objects/Flatfish/Flatfish.glb", "objects/FlowerHorn/FlowerHorn.glb", "objects/GoblinShark/GoblinShark.glb", "objects/Goldfish/Goldfish.glb",
 "objects/Huphhead/HumphHead.glb", "objects/Koi/Koi.glb", "objects/Lionfish/Lionfish.glb", "objects/MandarinFish/MandarinFish.glb",
-"objects/MoorishIdol/MoorishIdol.glb", "objects/ParrotFish/ParrotFish.glb", "objects/Piranha/Piranha.glb", "objects/Puffer/Puffer.glb",
+"objects/MoorishIdol/MoorishIdol.glb","objects/ParrotFish/ParrotFish.glb", "objects/Piranha/Piranha.glb", "objects/Puffer/Puffer.glb",
 "objects/RedSnapper/RedSnapper.glb", "objects/RoyalGramma/RoyalGramma.glb", "objects/Shark/Shark.glb", "objects/Sunfish/Sunfish.glb",
 "objects/Swordfish/Swordfish.glb", "objects/Tang/Tang.glb", "objects/Tetra/Tetra.glb", "objects/Tuna/Tuna.glb", "objects/Turbot/Turbot.glb",
-"objects/YellowTang/YellowTang.glb", "objects/ZebraClownFish/ZebraClownFish.glb"]; //List of 3D-object-files
+"objects/YellowTang/YellowTang", "objects/ZebraClownFish/ZebraClownFish.glb"]; //List of 3D-object-files
+var connections;
+var ourID;
 
 async function init3D(id, connectionsObject, div) {
 	ourID = id;
 	connections = connectionsObject;
 
 	scene = new THREE.Scene();
+	scene.background = new THREE.Color(0xf0f0f0);
 
 	// CAMERA
-	camera = new THREE.PerspectiveCamera(75, (window.innerWidth / window.outerWidth), 0.1, 300000);
+	camera = new THREE.PerspectiveCamera(100, (window.innerWidth / window.outerWidth), 0.1, 1000);
 	camera.position.y = wallHeight / 3;
 
-	// GLTF LOADER
+	// LIGHT
+	let light = new THREE.PointLight( 0xff0000, 1, 100 );
+	let ambientLight = new THREE.AmbientLight( 0xcccccc ); //keep the ambient light. The objects look a lot better
+	let directionalLight = new THREE.DirectionalLight( 0xffffff );
+	directionalLight.position.set( 50, 50, 50 ).normalize();
+
+	scene.add( light );
+	scene.add( ambientLight );
+	scene.add( directionalLight );
+	allObjects.push(light);
+	allObjects.push(ambientLight);
+	allObjects.push(directionalLight);
+
+	//load models
 	loader = new GLTFLoader();
 
-	// ADD SCENERY
-	addLighting()
-	addSkyBox();
 	addWalls();
 	addDecoration();
 
 	// RENDERER
-	renderer = new THREE.WebGLRenderer({alpha: true, antiAliasing: true});
-	renderer.setClearColor( 0x000000, 0 );
+	renderer = new THREE.WebGLRenderer();
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize(window.innerWidth, window.innerHeight - 30);
 	renderer.domElement.id = "scene"; // Adds an ID to the canvas element
 	div.appendChild(renderer.domElement);
 
-	// CAMERA CONTROLS
 	controls = new PointerLockControls( camera, div );
 	scene.add(controls.getObject());
 	allObjects.push(controls.getObject());
@@ -115,7 +131,7 @@ function getVideoRatio(height, width) {
 
 	// This block of code makes the video fit the screen whilst maintaining the original aspect ratio
 	if (height > wallHeight) {
-		let width2 = wallHeight * ratio;
+		var width2 = wallHeight * ratio;
 		if (width2 > maxX * 2) {
 			height = (maxX * 2) / ratio;
 			width = maxX * 2
@@ -124,7 +140,7 @@ function getVideoRatio(height, width) {
 			height = wallHeight;
 		}
 	}	else if (width > maxX * 2) {
-		let height2 = (maxX * 2) / ratio;
+		var height2 = (maxX * 2) / ratio;
 		if (height2 > wallHeight) {
 			width = wallHeight / ratio;
 			height = wallHeight;
@@ -137,7 +153,7 @@ function getVideoRatio(height, width) {
 }
 
 function addPositionalAudioToObject(stream, object) {
-	let posAudio = new THREE.PositionalAudio(listener);
+	var posAudio = new THREE.PositionalAudio(listener);
 	posAudio.setRefDistance(20);
 	posAudio.setRolloffFactor(2);
 
@@ -145,10 +161,10 @@ function addPositionalAudioToObject(stream, object) {
 	n.srcObject = stream;
 	n.muted = true; // We only want audio from the positional audio
 
-	const audioObj = posAudio.context.createMediaStreamSource(n.srcObject);
+	const audio1 = posAudio.context.createMediaStreamSource(n.srcObject);
 
 	try {
-		posAudio.setNodeSource(audioObj);
+		posAudio.setNodeSource(audio1);
 		object.model.add(posAudio);
 	} catch(err) {
 		console.error(err);
@@ -160,73 +176,47 @@ function addPositionalAudioToObject(stream, object) {
  * Places the given video stream in the 3D environment. If it is null, then we
  * only remove the existing one.
  */
-async function updateShareScreen3D(screenTrack, details, name) {
-	scene.remove(tv);
+function updateShareScreen3D(screenTrack, details) {
 	if (screenTrack) { // If someone is sharing their screen, display it
+
 		let stream = new MediaStream([screenTrack]);
-		let screenObject = document.createElement("video")
-		screenObject.autoplay = true;
-		screenObject.srcObject = stream;
+		if (screenTrack.kind == "video") {
+			let screenObject = document.createElement("video")
+			screenObject.autoplay = true;
+			screenObject.srcObject = stream;
 
-		let texture = new THREE.VideoTexture(screenObject);
-		texture.minFilter = THREE.LinearFilter;
-		texture.magFilter = THREE.LinearFilter;
-		texture.format = THREE.RGBFormat;
+			let texture = new THREE.VideoTexture(screenObject);
+			texture.minFilter = THREE.LinearFilter;
+			texture.magFilter = THREE.LinearFilter;
+			texture.format = THREE.RGBFormat;
 
-		let ratio = getVideoRatio(details.height, details.width);
+			let height = details.height;
+			let width = details.width;
 
-		tv = new THREE.Mesh(
-			new THREE.PlaneBufferGeometry(ratio.width, ratio.height, 1, 1),
-			new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: texture } )
-		);
-		tv.position.z = -(maxZ - 1);
-		tv.position.y += wallHeight / 2;
+			let ratio = getVideoRatio(height, width);
 
-		scene.add(tv);
-		allObjects.push(tv);
+			tv = new THREE.Mesh(
+				new THREE.PlaneBufferGeometry(ratio.width, ratio.height, 1, 1),
+				new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: texture } )
+			);
+			tv.position.z = -(maxZ - 1);
+			tv.position.y += wallHeight / 2;
+
+			scene.add(tv);
+			allObjects.push(tv);
+
+		} else if (screenTrack.kind == "audio") {
+			tvAudio = new THREE.Object3D();
+			addPositionalAudioToObject(stream, tvAudio);
+		}
+	} else {
+		scene.remove(tv);
+		scene.remove(tvAudio);
 	}
 }
 
-function addSkyBox() {
-	let urls = [
-		"objects/obj/sh_ft.png", "objects/obj/sh_bk.png",
-		"objects/obj/sh_up.png", "objects/obj/sh_dn.png",
-		"objects/obj/sh_rt.png", "objects/obj/sh_lf.png"
-	];
-
-	let loader = new THREE.CubeTextureLoader();
-	scene.background = loader.load(urls);
-
-	//Extra floor to make rooom look real.
-	let textureLoader = new THREE.TextureLoader();
-	let floortext = textureLoader.load( "objects/obj/sh_dn.png" );
-	floortext.wrapS = THREE.RepeatWrapping;
-	floortext.wrapT = THREE.RepeatWrapping;
-	floortext.repeat.set( 100,100 );
-	let floor = new THREE.Mesh(
-		new THREE.PlaneGeometry(10000,10000),
-		new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: floortext })
-	);
-	floor.rotation.x += Math.PI / 2;
-	floor.position.y = 0;
-	scene.add(floor);
-}
-
-function addLighting() {
-	let light = new THREE.PointLight( 0xff0000, 1, 100 );
-	let ambientLight = new THREE.AmbientLight( 0xcccccc ); //keep the ambient light. The objects look a lot better
-	let directionalLight = new THREE.DirectionalLight( 0xffffff );
-	directionalLight.position.set( 50, 50, 50 ).normalize();
-
-	scene.add( light );
-	scene.add( ambientLight );
-	scene.add( directionalLight );
-	allObjects.push(light);
-	allObjects.push(ambientLight);
-	allObjects.push(directionalLight);
-}
-
 function addWalls() {
+
 	let textureLoader = new THREE.TextureLoader();
 
 	// FLOOR
@@ -236,7 +226,6 @@ function addWalls() {
 		new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: floortext })
 	);
 	floor.rotation.x += Math.PI / 2; //can rotate the floor/plane
-	floor.position.y = 1;
 	scene.add(floor);
 	allObjects.push(floor);
 
@@ -253,11 +242,11 @@ function addWalls() {
 
 	// WALLS
 	let walltext = textureLoader.load( "objects/obj/wall1.jpg" );
-
 	let wallLeft = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, wallHeight, 1, 1),
 		new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: walltext } )
 	);
+
 	wallLeft.rotation.y += Math.PI / 2;
 	wallLeft.position.x = -maxX;
 	wallLeft.position.y += wallHeight / 2;
@@ -266,6 +255,7 @@ function addWalls() {
 		new THREE.PlaneGeometry(maxX * 2, wallHeight, 1, 1),
 		new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: walltext } )
 	);
+
 	wallRight.rotation.y += Math.PI / 2;
 	wallRight.position.x = maxX;
 	wallRight.position.y += wallHeight / 2;
@@ -274,6 +264,7 @@ function addWalls() {
 		new THREE.PlaneGeometry(maxX * 2, wallHeight, 1, 1),
 		new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: walltext } )
 	);
+
 	wallBack.position.z = maxZ;
 	wallBack.position.y += wallHeight / 2;
 
@@ -281,6 +272,7 @@ function addWalls() {
 		new THREE.PlaneBufferGeometry(maxX * 2, wallHeight, 1, 1),
 		new THREE.MeshBasicMaterial( { side: THREE.DoubleSide, map: walltext } )
 	);
+
 	wallFront.position.z = -maxZ;
 	wallFront.position.y += wallHeight / 2;
 
@@ -294,7 +286,6 @@ function addWalls() {
 	allObjects.push( wallFront );
 }
 
-
 function addDecoration() {
 	// PLANT
 	const plant = new THREE.Object3D();
@@ -306,7 +297,7 @@ function addDecoration() {
 	});
 
 	// TABLE
-	let table = new THREE.Object3D();
+	const table = new THREE.Object3D();
 	loader.load('objects/obj/table.glb', function(gltf) {
 		table.add(gltf.scene);
 		table.scale.x = 20; table.scale.y = 20; table.scale.z = 20;
@@ -318,8 +309,16 @@ function addDecoration() {
 	allObjects.push(plant);
 }
 
+/**
+ * Returns a list containing the currently displayed videos.
+ */
+function getVideoList() {
+	return videoList.slice(0, videoListLength);
+}
+
 // Add username as text on top of 3D-object
-async function addText(name, model) {
+function addText(name, model) {
+	var text = new THREE.Mesh();
 	var fontLoader = new THREE.FontLoader();
 	fontLoader.load('helvetiker_regular.typeface.json', function(font) {
 
@@ -334,7 +333,7 @@ async function addText(name, model) {
 
 		const letterSize = 2;
 
-		// Creates an array of Shapes representing name
+		// Creates an array of Shapes representing nameShowed
 		let shapes = font.generateShapes(name, letterSize / objectScale);
 
 		let textGeometry = new THREE.ShapeBufferGeometry(shapes);
@@ -343,19 +342,17 @@ async function addText(name, model) {
 		textGeometry.computeBoundingBox();
 		textGeometry.center();
 
-		// Determine position of text object relative to 3D-object
+		// Determine position of text object realtive to 3D-object
 		textGeometry.translate(0, (objectSize.y + letterSize) / objectScale, 0);
 
-		let text = new THREE.Mesh(textGeometry, textMaterial);
+		text = new THREE.Mesh(textGeometry, textMaterial);
 		text.name = "text";
 		model.add(text);
 	});
 } // end of function addText()
 
 function newUserJoined3D(id, name, resource) {
-	if (name == null || name === '' || typeof name !== "string") {
-		return false; // Name needs to be a non-empty string
-	}
+	//console.log("Adding new user to the 3D environment: " + name);
 	var newUser = {};
 
 	newUser['name'] = name;
@@ -384,8 +381,6 @@ function newUserJoined3D(id, name, resource) {
 
 		scene.add(avatar.model);
 		allObjects.push(avatar.model);
-	}, function () {}, function (e) {
-		console.error(e);
 	});
 	avatar.model.scale.x = objectScale;
 	avatar.model.scale.y = objectScale;
@@ -408,20 +403,22 @@ function changeUserPosition(id, x, y, z) {
 	let changeZ = z - user.avatar.model.position.z;
 	let distance = Math.sqrt(changeX ** 2 + changeZ ** 2);
 	let ratioedChangeZ = changeZ / distance;
-	if (changeX >= 0) {
+	if(changeX >= 0){
 		user.avatar.model.rotation.y = Math.acos(ratioedChangeZ);
-	} else {
+		//console.log("Rotation : " + Math.acos(ratioedChangeZ) * 180 / Math.PI);
+	}else{
 		user.avatar.model.rotation.y = (0 - Math.acos(ratioedChangeZ));
+		//console.log("Rotation : " + (0 - Math.acos(ratioedChangeZ)) * 180 / Math.PI );
 	}
+	//console.log(user.avatar.model.rotation.y);
 
 	user.avatar.model.position.x = x;
 	user.avatar.model.position.y = y;
 	user.avatar.model.position.z = z;
-
-	if (connections[id].stream)
+	if (connections[id].stream) {
 		updateVideoList(id);
-	if (user.avatar.model.getObjectByName('text'))
-		user.avatar.model.getObjectByName('text').lookAt(camera.position.x, 0, camera.position.z);
+	}
+	user.avatar.model.getObjectByName('text').lookAt(camera.position.x, 0, camera.position.z);
 }
 
 /**
@@ -430,6 +427,7 @@ function changeUserPosition(id, x, y, z) {
  * done using a basic insertion sort algorithm.
  */
 function updateVideoList(id) {
+
 	if (connections[id] && !connections[id].stream) {
 		return; // Ignore users who do not share video
 	}
@@ -487,9 +485,11 @@ function updateVideoList(id) {
  * element gets shifted out of the array then their ID is returned, and 0 otherwise
  */
 function shiftVideoList(id) {
+
 	let thisDistance = getDistance(id);
 	let shiftedID = 0;
 	for (let i = 0; i < videoListLength; i++) {
+
 		if (shiftedID) { // If an ID has been inserted, shift the later entries along
 			let tempID = shiftedID
 			shiftedID = videoList[i];
@@ -511,6 +511,14 @@ function getDistance(id) {
 	let otherPos = UserMap[id].avatar.model.position;
 	return (otherPos.x - camera.position.x) ** 2 +
 		(otherPos.z - camera.position.z) ** 2;
+}
+
+/**
+ * True if keypress suggests that the user wants to move,
+ * false otherwise.
+ */
+function hasMoved() {
+	return direction.lengthSq();
 }
 
 /**
@@ -551,13 +559,11 @@ function userGotMedia(id, mediaStream) {
 function userLeft3D(id) {
 	resourceList.push(UserMap[id].resource);
 	scene.remove(UserMap[id].avatar.model);
-	if (UserMap[id].audioElement) { // Needed for testing
-		if (UserMap[id].audioElement.srcObject) {
-			UserMap[id].audioElement.srcObject.getTracks().forEach(track => track.stop());
-		}
-		UserMap[id].audioElement.srcObject = null;
-		UserMap[id].audioElement = null;
+	if (UserMap[id].audioElement.srcObject) {
+		UserMap[id].audioElement.srcObject.getTracks().forEach(track => track.stop());
 	}
+	UserMap[id].audioElement.srcObject = null;
+	UserMap[id].audioElement = null;
 	delete UserMap[id];
 	updateVideoList(ourID);
 }
@@ -631,20 +637,21 @@ function resizeCanvas(newWidth) {
 	renderer.setSize( window.innerWidth - videoWidth, window.innerHeight - 30 );
 }
 
-// Function to update frame
+
+//function to update frame
 function update() {
 	requestID = requestAnimationFrame(update);
-	time = performance.now();
+	var time = performance.now();
 	var delta = ( time - prevUpdateTime ) / 1000;
 
-	// Updating animation
-	for (let u in UserMap) {
-		if (UserMap[u].avatar.mixer) {
+	//updating animation
+	for(let u in UserMap){
+		if(UserMap[u].avatar.mixer){
 			UserMap[u].avatar.mixer.update(delta);
 		}
 	}
-	
 	if (controls.isLocked === true) {
+
 		velocity.x -= velocity.x * 10.0 * delta;
 		velocity.z -= velocity.z * 10.0 * delta;
 
@@ -658,16 +665,23 @@ function update() {
 		controls.moveRight( - velocity.x * delta );
 		controls.moveForward( - velocity.z * delta );
 
+		if (camera.position.x > maxXcam) camera.position.x = maxXcam;
+		else if (camera.position.x < minXcam) camera.position.x = minXcam;
+		if (camera.position.z > maxZcam) camera.position.z = maxZcam;
+		else if (camera.position.z < minZcam) camera.position.z = minZcam;
+
 		// Only call costly functions if we have moved and some time has passed since the last time we called them
-		if ( direction.lengthSq() && time - prevPosTime > 50 ) {
+		if ( hasMoved() && time - prevPosTime > 50 ) {
 			changePos(camera.position.x, 0, camera.position.z); // Update our position for others
 			updateVideoList(ourID); // Update which videos to show
-
+			
 			for (let keyId in UserMap) { // Makes the usernames point towards the user
 				UserMap[keyId].avatar.model.getObjectByName('text').lookAt(camera.position.x, 0, camera.position.z);
 			}
+			
 			prevPosTime = time;
 		}
+
 	}
 	prevUpdateTime = time;
 	renderer.render(scene, camera);
@@ -687,13 +701,13 @@ function updatePos() {
 function changePos(x, y, z) {
   let jsonPos = JSON.stringify({type: "pos", x: x, y: y, z: z});
   for (let id in connections) { // Send it to everyone
-		if (connections[id].dataChannel)
-    	connections[id].dataChannel.send(jsonPos);
+    connections[id].dataChannel.send(jsonPos);
   }
 }
 
 function leave3D() {
-	if (tv) scene.remove(tv);
+
+	updateShareScreen3D(null);
 
 	for (let id in UserMap) {
 		if (UserMap[id].audioElement) {
@@ -726,12 +740,8 @@ function leave3D() {
 	allObjects = [];
 	videoList = [];
 	videoListLength = 0;
+	resourceIndex = 0;
 }
-
-// These are for testing
-export function setUserRotation(id, angleY) { UserMap[id].avatar.model.rotation.y = angleY };
-export function setVideoList(list) { videoList = list };
-export function setVideoListLength(n) { videoListLength = n };
 
 export {
 	UserMap,
@@ -744,22 +754,12 @@ export {
 	userLeft3D,
 	init3D,
 	updateShareScreen3D,
+	getVideoList,
 	updateVideoList,
 	resizeCanvas,
 	leave3D,
 	onDocumentKeyDown,
 	onDocumentKeyUp,
 	changeUserPosition,
-	controls,
-
-	// For tests
-	getVideoRatio,
-	moveForward,
-	moveLeft,
-	moveRight,
-	moveBackward,
-	getDistance,
-	videoList,
-	videoListLength,
-	shiftVideoList
+	controls
 };
