@@ -176,7 +176,6 @@ async function init(button) {
     let id = message.id;
     let name = message.name;
     let offerDescription = message.offer;
-    let resource = message.resource;
 
     if (id === ourID) return;
 
@@ -184,22 +183,25 @@ async function init(button) {
       connections[id] = {};
       connections[id].name = name;
       appendConnectionHTMLList(id); // Add their username to the list of connections on the webpage
-      newUserJoined3D(id, name, resource); // Add new user to 3D environment with resource
+      newUserJoined3D(id, name); // Add new user to 3D environment
     }
-    console.log("Received offer from " + connections[id].name)
+
+    console.log("Received offer from " + connections[id].name);
+
     sendAnswer(id, offerDescription); // Reply to the offer with our details
   });
 
   // We have received an answer to our PeerConnection offer
-  socket.on('answer', async function(message) {
+  socket.on('answer', function(message) {
     let id = message.id;
     let answerDescription = message.answer;
 
-    if (id === ourID || connections[id].signalingState == "stable") return;
+    if (id === ourID) return;
 
-    console.log("Received answer from " + connections[id].name)
+    console.log("Received answer from " + connections[id].name);
 
-    await connections[id].connection.setRemoteDescription(new RTCSessionDescription(answerDescription));
+    connections[id].connection.setRemoteDescription(new RTCSessionDescription(answerDescription))
+      .catch(function (e) { console.error(e) });
   });
 
   // We have received an ICE candidate from a user we are connecting to
@@ -228,7 +230,7 @@ async function sendOffer(id) {
     console.log('Sending offer to user ' + connections[id].name);
     connections[id].connection = await createPeerConnection(id);
     await createDataChannel(id);
-    await addLocalTracksToConnection(id); // This triggers 'renegotiations'
+    await addLocalTracksToConnection(id); // This triggers 'onnegotiations'
   }
 }
 
@@ -240,23 +242,23 @@ async function sendAnswer(id, offerDescription) {
   if (!connections[id].connection) {
     console.log('Creating RTCPeerConnection to user ' + connections[id].name);
     connections[id].connection = await createPeerConnection(id);
-    await addLocalTracksToConnection(id);
   }
 
   console.log('Sending answer to connection to user ' + connections[id].name);
 
-  if (connections[id].signalingState == "stable" || connections[id].signalingState == "have-remote-offer") return;
-
-  await connections[id].connection.setRemoteDescription(new RTCSessionDescription(offerDescription));
-
-  if (connections[id].signalingState == "stable") return;
-
-  await connections[id].connection.setLocalDescription(await connections[id].connection.createAnswer());
-
-  socket.emit('answer', {
-    id: id,
-    answer: connections[id].connection.localDescription
-  });
+  connections[id].connection.setRemoteDescription(new RTCSessionDescription(offerDescription)).then(async function () {
+    console.log("Adding local tracks to connection to " + connections[id].name);
+    await addLocalTracksToConnection(id);
+  }).then(function() {
+    return connections[id].connection.createAnswer();
+  }).then(function(answer) {
+    return connections[id].connection.setLocalDescription(answer);
+  }).then(function() {
+    socket.emit('answer', {
+      id: id,
+      answer: connections[id].connection.localDescription
+    });
+  }).catch(function (e) { console.error(e) });
 }
 
 /**
@@ -336,19 +338,22 @@ async function createPeerConnection(id) {
     pc.onnegotiationneeded = async function (event) {
 
       console.log("Negotiations needed, sending offer to " + connections[id].name);
-      if (connections[id].signalingState == "have-remote-offer") return;
 
-      await connections[id].connection.setLocalDescription(await connections[id].connection.createOffer());
-
-      socket.emit('offer', {
-        id: id,
-        name: username.value,
-        offer: connections[id].connection.localDescription,
-        resource: myResource
-      });
+      connections[id].connection.createOffer().then(function(offer) {
+        return connections[id].connection.setLocalDescription(offer);
+      }).then(function() {
+        socket.emit('offer', {
+          id: id,
+          name: username.value,
+          offer: connections[id].connection.localDescription
+        });
+      }).catch(function (e) { console.error(e) });
     };
 
     pc.onconnectionstatechange = function (event) {
+      if (pc.connectionState == "connected") {
+        console.log("Fully connected to " + connections[id].name)
+      }
       if (pc.connectionState == "closed" && connections[id]) {
         console.log("Lost connection to " + connections[id].name);
         userLeft3D(id); // Removes the user from the 3D environment
