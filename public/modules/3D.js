@@ -337,9 +337,9 @@ videofile.play(); // FIXME This should be synchronized between users
 	
 	let vPosAudio = new THREE.PositionalAudio(listener);
 	vPosAudio.setRefDistance(50);
-	vPosAudio.setRolloffFactor(2);
+	vPosAudio.setRolloffFactor(3);
 	vPosAudio.setDistanceModel("exponential");
-	vPosAudio.setDirectionalCone(rotation - Math.PI/2, rotation + Math.PI/2, 0.1);
+	vPosAudio.setDirectionalCone(rotation - Math.PI/2, rotation + Math.PI/2, 0.1); // FIXME This currently does not work
 	
 	const audio2 = vPosAudio.context.createMediaStreamSource(videofile.mozCaptureStream());
 	
