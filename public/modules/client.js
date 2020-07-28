@@ -163,16 +163,22 @@ async function addLocalTrack(constraint) {
 async function addLocalTracksToConnection(id) {
   if (!localStream || localStream.getTracks().length == 0) {
     console.error("There is no track to add to the new connection.");
-    return;
+    return false;
   }
   for (let i in localStream.getTracks()) {
     let track = localStream.getTracks()[i];
     if (track.kind == "video") {
-      connections[id].video = connections[id].connection.addTrack(track, localStream);
+      try {
+        connections[id].video = connections[id].connection.addTrack(track, localStream);
+      } catch (e) { console.log(e)}
+
     } else if (track.kind == "audio") {
-      connections[id].audio = connections[id].connection.addTrack(track, localStream);
+      try {
+        connections[id].audio = connections[id].connection.addTrack(track, localStream);
+      } catch (e) { console.log(e)}
     }
   }
+  return true;
 }
 
 /**

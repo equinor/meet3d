@@ -1,23 +1,25 @@
 'use strict';
 
 import { newUserJoined3D, userGotMedia, updatePos, updateShareScreen3D, userLeft3D, init3D, leave3D } from './modules/3D.js';
-import { openVideoPage,
-open3D,
-shareCamera,
-shareScreen,
-openChat,
-clearHTML,
-appendConnectionHTMLList,
-addLocalTracksToConnection,
-addVideoStream,
-addScreenCapture,
-advertiseFile,
-dataChannelReceive,
-removeVideoStream,
-userLeft,
-updateShareScreen,
-sendChat,
-initChat } from './modules/client.js';
+import {
+  openVideoPage,
+  open3D,
+  shareCamera,
+  shareScreen,
+  openChat,
+  clearHTML,
+  appendConnectionHTMLList,
+  addLocalTracksToConnection,
+  addVideoStream,
+  addScreenCapture,
+  advertiseFile,
+  dataChannelReceive,
+  removeVideoStream,
+  userLeft,
+  updateShareScreen,
+  sendChat,
+  initChat
+} from './modules/client.js';
 
 var roomName = document.getElementById("roomName");
 var username = document.getElementById("username");
@@ -60,7 +62,6 @@ var connections = {};
  */
 var ourID;
 const signalServer = 'signaling-server-meet3d-master.radix.equinor.com'; // The signaling server
-//const signalServer = 'localhost:3000'; // The signaling server
 
 // The configuration containing our STUN and TURN servers.
 const pcConfig = {
@@ -150,7 +151,7 @@ async function init(button) {
     await init3D(ourID, connections, document.getElementById("3D")); // Renders the 3D environment
     console.log('We are ready to receive offers');
     socket.emit('ready', startInfo.name);
-    ready = true;
+    ready = true; // We are ready to receive and send offers
   });
 
   // A user moved in the 3D space
@@ -181,6 +182,8 @@ async function init(button) {
       connections[id].name = name;
       appendConnectionHTMLList(id); // Add their username to the list of connections on the webpage
       newUserJoined3D(id, name); // Add new user to 3D environment
+    } else if (connections[id].signalingState == "have-local-offer") {
+      return;
     }
     console.log("Received offer from " + connections[id].name)
     sendAnswer(id, offerDescription); // Reply to the offer with our details
@@ -191,7 +194,7 @@ async function init(button) {
     let id = message.id;
     let answerDescription = message.answer;
 
-    if (id === ourID || connections[id].signalingState == "stable") return;
+    if (id === ourID || connections[id].signalingState == "stable" || connections[id].signalingState == "have-remote-offer") return;
 
     console.log("Received answer from " + connections[id].name)
 
@@ -224,7 +227,7 @@ async function sendOffer(id) {
     console.log('Sending offer to user ' + connections[id].name);
     connections[id].connection = await createPeerConnection(id);
     await createDataChannel(id);
-    await addLocalTracksToConnection(id); // This triggers 'renegotiations'
+    await addLocalTracksToConnection(id); // This triggers 'onnegotiations'
   }
 }
 
@@ -236,23 +239,23 @@ async function sendAnswer(id, offerDescription) {
   if (!connections[id].connection) {
     console.log('Creating RTCPeerConnection to user ' + connections[id].name);
     connections[id].connection = await createPeerConnection(id);
-    await addLocalTracksToConnection(id);
   }
 
   console.log('Sending answer to connection to user ' + connections[id].name);
 
-  if (connections[id].signalingState == "stable" || connections[id].signalingState == "have-remote-offer") return;
-
-  await connections[id].connection.setRemoteDescription(new RTCSessionDescription(offerDescription));
-
-  if (connections[id].signalingState == "stable") return;
-
-  await connections[id].connection.setLocalDescription(await connections[id].connection.createAnswer());
-
-  socket.emit('answer', {
-    id: id,
-    answer: connections[id].connection.localDescription
-  });
+  connections[id].connection.setRemoteDescription(new RTCSessionDescription(offerDescription)).then(async function () {
+    console.log("Adding local tracks to connection to " + connections[id].name);
+    await addLocalTracksToConnection(id);
+  }).then(function() {
+    return connections[id].connection.createAnswer();
+  }).then(function(answer) {
+    return connections[id].connection.setLocalDescription(answer);
+  }).then(function() {
+    socket.emit('answer', {
+      id: id,
+      answer: connections[id].connection.localDescription
+    });
+  }).catch(function (e) { console.error(e) });
 }
 
 /**
@@ -333,15 +336,15 @@ async function createPeerConnection(id) {
 
       console.log("Negotiations needed, sending offer to " + connections[id].name);
 
-      if (connections[id].signalingState == "have-remote-offer") return;
-
-      await connections[id].connection.setLocalDescription(await connections[id].connection.createOffer());
-
-      socket.emit('offer', {
-        id: id,
-        name: username.value,
-        offer: connections[id].connection.localDescription
-      });
+      connections[id].connection.createOffer().then(function(offer) {
+        return connections[id].connection.setLocalDescription(offer);
+      }).then(function() {
+        socket.emit('offer', {
+          id: id,
+          name: username.value,
+          offer: connections[id].connection.localDescription
+        });
+      }).catch(function (e) { console.error(e) });
     };
 
     pc.onconnectionstatechange = function (event) {
@@ -386,9 +389,9 @@ async function createDataChannel(id) {
   tempConnection.onopen = function () {
     connections[id].dataChannel = tempConnection;
     console.log("Datachannel established to " + connections[id].name);
-    advertiseFile();
-    addScreenCapture(id);
-    updatePos();
+    advertiseFile(); // Advertises our selected files
+    addScreenCapture(id); // Adds a shared screen if there is one
+    updatePos(); // Tells the user of our current 3D position
   };
 
   tempConnection.onclose = function () {

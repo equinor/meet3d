@@ -391,9 +391,9 @@ function changeUserPosition(id, x, y, z) {
 	let distance = Math.sqrt(changeX ** 2 + changeZ ** 2);
 	let ratioedChangeZ = changeZ / distance;
 	if (changeX >= 0) {
-		user.avatar.model.rotation.y = Math.acos(ratioedChangeZ);
+		//user.avatar.model.rotation.y = Math.acos(ratioedChangeZ);
 	} else {
-		user.avatar.model.rotation.y = (0 - Math.acos(ratioedChangeZ));
+		//user.avatar.model.rotation.y = (0 - Math.acos(ratioedChangeZ));
 	}
 
 	user.avatar.model.position.x = x;
@@ -546,8 +546,7 @@ function userLeft3D(id) {
 
 function onDocumentKeyDown(event) {
 	switch (event.keyCode) {
-
-		case 87: //w
+		case 87: // w
 			moveForward = true;
 			break;
 
@@ -563,7 +562,7 @@ function onDocumentKeyDown(event) {
 			moveRight = true;
 			break;
 
-		case 38://up
+		case 38:// up
 			time = performance.now();
 			prevUpdateTime = time;
 			controls.lock();
@@ -577,7 +576,6 @@ function onDocumentKeyDown(event) {
 
 function onDocumentKeyUp(event) {
 	switch ( event.keyCode ) {
-
 		case 87: // w
 			moveForward = false;
 			break;
@@ -625,7 +623,7 @@ function update() {
 			UserMap[u].avatar.mixer.update(delta);
 		}
 	}
-	
+
 	if (controls.isLocked === true) {
 		velocity.x -= velocity.x * 10.0 * delta;
 		velocity.z -= velocity.z * 10.0 * delta;
