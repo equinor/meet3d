@@ -28,7 +28,7 @@ var roomButton = document.getElementById("3Droom");
 var chatButton = document.getElementById("chatMode");
 var videoButton = document.getElementById("videoButton");
 var shareButton = document.getElementById("shareButton");
-var cameraButton = document.getElementById("cameraButton");
+//var cameraButton = document.getElementById("cameraButton");
 
 // These two variables are present in both client.js and connect.js
 var ourID; // This is our unique ID
@@ -206,9 +206,11 @@ async function shareCamera(button) {
 function stopShareCamera(button) {
 
   let cameraLi = document.getElementById("ourVideo");
+  let cameradisp = document.getElementById("ourVideoStream");
   if (!cameraLi) {
     return; // We are not sharing our camera anyways
   }
+
 
   for (let id in connections) {
     connections[id].connection.removeTrack(connections[id].video); // Update our media stream for the other users
@@ -225,6 +227,7 @@ function stopShareCamera(button) {
   tracks.forEach(track => track.stop()); // Stop the webcamera video track
   cameraLi.children[0].srcObject = null;
   cameraLi.innerHTML = ''; // Delete the video element
+  cameradisp.remove();
 
   videoElement.children[0].removeChild(cameraLi);
   if (videoElement.children[0].children.length == 0) {
@@ -663,7 +666,7 @@ function addVideoStream(id, track) {
     streamElement.autoplay = true;
     streamElement2.autoplay = true;
     streamElementLi.id = "ourVideo";
-    streamElement2.id = "ourVideostream";
+    streamElement2.id = "ourVideoStream";
 
   }
   streamElement2.srcObject = stream;
@@ -683,6 +686,7 @@ function addVideoStream(id, track) {
 
   streamElementLi.appendChild(streamElement);
   streamElementLi.appendChild(nameTag);
+
   videoElement.hidden = false;
 
   if (id == ourID && videoElement.children[0].children.length > 0) {
@@ -716,6 +720,9 @@ function removeVideoStream(id) {
   screenShare.hidden = true;
   cameraLi.innerHTML = '';
   videoElement.children[0].removeChild(cameraLi);
+
+  let cameradisp = document.getElementById(connections[id].stream.id+1);
+  cameradisp.remove();
 
   connections[id].stream = null;
 
@@ -845,6 +852,7 @@ function clearHTML() {
   users.style.display = "none"; // Stop listing users
   connectionList.innerHTML = ''; // Empty the list of users
   videoElement.innerHTML = '<ul></ul>'; // Removes all videos from the list on the right side of the screen
+  videoPageElement.innerHTML = '';
   buttons.hidden = true;
   remoteFiles.innerHTML = ' Remote Files: ';
 
