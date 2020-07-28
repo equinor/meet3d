@@ -1,25 +1,23 @@
 'use strict';
 
-import { newUserJoined3D, userGotMedia, updatePos, updateShareScreen3D, userLeft3D, init3D, leave3D } from './modules/3D.js';
-import {
-  openVideoPage,
-  open3D,
-  shareCamera,
-  shareScreen,
-  openChat,
-  clearHTML,
-  appendConnectionHTMLList,
-  addLocalTracksToConnection,
-  addVideoStream,
-  addScreenCapture,
-  advertiseFile,
-  dataChannelReceive,
-  removeVideoStream,
-  userLeft,
-  updateShareScreen,
-  sendChat,
-  initChat
-} from './modules/client.js';
+import { newUserJoined3D, userGotMedia, updatePos, updateShareScreen3D, userLeft3D, init3D, leave3D, reserveResource } from './modules/3D.js';
+import { openVideoPage,
+open3D,
+shareCamera,
+shareScreen,
+openChat,
+clearHTML,
+appendConnectionHTMLList,
+addLocalTracksToConnection,
+addVideoStream,
+addScreenCapture,
+advertiseFile,
+dataChannelReceive,
+removeVideoStream,
+userLeft,
+updateShareScreen,
+sendChat,
+initChat } from './modules/client.js';
 
 var roomName = document.getElementById("roomName");
 var username = document.getElementById("username");
@@ -61,8 +59,9 @@ var connections = {};
  *    }
  */
 var ourID;
-//const signalServer = 'signaling-server-meet3d-master.radix.equinor.com'; // The signaling server
-const signalServer = 'localhost:3000'; // The signaling server
+var myResource;
+const signalServer = 'signaling-server-meet3d-master.radix.equinor.com'; // The signaling server
+//const signalServer = 'localhost:3000'; // The signaling server
 
 // The configuration containing our STUN and TURN servers.
 const pcConfig = {
@@ -130,8 +129,7 @@ async function init(button) {
   });
 
   // A new user joined the room
-  socket.on('join', function (message) {
-
+  socket.on('join', async function (message) {
     if (!ready || message.id === ourID) return;
 
     connections[message.id] = {};
@@ -139,8 +137,10 @@ async function init(button) {
 
     console.log('User ' + message.name + ' joined the room');
 
+    myResource = await reserveResource();
+    console.log("myResource is : " + myResource);
     sendOffer(message.id); // Send the user your local description in order to create a connection
-    if (!newUserJoined3D(message.id, message.name)) // Add the new user to the 3D environment
+    if (!newUserJoined3D(message.id, message.name, '')) // Add the new user to the 3D environment
       console.error("Unable to add " + message.name + " to the 3D environment");
     appendConnectionHTMLList(message.id);
   });
@@ -152,8 +152,8 @@ async function init(button) {
     await initChat(ourID, connections);
     await init3D(ourID, connections, document.getElementById("3D")); // Renders the 3D environment
     console.log('We are ready to receive offers');
-    socket.emit('ready', startInfo);
-    ready = true; // We are ready to receive and send offers
+    socket.emit('ready', startInfo.name);
+    ready = true;
   });
 
   // A user moved in the 3D space
@@ -176,6 +176,7 @@ async function init(button) {
     let id = message.id;
     let name = message.name;
     let offerDescription = message.offer;
+    let resource = message.resource;
 
     if (id === ourID) return;
 
@@ -183,25 +184,22 @@ async function init(button) {
       connections[id] = {};
       connections[id].name = name;
       appendConnectionHTMLList(id); // Add their username to the list of connections on the webpage
-      newUserJoined3D(id, name); // Add new user to 3D environment
+      newUserJoined3D(id, name, resource); // Add new user to 3D environment with resource
     }
-
-    console.log("Received offer from " + connections[id].name);
-
+    console.log("Received offer from " + connections[id].name)
     sendAnswer(id, offerDescription); // Reply to the offer with our details
   });
 
   // We have received an answer to our PeerConnection offer
-  socket.on('answer', function(message) {
+  socket.on('answer', async function(message) {
     let id = message.id;
     let answerDescription = message.answer;
 
-    if (id === ourID) return;
+    if (id === ourID || connections[id].signalingState == "stable") return;
 
-    console.log("Received answer from " + connections[id].name);
+    console.log("Received answer from " + connections[id].name)
 
-    connections[id].connection.setRemoteDescription(new RTCSessionDescription(answerDescription))
-      .catch(function (e) { console.error(e) });
+    await connections[id].connection.setRemoteDescription(new RTCSessionDescription(answerDescription));
   });
 
   // We have received an ICE candidate from a user we are connecting to
@@ -230,7 +228,7 @@ async function sendOffer(id) {
     console.log('Sending offer to user ' + connections[id].name);
     connections[id].connection = await createPeerConnection(id);
     await createDataChannel(id);
-    await addLocalTracksToConnection(id); // This triggers 'onnegotiations'
+    await addLocalTracksToConnection(id); // This triggers 'renegotiations'
   }
 }
 
@@ -242,23 +240,23 @@ async function sendAnswer(id, offerDescription) {
   if (!connections[id].connection) {
     console.log('Creating RTCPeerConnection to user ' + connections[id].name);
     connections[id].connection = await createPeerConnection(id);
+    await addLocalTracksToConnection(id);
   }
 
   console.log('Sending answer to connection to user ' + connections[id].name);
 
-  connections[id].connection.setRemoteDescription(new RTCSessionDescription(offerDescription)).then(async function () {
-    console.log("Adding local tracks to connection to " + connections[id].name);
-    await addLocalTracksToConnection(id);
-  }).then(function() {
-    return connections[id].connection.createAnswer();
-  }).then(function(answer) {
-    return connections[id].connection.setLocalDescription(answer);
-  }).then(function() {
-    socket.emit('answer', {
-      id: id,
-      answer: connections[id].connection.localDescription
-    });
-  }).catch(function (e) { console.error(e) });
+  if (connections[id].signalingState == "stable" || connections[id].signalingState == "have-remote-offer") return;
+
+  await connections[id].connection.setRemoteDescription(new RTCSessionDescription(offerDescription));
+
+  if (connections[id].signalingState == "stable") return;
+
+  await connections[id].connection.setLocalDescription(await connections[id].connection.createAnswer());
+
+  socket.emit('answer', {
+    id: id,
+    answer: connections[id].connection.localDescription
+  });
 }
 
 /**
@@ -338,22 +336,19 @@ async function createPeerConnection(id) {
     pc.onnegotiationneeded = async function (event) {
 
       console.log("Negotiations needed, sending offer to " + connections[id].name);
+      if (connections[id].signalingState == "have-remote-offer") return;
 
-      connections[id].connection.createOffer().then(function(offer) {
-        return connections[id].connection.setLocalDescription(offer);
-      }).then(function() {
-        socket.emit('offer', {
-          id: id,
-          name: username.value,
-          offer: connections[id].connection.localDescription
-        });
-      }).catch(function (e) { console.error(e) });
+      await connections[id].connection.setLocalDescription(await connections[id].connection.createOffer());
+
+      socket.emit('offer', {
+        id: id,
+        name: username.value,
+        offer: connections[id].connection.localDescription,
+        resource: myResource
+      });
     };
 
     pc.onconnectionstatechange = function (event) {
-      if (pc.connectionState == "connected") {
-        console.log("Fully connected to " + connections[id].name)
-      }
       if (pc.connectionState == "closed" && connections[id]) {
         console.log("Lost connection to " + connections[id].name);
         userLeft3D(id); // Removes the user from the 3D environment
@@ -391,16 +386,16 @@ function handleIceCandidate(event) {
  * Creates a new data channel to the user with the given id.
  */
 async function createDataChannel(id) {
-  let tempConnection = connections[id].connection.createDataChannel("Conference");
-  tempConnection.onopen = function () {
-    connections[id].dataChannel = tempConnection;
+  let dc = connections[id].connection.createDataChannel("Conference");
+  dc.onopen = function () {
+    connections[id].dataChannel = dc;
     console.log("Datachannel established to " + connections[id].name);
-    advertiseFile(); // Advertises our selected files
-    addScreenCapture(id); // Adds a shared screen if there is one
-    updatePos(); // Tells the user of our current 3D position
+    advertiseFile();
+    addScreenCapture(id);
+    updatePos();
   };
 
-  tempConnection.onclose = function () {
+  dc.onclose = function () {
     if (connections[id]) {
       console.log("DataChannel to " + connections[id].name + " has closed");
       userLeft3D(id); // Removes the user from the 3D environment
@@ -408,7 +403,7 @@ async function createDataChannel(id) {
     }
   };
 
-  tempConnection.onmessage = function (event) {
+  dc.onmessage = function (event) {
     dataChannelReceive(id, event.data); // Called when we receive a DataChannel message
   };
 }

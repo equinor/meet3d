@@ -27,6 +27,8 @@ var moveForward = false;
 var moveBackward = false;
 var moveLeft = false;
 var moveRight = false;
+var moveUp = false;
+var moveDown = false;
 
 var prevUpdateTime = performance.now();
 var prevPosTime = performance.now();
@@ -96,6 +98,20 @@ async function init3D(id, connectionsObject, div) {
 	update();
 }
 
+//called to preserve avatar coherence among all users, can only be executed once
+var reserveResource = (function() {
+	var executed = false;
+	var resource;
+    return function() {
+        if (!executed) {
+            executed = true;
+			resource = resourceList.shift();
+			console.log("We have reserved our resource!");
+		}
+		return resource;
+    };
+})();
+
 function getVideoRatio(height, width) {
 	let ratio = width / height;
 
@@ -138,7 +154,7 @@ function addPositionalAudioToObject(stream, object) {
 		object.model.add(posAudio);
 	} catch(err) {
 		console.error(err);
-	};
+	}
 	return n;
 }
 
@@ -280,7 +296,6 @@ function addWalls() {
 	allObjects.push( wallFront );
 }
 
-
 function addDecoration() {
 	// PLANT
 	const plant = new THREE.Object3D();
@@ -338,15 +353,20 @@ async function addText(name, model) {
 	});
 } // end of function addText()
 
-async function newUserJoined3D(id, name) {
-
+async function newUserJoined3D(id, name, resource) {
 	if (name == null || name === '' || typeof name !== "string") {
 		return false; // Name needs to be a non-empty string
 	}
 
 	var newUser = {};
 	newUser.name = name;
-	newUser.resource = resourceList.shift();
+	if (resourceList.find(element => element == resource)) {
+		newUser.resource = resourceList.splice(resourceList.indexOf(resource), 1);
+		console.log("Adding new user to the 3D environment: " + name + ", with resource: " + avatar.resource);
+	} else {
+		newUser.resource = resourceList.shift();
+		console.log("Adding new user to the 3D environment: " + name + ", without resource");
+	}
 	newUser.avatar = loadNewObject(newUser.resource);
 
 	addText(name, newUser.avatar.model);
@@ -367,7 +387,7 @@ function loadNewObject(resource) {
 
 		avatar.mixer = new THREE.AnimationMixer(gltf.scene);
 		avatar.action = avatar.mixer.clipAction(gltf.animations[0]);
-		avatar.action.play(); // FIXME Currently not working
+		avatar.action.play();
 
 		let boundingBox = new THREE.Box3().setFromObject(avatar.model);
 		objectSize = boundingBox.getSize(); // Returns Vector3
@@ -386,14 +406,43 @@ function loadNewObject(resource) {
 function changeUserPosition(id, x, y, z) {
 	let user = UserMap[id];
 
+	//updating Y-rotation
 	let changeX = x - user.avatar.model.position.x;
 	let changeZ = z - user.avatar.model.position.z;
 	let distance = Math.sqrt(changeX ** 2 + changeZ ** 2);
-	let ratioedChangeZ = changeZ / distance;
-	if (changeX >= 0) {
-		//user.avatar.model.rotation.y = Math.acos(ratioedChangeZ);
+	if (distance > 0) {
+		let ratioedChangeZ = changeZ / distance;
+		if (changeX >= 0) {
+			user.avatar.model.rotation.y = Math.acos(ratioedChangeZ);
+			//console.log("Rotation : " + Math.acos(ratioedChangeZ) * 180 / Math.PI);
+		} else {
+			user.avatar.model.rotation.y = (0 - Math.acos(ratioedChangeZ));
+			//console.log("Rotation : " + (0 - Math.acos(ratioedChangeZ)) * 180 / Math.PI );
+		}
+		//console.log(user.avatar.model.rotation.y);
 	} else {
-		//user.avatar.model.rotation.y = (0 - Math.acos(ratioedChangeZ));
+		user.avatar.model.rotation.y = 0;
+	}
+
+	//updating X-rotation
+	let changeY = y - user.avatar.model.position.y;
+	if (changeY != 0) {
+		if (distance > 0) {
+			let hypothenuse = Math.sqrt(distance ** 2 + changeY ** 2);
+			user.avatar.model.rotation.x = (0 - Math.asin(changeY / hypothenuse));
+			//console.log("Rotation : " + (0 - Math.asin(changeY / hypothenuse)) * 180 / Math.PI);
+		} else {
+			if (changeY > 0) {
+				user.avatar.model.rotation.x = - 90 * Math.PI / 180;
+				//console.log("Rotation : - 90");
+			} else if (changeY < 0) {
+				user.avatar.model.rotation.x = 90 * Math.PI / 180;
+				//console.log("Rotation : 90");
+			}
+		}
+		//console.log(user.avatar.model.rotation.x);
+	} else {
+		user.avatar.model.rotation.x = 0;
 	}
 
 	user.avatar.model.position.x = x;
@@ -403,7 +452,7 @@ function changeUserPosition(id, x, y, z) {
 	if (connections[id].stream)
 		updateVideoList(id);
 	if (user.avatar.model.getObjectByName('text'))
-		user.avatar.model.getObjectByName('text').lookAt(camera.position.x, 0, camera.position.z);
+		user.avatar.model.getObjectByName('text').lookAt(camera.position.x, camera.position.y, camera.position.z);
 }
 
 /**
@@ -571,6 +620,14 @@ function onDocumentKeyDown(event) {
 		case 40: // down
 			controls.unlock();
 			break;
+
+		case 69: // e
+			moveUp = true;
+			break;
+
+		case 81: // q
+			moveDown = true;
+			break;
 	}
 }
 
@@ -590,6 +647,14 @@ function onDocumentKeyUp(event) {
 
 		case 68: // d
 			moveRight = false;
+			break;
+
+		case 69: // e
+			moveUp = false;
+			break;
+
+		case 81: // q
+			moveDown = false;
 			break;
 	}
 }
@@ -627,24 +692,28 @@ function update() {
 	if (controls.isLocked === true) {
 		velocity.x -= velocity.x * 10.0 * delta;
 		velocity.z -= velocity.z * 10.0 * delta;
+		velocity.y -= velocity.y * 10.0 * delta;
 
 		direction.z = Number( moveForward ) - Number( moveBackward );
 		direction.x = Number( moveRight ) - Number( moveLeft );
-		direction.normalize(); // this ensures consistent movements in all directions
+		direction.y = Number( moveDown ) - Number( moveUp );
+		direction.normalize(); // this ensures consistent movements in all directions (usefulness in question)
 
 		if ( moveForward || moveBackward ) velocity.z -= direction.z * speed * delta;
 		if ( moveLeft || moveRight ) velocity.x -= direction.x * speed * delta;
+		if ( moveUp || moveDown ) velocity.y -= direction.y * speed * delta;
 
 		controls.moveRight( - velocity.x * delta );
 		controls.moveForward( - velocity.z * delta );
+		controls.getObject().position.y += ( velocity.y * delta );
 
 		// Only call costly functions if we have moved and some time has passed since the last time we called them
 		if ( direction.lengthSq() && time - prevPosTime > 50 ) {
-			changePos(camera.position.x, 0, camera.position.z); // Update our position for others
+			changePos(camera.position.x, camera.position.y, camera.position.z); // Update our position for others
 			updateVideoList(ourID); // Update which videos to show
 
 			for (let keyId in UserMap) { // Makes the usernames point towards the user
-				UserMap[keyId].avatar.model.getObjectByName('text').lookAt(camera.position.x, 0, camera.position.z);
+				UserMap[keyId].avatar.model.getObjectByName('text').lookAt(camera.position.x, camera.position.y, camera.position.z);
 			}
 			prevPosTime = time;
 		}
@@ -658,7 +727,7 @@ function update() {
  * for other users without needing to access 3D.js variables.
  */
 function updatePos() {
-	changePos(camera.position.x, 0, camera.position.z);
+	changePos(camera.position.x, camera.position.y, camera.position.z);
 }
 
 /**
@@ -718,6 +787,7 @@ export {
 	ourID,
 	objectScale,
 	newUserJoined3D,
+	reserveResource,
 	userGotMedia,
 	updatePos,
 	userLeft3D,
