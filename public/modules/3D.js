@@ -100,13 +100,15 @@ async function init3D(id, connectionsObject, div) {
 
 //called to preserve avatar coherence among all users, can only be executed once
 var reserveResource = (function() {
-    var executed = false;
+	var executed = false;
+	var resource;
     return function() {
         if (!executed) {
             executed = true;
-			resourceList.shift();
+			resource = resourceList.shift();
 			console.log("We have reserved our resource!");
-        }
+		}
+		return resource;
     };
 })();
 
@@ -352,15 +354,20 @@ async function addText(name, model) {
 	});
 } // end of function addText()
 
-async function newUserJoined3D(id, name) {
-
+async function newUserJoined3D(id, name, resource) {
 	if (name == null || name === '' || typeof name !== "string") {
 		return false; // Name needs to be a non-empty string
 	}
 
 	var newUser = {};
 	newUser.name = name;
-	newUser.resource = resourceList.shift();
+	if(resourceList.find(element => element == resource)){
+		newUser.resource = resourceList.splice(resourceList.indexOf(resource), 1);
+		console.log("Adding new user to the 3D environment: " + name + ", with resource: " + avatar.resource);
+	}else{
+		newUser.resource = resourceList.shift();
+		console.log("Adding new user to the 3D environment: " + name + ", without resource");
+	}
 	newUser.avatar = loadNewObject(newUser.resource);
 
 	addText(name, newUser.avatar.model);
@@ -381,7 +388,7 @@ function loadNewObject(resource) {
 
 		avatar.mixer = new THREE.AnimationMixer(gltf.scene);
 		avatar.action = avatar.mixer.clipAction(gltf.animations[0]);
-		avatar.action.play(); // FIXME Currently not working
+		avatar.action.play();
 
 		let boundingBox = new THREE.Box3().setFromObject(avatar.model);
 		objectSize = boundingBox.getSize(); // Returns Vector3
