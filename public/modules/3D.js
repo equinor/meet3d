@@ -352,27 +352,14 @@ async function addText(name, model) {
 	});
 } // end of function addText()
 
-async function newUserJoined3D(id, name, resource) {
-
+function newUserJoined3D(id, name, resource) {
 	if (name == null || name === '' || typeof name !== "string") {
 		return false; // Name needs to be a non-empty string
 	}
-  
 	var newUser = {};
-	newUser.name = name;
-	newUser.resource = resourceList.shift();
-	newUser.avatar = loadNewObject(newUser.resource);
 
-	addText(name, newUser.avatar.model);
+	newUser['name'] = name;
 
-	UserMap[id] = newUser; // Add new user to UserMap
-
-	updateVideoList(id);
-	return true;
-}
-
-// Load 3D-object from file "resource" and add it to scene
-function loadNewObject(resource) {
 	var avatar = {};
 	if(resourceList.find(element => element == resource)){
 		avatar['resource'] = resourceList.splice(resourceList.indexOf(resource), 1);
@@ -384,9 +371,12 @@ function loadNewObject(resource) {
 	avatar['model'] = new THREE.Object3D();
 	loader.load(avatar.resource, function(gltf) { // this could probably be vastly improved
 		avatar.model.add(gltf.scene);
+		/*avatar.model.scale.x = objectScale;
+		avatar.model.scale.y = objectScale;
+		avatar.model.scale.z = objectScale;*/
 
-		avatar.mixer = new THREE.AnimationMixer(gltf.scene);
-		avatar.action = avatar.mixer.clipAction(gltf.animations[0]);
+		avatar['mixer'] = new THREE.AnimationMixer(gltf.scene);
+		avatar['action'] = avatar.mixer.clipAction(gltf.animations[0]);
 		avatar.action.play(); // FIXME Currently not working
 
 		let boundingBox = new THREE.Box3().setFromObject(avatar.model);
@@ -400,7 +390,15 @@ function loadNewObject(resource) {
 	avatar.model.scale.x = objectScale;
 	avatar.model.scale.y = objectScale;
 	avatar.model.scale.z = objectScale;
-	return avatar;
+	newUser['avatar'] = avatar;
+
+	addText(name, newUser.avatar.model);
+
+	// Add new user to UserMap
+	UserMap[id] = newUser;
+
+	updateVideoList(id);
+	return newUser;
 }
 
 function changeUserPosition(id, x, y, z) {
