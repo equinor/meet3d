@@ -322,7 +322,7 @@ videofile.play(); // FIXME This should be synchronized between users
 	videoPlane.rotation.y = rotation;
 	
 	let vPosAudio = new THREE.PositionalAudio(listener);
-	vPosAudio.setRefDistance(50);
+	vPosAudio.setRefDistance(100);
 	vPosAudio.setRolloffFactor(3);
 	vPosAudio.setDistanceModel("exponential");
 	vPosAudio.setDirectionalCone(rotation - Math.PI/2, rotation + Math.PI/2, 0.1); // FIXME This currently does not work
@@ -794,8 +794,10 @@ function leave3D() {
 	}
 
 	window.cancelAnimationFrame(requestID); // Stops rendering the scene
+	scene.dispose();
 	scene = null;
 	camera = null;
+	renderer.dispose();
 	renderer = null;
 	controls = null;
 	requestID = undefined;
@@ -805,6 +807,9 @@ function leave3D() {
 	allObjects = [];
 	videoList = [];
 	videoListLength = 0;
+	roomVideo.srcObject = null;
+	summerInternsVideo.srcObject = null;
+	shuttleAnimationVideo.srcObject = null;
 }
 
 // These are for testing
