@@ -2,6 +2,11 @@ import * as THREE from './three.module.js';
 import { GLTFLoader } from './GLTFLoader.js';
 import { PointerLockControls } from './PointerLockControls.js';
 
+// GLOBAL HTML-elements
+var roomVideo = document.getElementById("roomVideo");
+var summerInternsVideo = document.getElementById("summerInterns2020");
+var shuttleAnimationVideo = document.getElementById("shuttleAnimation");
+
 // GLOBAL CONSTANTS
 const maxX = 100;
 const maxZ = 100;
@@ -93,6 +98,12 @@ async function init(id, connectionsObject, div) {
 
 	listener = new THREE.AudioListener();
 	controls.getObject().add(listener)
+
+	addVideofile( roomVideo, 0, wallHeight / 2, maxZ - 1, Math.PI );
+	addVideofile( summerInternsVideo, 3 * maxX, 20, - 2 * maxZ, - Math.PI / 8 );
+	addVideofile( shuttleAnimationVideo, - 3 * maxX, 20, - 2 * maxZ, Math.PI / 8 );
+
+	updateVideofilesPlayed();
 
 	window.addEventListener( 'resize', onWindowResize, false );
 	document.addEventListener( 'keydown', onDocumentKeyDown, false );
@@ -288,6 +299,38 @@ function addWalls() {
 	allObjects.push( wallFront );
 }
 
+// Adds a video from a video file to the 3D environment, including sound
+function addVideofile(videofile, xPos, yPos, zPos, rotation = 0) {
+	videofile.play(); // FIXME This should be synchronized between users
+
+	let Vtexture = new THREE.VideoTexture(videofile);
+	let geometry = new THREE.PlaneGeometry(50,50,50);
+	let Vmaterial = new THREE.MeshBasicMaterial ({side: THREE.DoubleSide, map: Vtexture}); //FIXME! WANT TO PLACE VIDEO HEREmap: video)
+	let videoPlane = new THREE.Mesh(geometry, Vmaterial);
+
+	videoPlane.position.x = xPos;
+	videoPlane.position.y = yPos;
+	videoPlane.position.z = zPos;
+	videoPlane.rotation.y = rotation;
+
+	let vPosAudio = new THREE.PositionalAudio(listener);
+	vPosAudio.setRefDistance(50);
+	vPosAudio.setRolloffFactor(3);
+	vPosAudio.setDistanceModel("exponential");
+	vPosAudio.setDirectionalCone(rotation - Math.PI/2, rotation + Math.PI/2, 0.1); // FIXME This currently does not work
+
+	const audio2 = vPosAudio.context.createMediaStreamSource(videofile.mozCaptureStream());
+
+	try {
+		vPosAudio.setNodeSource(audio2);
+		videoPlane.add(vPosAudio);
+		scene.add(videoPlane);
+	} catch(err) {
+		console.error(err);
+ };
+
+}
+
 // Adds furniture to the conference room
 function addDecoration() {
 	// PLANT
@@ -346,6 +389,7 @@ async function addText(name, model) {
 	});
 } // end of function addText()
 
+// Adds a new user to the 3D environment
 async function newUserJoined(id, name, resource) {
 	if (name == null || name === '' || typeof name !== "string") {
 		return false; // Name needs to be a non-empty string
@@ -546,6 +590,24 @@ function updateVideoVisibility() {
   }
 }
 
+/**
+ * Pause videofiles outside when in the room and visa-versa.
+ */
+function updateVideofilesPlayed() {
+	let isInsideRoom = Math.abs(camera.position.x) < maxX &&
+		Math.abs(camera.position.z) < maxZ;
+
+	if (isInsideRoom) {
+		summerInternsVideo.pause();
+		shuttleAnimationVideo.pause();
+	} else {
+		roomVideo.pause();
+		summerInternsVideo.play();
+		shuttleAnimationVideo.play();
+	}
+}
+
+// Adds a positional audio track to a user
 function userGotMedia(id, mediaStream) {
 	userMap[id].media = mediaStream;
 	var posAudio = new THREE.PositionalAudio(listener);
@@ -567,6 +629,7 @@ function userGotMedia(id, mediaStream) {
 	};
 }
 
+// Removes a user from the 3D environment
 function userLeft(id) {
 	resourceList.push(userMap[id].resource);
 	scene.remove(userMap[id].avatar.model);
@@ -704,6 +767,9 @@ function update() {
 			for (let keyId in userMap) { // Makes the usernames point towards the user
 				userMap[keyId].avatar.model.getObjectByName('text').lookAt(camera.position.x, camera.position.y, camera.position.z);
 			}
+
+			updateVideofilesPlayed();
+
 			prevPosTime = time;
 		}
 	}
