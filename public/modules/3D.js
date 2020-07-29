@@ -50,16 +50,14 @@ var userMap = {}; // JS-object to store the users' 3D information
 var connections; // JS-object to store the user network connections
 var allObjects = []; // Stores all 3D objects so that they can be removed later
 var videoList = []; // The list of remote videos to display
-/*const resourceList = ["objects/Anglerfish/Anglerfish.glb", "objects/ArmoredCatfish/ArmoredCatfish.glb", "objects/Betta/Betta.glb",
+const resourceList = ["objects/Anglerfish/Anglerfish.glb", "objects/ArmoredCatfish/ArmoredCatfish.glb", "objects/Betta/Betta.glb",
 "objects/BlackLionFish/BlackLionFish.glb", "objects/Blobfish/Blobfish.glb", "objects/BlueGoldfish/BlueGoldfish.glb", "objects/Clownfish/Clownfish.glb",
 "objects/Flatfish/Flatfish.glb", "objects/FlowerHorn/FlowerHorn.glb", "objects/GoblinShark/GoblinShark.glb", "objects/Goldfish/Goldfish.glb",
 "objects/Huphhead/HumphHead.glb", "objects/Koi/Koi.glb", "objects/Lionfish/Lionfish.glb", "objects/MandarinFish/MandarinFish.glb",
 "objects/MoorishIdol/MoorishIdol.glb", "objects/ParrotFish/ParrotFish.glb", "objects/Piranha/Piranha.glb", "objects/Puffer/Puffer.glb",
 "objects/RedSnapper/RedSnapper.glb", "objects/RoyalGramma/RoyalGramma.glb", "objects/Shark/Shark.glb", "objects/Sunfish/Sunfish.glb",
 "objects/Swordfish/Swordfish.glb", "objects/Tang/Tang.glb", "objects/Tetra/Tetra.glb", "objects/Tuna/Tuna.glb", "objects/Turbot/Turbot.glb",
-"objects/YellowTang/YellowTang.glb", "objects/ZebraClownFish/ZebraClownFish.glb"]; //List of 3D-object-files*/
-const resourceList = ["objects/Anglerfish/Anglerfish.glb", "objects/ArmoredCatfish/ArmoredCatfish.glb", "objects/Betta/Betta.glb",
-"objects/BlackLionFish/BlackLionFish.glb"]; //List of 3D-object-files
+"objects/YellowTang/YellowTang.glb", "objects/ZebraClownFish/ZebraClownFish.glb"]; //List of 3D-object-files
 
 /**
  * Initialises the 3D environment. This includes creating a renderer, rendering
@@ -393,44 +391,25 @@ async function addText(name, model) {
 
 // Adds a new user to the 3D environment
 async function newUserJoined(id, name, resource) {
-	console.log("newUserJoined(" + id + ", " + name + ", " + resource + ")");
 	if (name == null || name === '' || typeof name !== "string") {
-		console.log("error: name needs to be a non-empty string");
 		return false; // Name needs to be a non-empty string
 	}
 
 	var newUser = {};
 	newUser.name = name;
 
-	let index = resourceList.indexOf(resource);
-	if(index > -1){
-		console.log("we found the resource at the position : " + index);
-		newUser.resource = resource;
-		console.log("our new resource is : " + newUser.resource);
-		resourceList.splice(index, 1);
-		console.log("Adding new user to the 3D environment: " + name + ", with resource: " + avatar.resource);
-	}else{
-		console.log("we didnt find the resource");
-		newUser.resource = resourceList.shift();
-		console.log("Adding new user to the 3D environment: " + name + ", without resource");
-	}
-	/*if (resourceList.find(element => element == resource)) {+
-		console.log("we found the resource at the position : " + resourceList.indexOf(resource));
-		//newUser.resource = resource;
-		//console.log(newUser.resource);
+	if (resourceList.find(element => element == resource)) {
 		newUser.resource = resourceList.splice(resourceList.indexOf(resource), 1);
 		console.log("Adding new user to the 3D environment: " + name + ", with resource: " + avatar.resource);
 	} else {
-		console.log("we didnt find the resource");
 		newUser.resource = resourceList.shift();
 		console.log("Adding new user to the 3D environment: " + name + ", without resource");
-	}*/
+	}
 
 	newUser.avatar = loadNewObject(newUser.resource); // Load in their model
 	addText(name, newUser.avatar.model); // Add their name above their model
 	userMap[id] = newUser; // Add new user to userMap
 	updateVideoList(id); // Update which videos to show on the right side of the screen
-	console.log("My resourceList is now : " + resourceList);
 	return true; // User added succesfully
 }
 
@@ -652,11 +631,8 @@ function userGotMedia(id, mediaStream) {
 
 // Removes a user from the 3D environment
 function userLeft(id) {
-	console.log("userLeft("+id+")...");
-	console.log("removing " + userMap[id].resource + " ...");
 	resourceList.unshift(userMap[id].resource);
 	scene.remove(userMap[id].avatar.model);
-	console.log("My resourceList is now : " + resourceList);
 	if (userMap[id].audioElement) { // Needed for testing
 		if (userMap[id].audioElement.srcObject) {
 			userMap[id].audioElement.srcObject.getTracks().forEach(track => track.stop());

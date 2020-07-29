@@ -42,8 +42,7 @@ var connections = {};
  */
 var ourID;
 var myResource;
-//const signalServer = 'signaling-server-meet3d-master.radix.equinor.com'; // The signaling server
-const signalServer = 'localhost:3000'; // The signaling server
+const signalServer = 'signaling-server-meet3d-master.radix.equinor.com'; // The signaling server
 
 // The configuration containing our STUN and TURN servers.
 const pcConfig = {
@@ -151,7 +150,6 @@ async function init(button) {
     let name = message.name;
     let offerDescription = message.offer;
     let resource = message.resource;
-    console.log("We have received this offer : (id = " + id + ")(name = " + name + ")(resource = " + resource + ")");
 
     if (id === ourID) return;
 
@@ -325,8 +323,7 @@ async function createPeerConnection(id) {
         socket.emit('offer', {
           id: id,
           name: username.value,
-          offer: connections[id].connection.localDescription,
-          resource: myResource
+          offer: connections[id].connection.localDescription
         });
       }).catch(function (e) { console.error(e) });
     };
