@@ -12,7 +12,6 @@ chat ul {
   width: 500px;
   overflow-x: hidden;
   list-style-type: none;
-  font-family: arial;
   font-size: 14px;
   padding: 10px;
 }
@@ -102,12 +101,43 @@ videos ul {
   display: inline-block;
   vertical-align: super;
   position: absolute;
-  right: 0px;
+  right: 0%;
   position: absolute;
   top: 0%;
+  padding: 0px;
 }
 
 videos ul li {
+  list-style-type: none;
+  padding: 0px;
+}
+
+videos ul li video {
+  vertical-align: top;
+}
+
+nametag {
+  width: 100%;
+  display: block;
+  font-size: 14px;
+  font-weight: bold;
+  text-align: right;
+  vertical-align: top;
+  margin-top: 0px;
+  margin-bottom: 0px;
+  margin-right: 8px;
+}
+
+videopagevideos ul {
+  list-style-type: none;
+  padding-left: 0px;
+  display: inline-block;
+  vertical-align: super;
+  position: absolute;
+  position: absolute;
+}
+
+videopagevideos ul li {
   list-style-type: none;
   padding-bottom: 0px;
   padding-top: 0px;
