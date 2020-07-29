@@ -238,7 +238,7 @@ function addWalls() {
 	// FLOOR
 
 	let floortext = textureLoader.load( "objects/Room/floor.jpg" );
-	let floor = new THREE.Mesh(
+	floor = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, maxZ * 2, maxX * 2, maxZ * 2),
 		new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: floortext })
 	);
@@ -449,33 +449,32 @@ function changeUserPosition(id, x, y, z) {
 	let changeZ = z - user.avatar.model.position.z;
 	let distance = Math.sqrt(changeX ** 2 + changeZ ** 2);
 	if (distance > 0) {
-		let ratioedChangeZ = changeZ / distance;
-		if (changeX >= 0) {
-			user.avatar.model.rotation.y = Math.acos(ratioedChangeZ);
-		} else {
-			user.avatar.model.rotation.y = (0 - Math.acos(ratioedChangeZ));
-		}
+	let ratioedChangeZ = changeZ / distance;
+	if (changeX >= 0) {
+	user.avatar.model.rotation.y = Math.acos(ratioedChangeZ);
 	} else {
-		user.avatar.model.rotation.y = 0;
+	user.avatar.model.rotation.y = (0 - Math.acos(ratioedChangeZ));
 	}
-
+	} else {
+	user.avatar.model.rotation.y = 0;
+	}
+	
 	// Updating X-rotation
 	let changeY = y - user.avatar.model.position.y;
 	if (changeY != 0) {
-		if (distance > 0) {
-			let hypothenuse = Math.sqrt(distance ** 2 + changeY ** 2);
-			user.avatar.model.rotation.x = (0 - Math.asin(changeY / hypothenuse));
-		} else {
-			if (changeY > 0) {
-				user.avatar.model.rotation.x = - 90 * Math.PI / 180;
-			} else if (changeY < 0) {
-				user.avatar.model.rotation.x = 90 * Math.PI / 180;
-			}
-		}
+	if (distance > 0) {
+	let hypothenuse = Math.sqrt(distance ** 2 + changeY ** 2);
+	user.avatar.model.rotation.x = (0 - Math.asin(changeY / hypothenuse));
 	} else {
-		user.avatar.model.rotation.x = 0;
+	if (changeY > 0) {
+	user.avatar.model.rotation.x = - 90 * Math.PI / 180;
+	} else if (changeY < 0) {
+	user.avatar.model.rotation.x = 90 * Math.PI / 180;
 	}
-
+	}
+	} else {
+	user.avatar.model.rotation.x = 0;
+	}
 	// Updating coordinates
 	user.avatar.model.position.x = x;
 	user.avatar.model.position.y = y;
