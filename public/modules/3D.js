@@ -238,7 +238,7 @@ function addWalls() {
 	// FLOOR
 
 	let floortext = textureLoader.load( "objects/Room/floor.jpg" );
-	let floor = new THREE.Mesh(
+	floor = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, maxZ * 2, maxX * 2, maxZ * 2),
 		new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: floortext })
 	);
