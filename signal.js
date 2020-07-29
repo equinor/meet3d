@@ -3,16 +3,12 @@
 var os = require('os');
 
 const maxUsers = 16; // TODO: determine a good value for this
-var rooms = {};
+//var rooms = {};
 var users = {};
 
 const io = require('socket.io')(3000, { cookie: false });
 
 io.sockets.on('connection', function(socket) {
-
-  socket.on('chat', function(message) {
-    io.sockets.in(users[socket.id].room).emit('chat', {id: socket.id, message: message});
-  });
 
   socket.on('offer', function(data) {
     users[data.id].socket.emit('offer', {id: socket.id, offer: data.offer, name: data.name, resource: data.resource});
@@ -45,23 +41,19 @@ io.sockets.on('connection', function(socket) {
     io.sockets.in(users[socket.id].room).emit('join', { name: info.name, id: socket.id } );
   });
 
-  socket.on('join', function(startInfo) {
-
-    let room = startInfo.room;
-    let name = startInfo.name;
+  socket.on('join', function(room) {
 
     let clientsInRoom = io.sockets.adapter.rooms[room];
     let numClients = clientsInRoom ? Object.keys(clientsInRoom.sockets).length : 0;
 
     if (numClients < maxUsers) {
-      if (numClients === 0) rooms[room] = []; // Create a new entry for this room in the dictionary storing the rooms
+      //if (numClients === 0) rooms[room] = []; // Create a new entry for this room in the dictionary storing the rooms
 
-      rooms[room].push(socket); // Add the client ID to the list of clients in the room
+      //rooms[room].push(socket); // Add the client ID to the list of clients in the room
       users[socket.id] = { room: room, socket: socket }; // Add the User object to the list of users
-      socket.emit('joined', { room: room, id: socket.id } ); // Let the user know they joined the room
-
+      socket.emit('joined', socket.id); // Let the user know they joined the room and what their ID is
     } else { // Someone tried to join a full room
-      socket.emit('full', room);
+      socket.emit('full');
     }
   });
 });
