@@ -50,14 +50,14 @@ var UserMap = {}; // JS-object to store the users' 3D information
 var connections; // JS-object to store the user network connections
 var allObjects = []; // Stores all 3D objects so that they can be removed later
 var videoList = []; // The list of remote videos to display
-const resourceList = ["objects/Anglerfish/Anglerfish.glb", "objects/ArmoredCatfish/ArmoredCatfish.glb", "objects/Betta/Betta.glb",
-"objects/BlackLionFish/BlackLionFish.glb", "objects/Blobfish/Blobfish.glb", "objects/BlueGoldfish/BlueGoldfish.glb", "objects/Clownfish/Clownfish.glb",
-"objects/Flatfish/Flatfish.glb", "objects/FlowerHorn/FlowerHorn.glb", "objects/GoblinShark/GoblinShark.glb", "objects/Goldfish/Goldfish.glb",
-"objects/Huphhead/HumphHead.glb", "objects/Koi/Koi.glb", "objects/Lionfish/Lionfish.glb", "objects/MandarinFish/MandarinFish.glb",
-"objects/MoorishIdol/MoorishIdol.glb", "objects/ParrotFish/ParrotFish.glb", "objects/Piranha/Piranha.glb", "objects/Puffer/Puffer.glb",
-"objects/RedSnapper/RedSnapper.glb", "objects/RoyalGramma/RoyalGramma.glb", "objects/Shark/Shark.glb", "objects/Sunfish/Sunfish.glb",
-"objects/Swordfish/Swordfish.glb", "objects/Tang/Tang.glb", "objects/Tetra/Tetra.glb", "objects/Tuna/Tuna.glb", "objects/Turbot/Turbot.glb",
-"objects/YellowTang/YellowTang.glb", "objects/ZebraClownFish/ZebraClownFish.glb"]; //List of 3D-object-files
+const resourceList = ["objects/Fishes/Anglerfish.glb", "objects/Fishes/ArmoredCatfish.glb", "objects/Fishes/Betta.glb",
+"objects/Fishes/BlackLionFish.glb", "objects/Fishes/Blobfish.glb", "objects/Fishes/BlueGoldfish.glb", "objects/Fishes/Clownfish.glb",
+"objects/Fishes/Flatfish.glb", "objects/Fishes/FlowerHorn.glb", "objects/Fishes/GoblinShark.glb", "objects/Fishes/Goldfish.glb",
+"objects/Fishes/HumphHead.glb", "objects/Fishes/Koi.glb", "objects/Fishes/Lionfish.glb", "objects/Fishes/MandarinFish.glb",
+"objects/Fishes/MoorishIdol.glb", "objects/Fishes/ParrotFish.glb", "objects/Fishes/Piranha.glb", "objects/Fishes/Puffer.glb",
+"objects/Fishes/RedSnapper.glb", "objects/Fishes/RoyalGramma.glb", "objects/Fishes/Shark.glb", "objects/Fishes/Sunfish.glb",
+"objects/Fishes/Swordfish.glb", "objects/Fishes/Tang.glb", "objects/Fishes/Tetra.glb", "objects/Fishes/Tuna.glb", "objects/Fishes/Turbot.glb",
+"objects/Fishes/YellowTang.glb", "objects/Fishes/ZebraClownFish.glb"]; //List of 3D-object-files
 
 
 async function init3D(id, connectionsObject, div) {
