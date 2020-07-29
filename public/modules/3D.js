@@ -59,7 +59,7 @@ const resourceList = ["objects/Anglerfish/Anglerfish.glb", "objects/ArmoredCatfi
  * it in a canvas in the position in the HTML document given by the 'div' parameter,
  * adding scenery to the 3D scene, setting up the user controls and creating a camera.
  */
-async function init3D(id, connectionsObject, div) {
+async function init(id, connectionsObject, div) {
 	ourID = id;
 	connections = connectionsObject;
 
@@ -151,7 +151,7 @@ function getVideoRatio(height, width) {
  * Places the given video stream in the 3D environment. If it is null, then we
  * only remove the existing one.
  */
-async function updateShareScreen3D(screenTrack, details, name) {
+async function updateShareScreen(screenTrack, details, name) {
 	scene.remove(tv);
 	if (screenTrack) { // If someone is sharing their screen, display it
 		let stream = new MediaStream([screenTrack]);
@@ -346,7 +346,7 @@ async function addText(name, model) {
 	});
 } // end of function addText()
 
-async function newUserJoined3D(id, name, resource) {
+async function newUserJoined(id, name, resource) {
 	if (name == null || name === '' || typeof name !== "string") {
 		return false; // Name needs to be a non-empty string
 	}
@@ -436,7 +436,8 @@ function changeUserPosition(id, x, y, z) {
 	user.avatar.model.position.z = z;
 
 	// Update which way the text above the user is pointing
-	user.avatar.model.getObjectByName('text').lookAt(camera.position.x, camera.position.y, camera.position.z);
+	if (user.avatar.model.getObjectByName('text'))
+		user.avatar.model.getObjectByName('text').lookAt(camera.position.x, camera.position.y, camera.position.z);
 
 	if (connections[id].stream)
 		updateVideoList(id); // Update which videos are shown on the right
@@ -566,7 +567,7 @@ function userGotMedia(id, mediaStream) {
 	};
 }
 
-function userLeft3D(id) {
+function userLeft(id) {
 	resourceList.push(userMap[id].resource);
 	scene.remove(userMap[id].avatar.model);
 	if (userMap[id].audioElement) { // Needed for testing
@@ -732,7 +733,7 @@ function changePos(x, y, z) {
 /**
  * Function which clears and resets all global variables.
  */
-function leave3D() {
+function leave() {
 	if (!scene)	return; // Do nothing if the scene is not initialised
 
 	if (tv) scene.remove(tv);
@@ -779,16 +780,16 @@ export {
 	userMap,
 	ourID,
 	objectScale,
-	newUserJoined3D,
+	newUserJoined,
 	reserveResource,
 	userGotMedia,
 	updatePos,
-	userLeft3D,
-	init3D,
-	updateShareScreen3D,
+	userLeft,
+	init,
+	updateShareScreen,
 	updateVideoList,
 	resizeCanvas,
-	leave3D,
+	leave,
 	onDocumentKeyDown,
 	onDocumentKeyUp,
 	changeUserPosition,
