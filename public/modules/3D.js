@@ -15,6 +15,7 @@ var camera;
 var renderer;
 var controls;
 var tv; // The object which stores the screen sharing video
+var floor;
 
 var requestID;
 var listener;
@@ -210,7 +211,7 @@ function addSkyBox() {
 		new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: floortext })
 	);
 	floor.rotation.x += Math.PI / 2;
-	floor.position.y = 0;
+	floor.position.y = -0.5;
 	scene.add(floor);
 }
 
@@ -233,12 +234,12 @@ function addWalls() {
 
 	// FLOOR
 	let floortext = textureLoader.load( "objects/obj/floor.jpg" );
-	let floor = new THREE.Mesh(
+	floor = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, maxZ * 2, maxX * 2, maxZ * 2),
 		new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: floortext })
 	);
 	floor.rotation.x += Math.PI / 2; //can rotate the floor/plane
-	floor.position.y = 1;
+	floor.position.y = 0;
 	scene.add(floor);
 	allObjects.push(floor);
 
@@ -706,6 +707,8 @@ function update() {
 		controls.moveRight( - velocity.x * delta );
 		controls.moveForward( - velocity.z * delta );
 		controls.getObject().position.y += ( velocity.y * delta );
+
+		if (camera.position.y < floor.position.y) camera.position.y = floor.position.y+1;
 
 		// Only call costly functions if we have moved and some time has passed since the last time we called them
 		if ( direction.lengthSq() && time - prevPosTime > 50 ) {
