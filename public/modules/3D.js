@@ -203,9 +203,9 @@ async function updateShareScreen3D(screenTrack, details, name) {
 
 function addSkyBox() {
 	let urls = [
-		"objects/obj/sh_ft.png", "objects/obj/sh_bk.png",
-		"objects/obj/sh_up.png", "objects/obj/sh_dn.png",
-		"objects/obj/sh_rt.png", "objects/obj/sh_lf.png"
+		"objects/Skybox/sh_ft.png", "objects/Skybox/sh_bk.png",
+		"objects/Skybox/sh_up.png", "objects/Skybox/sh_dn.png",
+		"objects/Skybox/sh_rt.png", "objects/Skybox/sh_lf.png"
 	];
 
 	let loader = new THREE.CubeTextureLoader();
@@ -213,7 +213,7 @@ function addSkyBox() {
 
 	//Extra floor to make rooom look real.
 	let textureLoader = new THREE.TextureLoader();
-	let floortext = textureLoader.load( "objects/obj/sh_dn.png" );
+	let floortext = textureLoader.load( "objects/Skybox/sh_dn.png" );
 	floortext.wrapS = THREE.RepeatWrapping;
 	floortext.wrapT = THREE.RepeatWrapping;
 	floortext.repeat.set( 100,100 );
@@ -244,7 +244,7 @@ function addWalls() {
 	let textureLoader = new THREE.TextureLoader();
 
 	// FLOOR
-	let floortext = textureLoader.load( "objects/obj/floor.jpg" );
+	let floortext = textureLoader.load( "objects/Room/floor.jpg" );
 	let floor = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, maxZ * 2, maxX * 2, maxZ * 2),
 		new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: floortext })
@@ -255,7 +255,7 @@ function addWalls() {
 	allObjects.push(floor);
 
 	// CEILING
-	let ceilingtext = textureLoader.load( "objects/obj/ceiling2.jpg" );
+	let ceilingtext = textureLoader.load( "objects/Room/ceiling2.jpg" );
 	let ceiling = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, maxZ * 2, maxX * 2, maxZ * 2),
 		new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: ceilingtext })
@@ -266,7 +266,7 @@ function addWalls() {
 	allObjects.push(ceiling);
 
 	// WALLS
-	let walltext = textureLoader.load( "objects/obj/wall1.jpg" );
+	let walltext = textureLoader.load( "objects/Room/wall1.jpg" );
 
 	let wallLeft = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, wallHeight, 1, 1),
@@ -343,7 +343,7 @@ videofile.play(); // FIXME This should be synchronized between users
 function addDecoration() {
 	// PLANT
 	const plant = new THREE.Object3D();
-	loader.load('objects/obj/planten.glb', function(gltf) {
+	loader.load('objects/Room/planten.glb', function(gltf) {
 		plant.add(gltf.scene);
 		plant.scale.x = 20; plant.scale.y = 20; plant.scale.z = 20;
 		plant.position.x= 0; plant.position.y = 7; plant.position.z = 10;
@@ -352,7 +352,7 @@ function addDecoration() {
 
 	// TABLE
 	let table = new THREE.Object3D();
-	loader.load('objects/obj/table.glb', function(gltf) {
+	loader.load('objects/Room/table.glb', function(gltf) {
 		table.add(gltf.scene);
 		table.scale.x = 20; table.scale.y = 20; table.scale.z = 20;
 		table.rotation.y += Math.PI / 2;
