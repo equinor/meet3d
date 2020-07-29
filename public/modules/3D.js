@@ -444,11 +444,8 @@ function loadNewObject(resource) {
 function changeUserPosition(id, x, y, z) {
 	let user = UserMap[id];
 	
-	let globalPos = user.avatar.model.localToWorld( new THREE.Vector3(x, y, z) );
-	
 	// Look at where we are heading
-	//user.avatar.model.lookAt(x, y, z);
-	user.avatar.model.lookAt(globalPos.x, globalPos.y, globalPos.z);
+	user.avatar.model.lookAt(x, y, z);
 
 	// Updating coordinates
 	user.avatar.model.position.x = x;
