@@ -41,7 +41,7 @@ var ourID;
 var videoListLength = 0; // The number of videos to show at a time, not including our own
 
 // GLOBAL CONTAINERS
-var UserMap = {}; // JS-object to store the users' 3D information
+var userMap = {}; // JS-object to store the users' 3D information
 var connections; // JS-object to store the user network connections
 var allObjects = []; // Stores all 3D objects so that they can be removed later
 var videoList = []; // The list of remote videos to display
@@ -54,6 +54,11 @@ const resourceList = ["objects/Anglerfish/Anglerfish.glb", "objects/ArmoredCatfi
 "objects/Swordfish/Swordfish.glb", "objects/Tang/Tang.glb", "objects/Tetra/Tetra.glb", "objects/Tuna/Tuna.glb", "objects/Turbot/Turbot.glb",
 "objects/YellowTang/YellowTang.glb", "objects/ZebraClownFish/ZebraClownFish.glb"]; //List of 3D-object-files
 
+/**
+ * Initialises the 3D environment. This includes creating a renderer, rendering
+ * it in a canvas in the position in the HTML document given by the 'div' parameter,
+ * adding scenery to the 3D scene, setting up the user controls and creating a camera.
+ */
 async function init3D(id, connectionsObject, div) {
 	ourID = id;
 	connections = connectionsObject;
@@ -98,20 +103,24 @@ async function init3D(id, connectionsObject, div) {
 	update();
 }
 
-//called to preserve avatar coherence among all users, can only be executed once
-var reserveResource = (function() {
+// Called to preserve avatar coherence among all users, can only be executed once
+var reserveResource = (function () {
 	var executed = false;
 	var resource;
-    return function() {
-        if (!executed) {
-            executed = true;
+  return function() {
+    if (!executed) {
+      executed = true;
 			resource = resourceList.shift();
 			console.log("We have reserved our resource!");
 		}
 		return resource;
-    };
+  };
 })();
 
+/**
+ * Returns the greatest width and height which can fit on the conference wall
+ * whilst maintaining its original aspect ratio.
+ */
 function getVideoRatio(height, width) {
 	let ratio = width / height;
 
@@ -136,26 +145,6 @@ function getVideoRatio(height, width) {
 		}
 	}
 	return { height: height, width: width };
-}
-
-function addPositionalAudioToObject(stream, object) {
-	let posAudio = new THREE.PositionalAudio(listener);
-	posAudio.setRefDistance(20);
-	posAudio.setRolloffFactor(2);
-
-	let n = document.createElement("audio"); // Create HTML element to store audio stream
-	n.srcObject = stream;
-	n.muted = true; // We only want audio from the positional audio
-
-	const audioObj = posAudio.context.createMediaStreamSource(n.srcObject);
-
-	try {
-		posAudio.setNodeSource(audioObj);
-		object.model.add(posAudio);
-	} catch(err) {
-		console.error(err);
-	}
-	return n;
 }
 
 /**
@@ -189,6 +178,7 @@ async function updateShareScreen3D(screenTrack, details, name) {
 	}
 }
 
+// Adds a sky which appears unmoving from the user's perspective
 function addSkyBox() {
 	let urls = [
 		"objects/obj/sh_ft.png", "objects/obj/sh_bk.png",
@@ -214,6 +204,7 @@ function addSkyBox() {
 	scene.add(floor);
 }
 
+// Adds lighting to make models look less flat
 function addLighting() {
 	let light = new THREE.PointLight( 0xff0000, 1, 100 );
 	let ambientLight = new THREE.AmbientLight( 0xcccccc ); //keep the ambient light. The objects look a lot better
@@ -228,6 +219,7 @@ function addLighting() {
 	allObjects.push(directionalLight);
 }
 
+// Creates a conference room with walls, a floor and a ceiling
 function addWalls() {
 	let textureLoader = new THREE.TextureLoader();
 
@@ -296,6 +288,7 @@ function addWalls() {
 	allObjects.push( wallFront );
 }
 
+// Adds furniture to the conference room
 function addDecoration() {
 	// PLANT
 	const plant = new THREE.Object3D();
@@ -324,7 +317,7 @@ async function addText(name, model) {
 	var fontLoader = new THREE.FontLoader();
 	fontLoader.load('helvetiker_regular.typeface.json', function(font) {
 
-		let color = 0x990000;
+		let color = 0x990000; // The text is red
 
 		let textMaterial = new THREE.MeshBasicMaterial({
 			color: color,
@@ -360,6 +353,7 @@ async function newUserJoined3D(id, name, resource) {
 
 	var newUser = {};
 	newUser.name = name;
+
 	if (resourceList.find(element => element == resource)) {
 		newUser.resource = resourceList.splice(resourceList.indexOf(resource), 1);
 		console.log("Adding new user to the 3D environment: " + name + ", with resource: " + avatar.resource);
@@ -367,14 +361,12 @@ async function newUserJoined3D(id, name, resource) {
 		newUser.resource = resourceList.shift();
 		console.log("Adding new user to the 3D environment: " + name + ", without resource");
 	}
-	newUser.avatar = loadNewObject(newUser.resource);
 
-	addText(name, newUser.avatar.model);
-
-	UserMap[id] = newUser; // Add new user to UserMap
-
-	updateVideoList(id);
-	return true;
+	newUser.avatar = loadNewObject(newUser.resource); // Load in their model
+	addText(name, newUser.avatar.model); // Add their name above their model
+	userMap[id] = newUser; // Add new user to userMap
+	updateVideoList(id); // Update which videos to show on the right side of the screen
+	return true; // User added succesfully
 }
 
 // Load 3D-object from file "resource" and add it to scene
@@ -404,9 +396,9 @@ function loadNewObject(resource) {
 }
 
 function changeUserPosition(id, x, y, z) {
-	let user = UserMap[id];
+	let user = userMap[id];
 
-	//updating Y-rotation
+	// Updating Y-rotation
 	let changeX = x - user.avatar.model.position.x;
 	let changeZ = z - user.avatar.model.position.z;
 	let distance = Math.sqrt(changeX ** 2 + changeZ ** 2);
@@ -414,45 +406,40 @@ function changeUserPosition(id, x, y, z) {
 		let ratioedChangeZ = changeZ / distance;
 		if (changeX >= 0) {
 			user.avatar.model.rotation.y = Math.acos(ratioedChangeZ);
-			//console.log("Rotation : " + Math.acos(ratioedChangeZ) * 180 / Math.PI);
 		} else {
 			user.avatar.model.rotation.y = (0 - Math.acos(ratioedChangeZ));
-			//console.log("Rotation : " + (0 - Math.acos(ratioedChangeZ)) * 180 / Math.PI );
 		}
-		//console.log(user.avatar.model.rotation.y);
 	} else {
 		user.avatar.model.rotation.y = 0;
 	}
 
-	//updating X-rotation
+	// Updating X-rotation
 	let changeY = y - user.avatar.model.position.y;
 	if (changeY != 0) {
 		if (distance > 0) {
 			let hypothenuse = Math.sqrt(distance ** 2 + changeY ** 2);
 			user.avatar.model.rotation.x = (0 - Math.asin(changeY / hypothenuse));
-			//console.log("Rotation : " + (0 - Math.asin(changeY / hypothenuse)) * 180 / Math.PI);
 		} else {
 			if (changeY > 0) {
 				user.avatar.model.rotation.x = - 90 * Math.PI / 180;
-				//console.log("Rotation : - 90");
 			} else if (changeY < 0) {
 				user.avatar.model.rotation.x = 90 * Math.PI / 180;
-				//console.log("Rotation : 90");
 			}
 		}
-		//console.log(user.avatar.model.rotation.x);
 	} else {
 		user.avatar.model.rotation.x = 0;
 	}
 
+	// Updating coordinates
 	user.avatar.model.position.x = x;
 	user.avatar.model.position.y = y;
 	user.avatar.model.position.z = z;
 
+	// Update which way the text above the user is pointing
+	user.avatar.model.getObjectByName('text').lookAt(camera.position.x, camera.position.y, camera.position.z);
+
 	if (connections[id].stream)
-		updateVideoList(id);
-	if (user.avatar.model.getObjectByName('text'))
-		user.avatar.model.getObjectByName('text').lookAt(camera.position.x, camera.position.y, camera.position.z);
+		updateVideoList(id); // Update which videos are shown on the right
 }
 
 /**
@@ -476,7 +463,7 @@ function updateVideoList(id) {
 
 		videoList = []; // Reset the list of videos to display
 		videoListLength = 0;
-		for (const testID in UserMap) {
+		for (const testID in userMap) {
 			if (testID == ourID || !connections[testID] || !connections[testID].stream || videoList.includes(testID)) {
 				continue; // Ignore our own user, those who do not have video and those already in the list
 			}
@@ -539,7 +526,7 @@ function shiftVideoList(id) {
  * user in the 3D space.
  */
 function getDistance(id) {
-	let otherPos = UserMap[id].avatar.model.position;
+	let otherPos = userMap[id].avatar.model.position;
 	return (otherPos.x - camera.position.x) ** 2 +
 		(otherPos.z - camera.position.z) ** 2;
 }
@@ -559,7 +546,7 @@ function updateVideoVisibility() {
 }
 
 function userGotMedia(id, mediaStream) {
-	UserMap[id]["media"] = mediaStream;
+	userMap[id].media = mediaStream;
 	var posAudio = new THREE.PositionalAudio(listener);
 	posAudio.setRefDistance(20);
 	posAudio.setRolloffFactor(2);
@@ -567,29 +554,29 @@ function userGotMedia(id, mediaStream) {
 	let n = document.createElement("audio"); // Create HTML element to store audio stream
 	n.srcObject = mediaStream;
 	n.muted = true; // We only want audio from the positional audio
-	UserMap[id].audioElement = n;
+	userMap[id].audioElement = n;
 
 	const audio1 = posAudio.context.createMediaStreamSource(n.srcObject);
 
 	try {
 		posAudio.setNodeSource(audio1);
-		UserMap[id].avatar.model.add(posAudio);
+		userMap[id].avatar.model.add(posAudio);
 	} catch(err) {
 		console.error(err);
 	};
 }
 
 function userLeft3D(id) {
-	resourceList.push(UserMap[id].resource);
-	scene.remove(UserMap[id].avatar.model);
-	if (UserMap[id].audioElement) { // Needed for testing
-		if (UserMap[id].audioElement.srcObject) {
-			UserMap[id].audioElement.srcObject.getTracks().forEach(track => track.stop());
+	resourceList.push(userMap[id].resource);
+	scene.remove(userMap[id].avatar.model);
+	if (userMap[id].audioElement) { // Needed for testing
+		if (userMap[id].audioElement.srcObject) {
+			userMap[id].audioElement.srcObject.getTracks().forEach(track => track.stop());
 		}
-		UserMap[id].audioElement.srcObject = null;
-		UserMap[id].audioElement = null;
+		userMap[id].audioElement.srcObject = null;
+		userMap[id].audioElement = null;
 	}
-	delete UserMap[id];
+	delete userMap[id];
 	updateVideoList(ourID);
 }
 
@@ -659,6 +646,7 @@ function onDocumentKeyUp(event) {
 	}
 }
 
+// Called when the size of the visible part of the webpage is changed.
 function onWindowResize() {
 	camera.aspect = window.innerWidth / window.innerHeight;
 	camera.updateProjectionMatrix();
@@ -683,9 +671,9 @@ function update() {
 	var delta = ( time - prevUpdateTime ) / 1000;
 
 	// Updating animation
-	for (let u in UserMap) {
-		if (UserMap[u].avatar.mixer) {
-			UserMap[u].avatar.mixer.update(delta);
+	for (let u in userMap) {
+		if (userMap[u].avatar.mixer) {
+			userMap[u].avatar.mixer.update(delta);
 		}
 	}
 
@@ -712,8 +700,8 @@ function update() {
 			changePos(camera.position.x, camera.position.y, camera.position.z); // Update our position for others
 			updateVideoList(ourID); // Update which videos to show
 
-			for (let keyId in UserMap) { // Makes the usernames point towards the user
-				UserMap[keyId].avatar.model.getObjectByName('text').lookAt(camera.position.x, camera.position.y, camera.position.z);
+			for (let keyId in userMap) { // Makes the usernames point towards the user
+				userMap[keyId].avatar.model.getObjectByName('text').lookAt(camera.position.x, camera.position.y, camera.position.z);
 			}
 			prevPosTime = time;
 		}
@@ -741,16 +729,21 @@ function changePos(x, y, z) {
   }
 }
 
+/**
+ * Function which clears and resets all global variables.
+ */
 function leave3D() {
+	if (!scene)	return; // Do nothing if the scene is not initialised
+
 	if (tv) scene.remove(tv);
 
-	for (let id in UserMap) {
-		if (UserMap[id].audioElement) {
-			UserMap[id].audioElement.srcObject.getTracks().forEach(track => track.stop());
-			UserMap[id].audioElement.srcObject = null;
-			UserMap[id].audioElement = null;
+	for (let id in userMap) {
+		if (userMap[id].audioElement) {
+			userMap[id].audioElement.srcObject.getTracks().forEach(track => track.stop());
+			userMap[id].audioElement.srcObject = null;
+			userMap[id].audioElement = null;
 		}
-		delete UserMap[id];
+		delete userMap[id];
 	}
 
 	for (let i in allObjects) {
@@ -771,19 +764,19 @@ function leave3D() {
 	requestID = undefined;
 	listener = null;
 	loader = null;
-	UserMap = {};
+	userMap = {};
 	allObjects = [];
 	videoList = [];
 	videoListLength = 0;
 }
 
 // These are for testing
-export function setUserRotation(id, angleY) { UserMap[id].avatar.model.rotation.y = angleY };
+export function setUserRotation(id, angleY) { userMap[id].avatar.model.rotation.y = angleY };
 export function setVideoList(list) { videoList = list };
 export function setVideoListLength(n) { videoListLength = n };
 
 export {
-	UserMap,
+	userMap,
 	ourID,
 	objectScale,
 	newUserJoined3D,

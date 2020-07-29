@@ -47,7 +47,6 @@ chatSend.addEventListener("keyup", function(event) {
   });
 uploadButton.onclick = function() { advertiseFile() };
 
-var ready = false;
 var socket; // This is the SocketIO connection to the signalling server
 var connections = {};
 /*    {
@@ -60,8 +59,8 @@ var connections = {};
  */
 var ourID;
 var myResource;
-const signalServer = 'signaling-server-meet3d-master.radix.equinor.com'; // The signaling server
-//const signalServer = 'localhost:3000'; // The signaling server
+//const signalServer = 'signaling-server-meet3d-master.radix.equinor.com'; // The signaling server
+const signalServer = 'localhost:3000'; // The signaling server
 
 // The configuration containing our STUN and TURN servers.
 const pcConfig = {
@@ -118,8 +117,7 @@ async function init(button) {
     name: username.value // Our username
   };
 
-  socket.emit('join', startInfo);
-
+  socket.emit('join', startInfo); // Join the conference room
   console.log('Attempting to join ' + roomName.value);
 
   // The room we tried to join is full
@@ -130,7 +128,7 @@ async function init(button) {
 
   // A new user joined the room
   socket.on('join', async function (message) {
-    if (!ready || message.id === ourID) return;
+    if (message.id === ourID) return;
 
     connections[message.id] = {};
     connections[message.id].name = message.name;
@@ -152,8 +150,7 @@ async function init(button) {
     await initChat(ourID, connections);
     await init3D(ourID, connections, document.getElementById("3D")); // Renders the 3D environment
     console.log('We are ready to receive offers');
-    socket.emit('ready', startInfo.name);
-    ready = true;
+    socket.emit('ready', startInfo);
   });
 
   // A user moved in the 3D space
@@ -176,6 +173,7 @@ async function init(button) {
     let id = message.id;
     let name = message.name;
     let offerDescription = message.offer;
+    let resource = message.resource;
 
     if (id === ourID) return;
 
@@ -183,7 +181,7 @@ async function init(button) {
       connections[id] = {};
       connections[id].name = name;
       appendConnectionHTMLList(id); // Add their username to the list of connections on the webpage
-      newUserJoined3D(id, name); // Add new user to 3D environment
+      newUserJoined3D(id, name, resource); // Add new user to 3D environment
     }
 
     console.log("Received offer from " + connections[id].name);
@@ -420,7 +418,6 @@ async function createDataChannel(id) {
 function leave(button) {
   socket.emit('left');
   socket.disconnect(true);
-  ready = false;
 
   leave3D(); // Closes the 3D environment
   clearHTML();
