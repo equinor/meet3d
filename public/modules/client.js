@@ -1,12 +1,4 @@
-import {
-  updateShareScreen3D,
-  updateVideoList,
-  resizeCanvas,
-  onDocumentKeyDown,
-  onDocumentKeyUp,
-  changeUserPosition,
-  controls
-} from './3D.js';
+import * as ThreeD from './3D.js';
 
 var connectionList = document.getElementById("connectionList");
 var users = document.getElementById("users");
@@ -28,7 +20,7 @@ var roomButton = document.getElementById("3Droom");
 var chatButton = document.getElementById("chatMode");
 var videoButton = document.getElementById("videoButton");
 var shareButton = document.getElementById("shareButton");
-//var cameraButton = document.getElementById("cameraButton");
+var cameraButton = document.getElementById("cameraButton");
 
 // These two variables are present in both client.js and connect.js
 var ourID; // This is our unique ID
@@ -77,7 +69,7 @@ const cameraConstraints = {
  * Initialises the conference by first getting an audio stream from the user
  * and then using that stream to connect to the other users in the given room.
  */
-async function initChat(id, cons) {
+async function init(id, cons) {
 
   ourID = id;
   connections = cons;
@@ -211,11 +203,9 @@ async function shareCamera(button) {
 function stopShareCamera(button) {
 
   let cameraLi = document.getElementById("ourVideo");
-  let cameradisp = document.getElementById("ourVideoStream");
   if (!cameraLi) {
     return; // We are not sharing our camera anyways
   }
-
 
   for (let id in connections) {
     connections[id].connection.removeTrack(connections[id].video); // Update our media stream for the other users
@@ -232,12 +222,11 @@ function stopShareCamera(button) {
   tracks.forEach(track => track.stop()); // Stop the webcamera video track
   cameraLi.children[0].srcObject = null;
   cameraLi.innerHTML = ''; // Delete the video element
-  cameradisp.remove();
 
   videoElement.children[0].removeChild(cameraLi);
   if (videoElement.children[0].children.length == 0) {
     // There are no videos to show, so resize the 3D scene
-    resizeCanvas(0); // Make space for the videos on the screen
+    ThreeD.resizeCanvas(0); // Make space for the videos on the screen
   }
 }
 
@@ -279,7 +268,7 @@ async function shareScreen(button) {
   sharing.width = screenCapture.getVideoTracks()[0].getSettings().width;
   sharing.height = screenCapture.getVideoTracks()[0].getSettings().height;
   screenShare.srcObject = screenCapture;
-  updateShareScreen3D(screenCapture.getVideoTracks()[0], sharing, username.value); // Add the stream to the 3D environment
+  ThreeD.updateShareScreen(screenCapture.getVideoTracks()[0], sharing, username.value); // Add the stream to the 3D environment
   addScreenCapture(null); // Notify other users and add the stream to the connections
 }
 
@@ -330,7 +319,7 @@ function stopShareScreen(button) {
   sharing.id = null; // This indicates that noone is sharing their screen
   sharing.width = 0;
   sharing.height = 0;
-  updateShareScreen3D(null, sharing, null); // Re-add the 3D walls without the video texture
+  ThreeD.updateShareScreen(null, sharing, null); // Re-add the 3D walls without the video texture
 
   let shareJSON = JSON.stringify({
     type: "share",
@@ -348,7 +337,7 @@ function stopShareScreen(button) {
  */
 function updateShareScreen(videoStream) {
   if (sharing.id) {
-    updateShareScreen3D(videoStream, sharing, connections[sharing.id].name);
+    ThreeD.updateShareScreen(videoStream, sharing, connections[sharing.id].name);
   }
 }
 
@@ -393,7 +382,7 @@ function dataChannelReceive(id, data) {
   }
 
   if (message.type == "pos") { // It is 3D positional data
-    changeUserPosition(id, message.x, message.y, message.z); // Change position of user
+    ThreeD.changeUserPosition(id, message.x, message.y, message.z); // Change position of user
   } else if (message.type == "file") { // It is a list of advertised files
     clearFileList(id); // Remove previous file options
     for (let i in message.files) {
@@ -417,7 +406,7 @@ function dataChannelReceive(id, data) {
 
       shareButton.hidden = false; // Unhide the share screen button
       screenShare.srcObject = null;
-      updateShareScreen3D(null, sharing, null); // Re-add the 3D walls without the video texture
+      ThreeD.updateShareScreen(null, sharing, null); // Re-add the 3D walls without the video texture
     }
   }
 }
@@ -671,7 +660,7 @@ function addVideoStream(id, track) {
     streamElement.autoplay = true;
     streamElement2.autoplay = true;
     streamElementLi.id = "ourVideo";
-    streamElement2.id = "ourVideoStream";
+    streamElement2.id = "ourVideostream";
 
   }
   streamElement2.srcObject = stream;
@@ -691,7 +680,6 @@ function addVideoStream(id, track) {
 
   streamElementLi.appendChild(streamElement);
   streamElementLi.appendChild(nameTag);
-
   videoElement.hidden = false;
 
   if (id == ourID && videoElement.children[0].children.length > 0) {
@@ -701,8 +689,8 @@ function addVideoStream(id, track) {
   }
 
   videoDisplay();
-  resizeCanvas(cameraConstraints.video.width); // Make space for the videos on the screen
-  updateVideoList(id); // Update the list of what videos to show, in 3D.js
+  ThreeD.resizeCanvas(cameraConstraints.video.width); // Make space for the videos on the screen
+  ThreeD.updateVideoList(id); // Update the list of what videos to show, in 3D.js
 }
 
 // Function to choose which videoElement to display in videopage and chat/3D
@@ -726,23 +714,20 @@ function removeVideoStream(id) {
   cameraLi.innerHTML = '';
   videoElement.children[0].removeChild(cameraLi);
 
-  let cameradisp = document.getElementById(connections[id].stream.id+1);
-  cameradisp.remove();
-
   connections[id].stream = null;
 
   if (videoElement.children[0].children.length == 0)
-    resizeCanvas(0); // Make space for the videos on the screen
+    ThreeD.resizeCanvas(0); // Make space for the videos on the screen
 
-  updateVideoList(id);
+  ThreeD.updateVideoList(id);
 }
 
 /**
  * Open the chat and hide the 3D environment.
  */
 function openChat() {
-  document.removeEventListener("keydown", onDocumentKeyDown);
-	document.removeEventListener("keyup", onDocumentKeyUp);
+  document.removeEventListener("keydown", ThreeD.onDocumentKeyDown);
+	document.removeEventListener("keyup", ThreeD.onDocumentKeyUp);
 
   chatDiv.style.display = "inline-block"; // Open the chat
   sceneDiv.style.display = "none"; // Hide the 3D scene
@@ -763,8 +748,8 @@ function openChat() {
  * Open the 3D environment and hide the chat.
  */
 function open3D() {
-  document.addEventListener("keydown", onDocumentKeyDown, false);
-	document.addEventListener("keyup", onDocumentKeyUp, false);
+  document.addEventListener("keydown", ThreeD.onDocumentKeyDown, false);
+	document.addEventListener("keyup", ThreeD.onDocumentKeyUp, false);
 
 
   chatDiv.style.display = "none"; // Hide the chat
@@ -811,7 +796,7 @@ function initSwapView() {
  */
 function swapViewOnC(event) {
   if (event.key == 'c') {
-    if (controls.isLocked === true) controls.unlock(); // Unlocks the mouse if you swap view while moving in the 3D-space
+    if (ThreeD.controls.isLocked === true) ThreeD.controls.unlock(); // Unlocks the mouse if you swap view while moving in the 3D-space
     if (videoButton.hidden == true) return;
     if (roomButton.hidden == false) open3D();
     else openChat();
@@ -829,7 +814,7 @@ function userLeft(id) {
     sharing.height = 0;
     screenShare.srcObject = null;
     shareButton.hidden = false;
-    updateShareScreen3D(null, sharing, null);
+    ThreeD.updateShareScreen(null, sharing, null);
   }
   if (connections[id].stream) document.getElementById(connections[id].stream.id).outerHTML = ''; // Remove video
   if (connections[id].dataChannel) connections[id].dataChannel.close(); // Close DataChannel
@@ -857,7 +842,6 @@ function clearHTML() {
   users.style.display = "none"; // Stop listing users
   connectionList.innerHTML = ''; // Empty the list of users
   videoElement.innerHTML = '<ul></ul>'; // Removes all videos from the list on the right side of the screen
-  videoPageElement.innerHTML = '';
   buttons.hidden = true;
   remoteFiles.innerHTML = ' Remote Files: ';
 
@@ -877,7 +861,7 @@ function clearHTML() {
 
 export {
   clearHTML,
-  initChat,
+  init,
   appendConnectionHTMLList,
   addLocalTracksToConnection,
   addVideoStream,
