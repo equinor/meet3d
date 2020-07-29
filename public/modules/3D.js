@@ -442,7 +442,7 @@ function loadNewObject(resource) {
 }
 
 function changeUserPosition(id, x, y, z) {
-	let user = UserMap[id];
+	let user = userMap[id];
 	
 	// Look at where we are heading
 	user.avatar.model.lookAt(x, y, z);
