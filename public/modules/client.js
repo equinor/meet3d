@@ -1,6 +1,5 @@
 import {
   updateShareScreen3D,
-  getVideoList,
   updateVideoList,
   resizeCanvas,
   onDocumentKeyDown,
@@ -29,7 +28,7 @@ var roomButton = document.getElementById("3Droom");
 var chatButton = document.getElementById("chatMode");
 var videoButton = document.getElementById("videoButton");
 var shareButton = document.getElementById("shareButton");
-var cameraButton = document.getElementById("cameraButton");
+//var cameraButton = document.getElementById("cameraButton");
 
 // These two variables are present in both client.js and connect.js
 var ourID; // This is our unique ID
@@ -161,7 +160,7 @@ async function addLocalTrack(constraint) {
 /**
  * Adds all local streams to the PeerConnection to the user with the given ID.
  */
-function addLocalTracksToConnection(id) {
+async function addLocalTracksToConnection(id) {
   if (!localStream || localStream.getTracks().length == 0) {
     console.error("There is no track to add to the new connection.");
     return;
@@ -169,9 +168,14 @@ function addLocalTracksToConnection(id) {
   for (let i in localStream.getTracks()) {
     let track = localStream.getTracks()[i];
     if (track.kind == "video") {
-      connections[id].video = connections[id].connection.addTrack(track, localStream);
+      try {
+        connections[id].video = connections[id].connection.addTrack(track, localStream);
+      } catch (e) { console.log(e)}
+
     } else if (track.kind == "audio") {
-      connections[id].audio = connections[id].connection.addTrack(track, localStream);
+      try {
+        connections[id].audio = connections[id].connection.addTrack(track, localStream);
+      } catch (e) { console.log(e)}
     }
   }
 }
@@ -207,9 +211,11 @@ async function shareCamera(button) {
 function stopShareCamera(button) {
 
   let cameraLi = document.getElementById("ourVideo");
+  let cameradisp = document.getElementById("ourVideoStream");
   if (!cameraLi) {
     return; // We are not sharing our camera anyways
   }
+
 
   for (let id in connections) {
     connections[id].connection.removeTrack(connections[id].video); // Update our media stream for the other users
@@ -226,6 +232,7 @@ function stopShareCamera(button) {
   tracks.forEach(track => track.stop()); // Stop the webcamera video track
   cameraLi.children[0].srcObject = null;
   cameraLi.innerHTML = ''; // Delete the video element
+  cameradisp.remove();
 
   videoElement.children[0].removeChild(cameraLi);
   if (videoElement.children[0].children.length == 0) {
@@ -255,6 +262,10 @@ async function shareScreen(button) {
     return;
   }
 
+  screenCapture.getVideoTracks()[0].onended = function (event) { // Detects when sharing is disabled in chrome
+    stopShareScreen(button);
+  }
+
   if (sharing.id) { // If someone else starts sharing whilst we select our screen, use theirs
     let tracks = screenCapture.getTracks();
     tracks.forEach(track => track.stop());
@@ -268,9 +279,7 @@ async function shareScreen(button) {
   sharing.width = screenCapture.getVideoTracks()[0].getSettings().width;
   sharing.height = screenCapture.getVideoTracks()[0].getSettings().height;
   screenShare.srcObject = screenCapture;
-  updateShareScreen3D(screenCapture.getVideoTracks()[0], sharing); // Add the stream to the 3D environment
-  if (screenCapture.getAudioTracks()[0])
-    updateShareScreen3D(screenCapture.getAudioTracks()[0], sharing); // Add the stream to the 3D environment
+  updateShareScreen3D(screenCapture.getVideoTracks()[0], sharing, username.value); // Add the stream to the 3D environment
   addScreenCapture(null); // Notify other users and add the stream to the connections
 }
 
@@ -290,17 +299,13 @@ function addScreenCapture(id) {
 
     if (id) { // Share it with one user
       connections[id].dataChannel.send(shareJSON); // Notify everyone that we want to share our screen
-      connections[id].connection.addTrack(screenCapture.getVideoTracks()[0], screenCapture); // Update our media stream with video
-      if (screenCapture.getAudioTracks()[0])
-        connections[id].connection.addTrack(screenCapture.getAudioTracks()[0], screenCapture); // Update our media stream with audio
+      connections[id].connection.addTrack(screenCapture.getVideoTracks()[0]); // Update our media stream with video
     } else { // Share it with all users
       for (let i in connections) {
         connections[i].dataChannel.send(shareJSON); // Notify everyone that we want to share our screen
       }
       for (let i in connections) {
-        connections[i].connection.addTrack(screenCapture.getVideoTracks()[0], screenCapture); // Update our media stream with video
-        if (screenCapture.getAudioTracks()[0])
-          connections[i].connection.addTrack(screenCapture.getAudioTracks()[0], screenCapture); // Update our media stream with audio
+        connections[i].connection.addTrack(screenCapture.getVideoTracks()[0]); // Update our media stream with video
       }
     }
   }
@@ -325,7 +330,7 @@ function stopShareScreen(button) {
   sharing.id = null; // This indicates that noone is sharing their screen
   sharing.width = 0;
   sharing.height = 0;
-  updateShareScreen3D(null, sharing); // Re-add the 3D walls without the video texture
+  updateShareScreen3D(null, sharing, null); // Re-add the 3D walls without the video texture
 
   let shareJSON = JSON.stringify({
     type: "share",
@@ -343,7 +348,7 @@ function stopShareScreen(button) {
  */
 function updateShareScreen(videoStream) {
   if (sharing.id) {
-    updateShareScreen3D(videoStream, sharing);
+    updateShareScreen3D(videoStream, sharing, connections[sharing.id].name);
   }
 }
 
@@ -412,7 +417,7 @@ function dataChannelReceive(id, data) {
 
       shareButton.hidden = false; // Unhide the share screen button
       screenShare.srcObject = null;
-      updateShareScreen3D(null, sharing); // Re-add the 3D walls without the video texture
+      updateShareScreen3D(null, sharing, null); // Re-add the 3D walls without the video texture
     }
   }
 }
@@ -515,7 +520,8 @@ function advertiseFile() {
   };
 
   for (let id in connections) {
-    connections[id].dataChannel.send(JSON.stringify(filesJSON)); // Send the JSON to all users
+    if (connections[id].dataChannel)
+      connections[id].dataChannel.send(JSON.stringify(filesJSON)); // Send the JSON to all users
   }
 }
 
@@ -665,7 +671,7 @@ function addVideoStream(id, track) {
     streamElement.autoplay = true;
     streamElement2.autoplay = true;
     streamElementLi.id = "ourVideo";
-    streamElement2.id = "ourVideostream";
+    streamElement2.id = "ourVideoStream";
 
   }
   streamElement2.srcObject = stream;
@@ -676,7 +682,16 @@ function addVideoStream(id, track) {
   streamElement.width = cameraConstraints.video.width;
   streamElement.height = cameraConstraints.video.height;
 
+  let nameTag = document.createElement("nametag");
+  if (id !== ourID) {
+    nameTag.innerHTML = connections[id].name + '⮭';
+  } else {
+    nameTag.innerHTML = username.value + '⮭';
+  }
+
   streamElementLi.appendChild(streamElement);
+  streamElementLi.appendChild(nameTag);
+
   videoElement.hidden = false;
 
   if (id == ourID && videoElement.children[0].children.length > 0) {
@@ -711,27 +726,15 @@ function removeVideoStream(id) {
   cameraLi.innerHTML = '';
   videoElement.children[0].removeChild(cameraLi);
 
+  let cameradisp = document.getElementById(connections[id].stream.id+1);
+  cameradisp.remove();
+
   connections[id].stream = null;
 
   if (videoElement.children[0].children.length == 0)
     resizeCanvas(0); // Make space for the videos on the screen
 
   updateVideoList(id);
-}
-
-/**
- * This function updates which videos are visible on the screen. The list of
- * videos to display is 'videoList' in 3D.js.
- */
-function updateVideoVisibility() {
-  let vidList = getVideoList();
-	for (let i = 0; i < vidList.length; i++) {
-    let id = vidList[i];
-    if (id == 0 || !connections[id].stream.id) continue;
-
-    document.getElementById(connections[id].stream.id).hidden = false;
-    document.getElementById(connections[id].stream.id).children[0].autoplay = true;
-  }
 }
 
 /**
@@ -826,7 +829,7 @@ function userLeft(id) {
     sharing.height = 0;
     screenShare.srcObject = null;
     shareButton.hidden = false;
-    updateShareScreen3D(null, sharing);
+    updateShareScreen3D(null, sharing, null);
   }
   if (connections[id].stream) document.getElementById(connections[id].stream.id).outerHTML = ''; // Remove video
   if (connections[id].dataChannel) connections[id].dataChannel.close(); // Close DataChannel
@@ -854,6 +857,7 @@ function clearHTML() {
   users.style.display = "none"; // Stop listing users
   connectionList.innerHTML = ''; // Empty the list of users
   videoElement.innerHTML = '<ul></ul>'; // Removes all videos from the list on the right side of the screen
+  videoPageElement.innerHTML = '';
   buttons.hidden = true;
   remoteFiles.innerHTML = ' Remote Files: ';
 
