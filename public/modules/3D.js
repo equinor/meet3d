@@ -50,14 +50,14 @@ var userMap = {}; // JS-object to store the users' 3D information
 var connections; // JS-object to store the user network connections
 var allObjects = []; // Stores all 3D objects so that they can be removed later
 var videoList = []; // The list of remote videos to display
-const resourceList = ["objects/Anglerfish/Anglerfish.glb", "objects/ArmoredCatfish/ArmoredCatfish.glb", "objects/Betta/Betta.glb",
-"objects/BlackLionFish/BlackLionFish.glb", "objects/Blobfish/Blobfish.glb", "objects/BlueGoldfish/BlueGoldfish.glb", "objects/Clownfish/Clownfish.glb",
-"objects/Flatfish/Flatfish.glb", "objects/FlowerHorn/FlowerHorn.glb", "objects/GoblinShark/GoblinShark.glb", "objects/Goldfish/Goldfish.glb",
-"objects/Huphhead/HumphHead.glb", "objects/Koi/Koi.glb", "objects/Lionfish/Lionfish.glb", "objects/MandarinFish/MandarinFish.glb",
-"objects/MoorishIdol/MoorishIdol.glb", "objects/ParrotFish/ParrotFish.glb", "objects/Piranha/Piranha.glb", "objects/Puffer/Puffer.glb",
-"objects/RedSnapper/RedSnapper.glb", "objects/RoyalGramma/RoyalGramma.glb", "objects/Shark/Shark.glb", "objects/Sunfish/Sunfish.glb",
-"objects/Swordfish/Swordfish.glb", "objects/Tang/Tang.glb", "objects/Tetra/Tetra.glb", "objects/Tuna/Tuna.glb", "objects/Turbot/Turbot.glb",
-"objects/YellowTang/YellowTang.glb", "objects/ZebraClownFish/ZebraClownFish.glb"]; //List of 3D-object-files
+const resourceList = ["objects/Fishes/Anglerfish.glb", "objects/Fishes/ArmoredCatfish.glb", "objects/Fishes/Betta.glb",
+"objects/Fishes/BlackLionFish.glb", "objects/Fishes/Blobfish.glb", "objects/Fishes/BlueGoldfish.glb", "objects/Fishes/Clownfish.glb",
+"objects/Fishes/Flatfish.glb", "objects/Fishes/FlowerHorn.glb", "objects/Fishes/GoblinShark.glb", "objects/Fishes/Goldfish.glb",
+"objects/Fishes/HumphHead.glb", "objects/Fishes/Koi.glb", "objects/Fishes/Lionfish.glb", "objects/Fishes/MandarinFish.glb",
+"objects/Fishes/MoorishIdol.glb", "objects/Fishes/ParrotFish.glb", "objects/Fishes/Piranha.glb", "objects/Fishes/Puffer.glb",
+"objects/Fishes/RedSnapper.glb", "objects/Fishes/RoyalGramma.glb", "objects/Fishes/Shark.glb", "objects/Fishes/Sunfish.glb",
+"objects/Fishes/Swordfish.glb", "objects/Fishes/Tang.glb", "objects/Fishes/Tetra.glb", "objects/Fishes/Tuna.glb", "objects/Fishes/Turbot.glb",
+"objects/Fishes/YellowTang.glb", "objects/Fishes/ZebraClownFish.glb"]; //List of 3D-object-files
 
 /**
  * Initialises the 3D environment. This includes creating a renderer, rendering
@@ -192,9 +192,9 @@ async function updateShareScreen(screenTrack, details, name) {
 // Adds a sky which appears unmoving from the user's perspective
 function addSkyBox() {
 	let urls = [
-		"objects/obj/sh_ft.png", "objects/obj/sh_bk.png",
-		"objects/obj/sh_up.png", "objects/obj/sh_dn.png",
-		"objects/obj/sh_rt.png", "objects/obj/sh_lf.png"
+		"objects/Skybox/sh_ft.png", "objects/Skybox/sh_bk.png",
+		"objects/Skybox/sh_up.png", "objects/Skybox/sh_dn.png",
+		"objects/Skybox/sh_rt.png", "objects/Skybox/sh_lf.png"
 	];
 
 	let loader = new THREE.CubeTextureLoader();
@@ -202,7 +202,7 @@ function addSkyBox() {
 
 	//Extra floor to make rooom look real.
 	let textureLoader = new THREE.TextureLoader();
-	let floortext = textureLoader.load( "objects/obj/sh_dn.png" );
+	let floortext = textureLoader.load( "objects/Skybox/sh_dn.png" );
 	floortext.wrapS = THREE.RepeatWrapping;
 	floortext.wrapT = THREE.RepeatWrapping;
 	floortext.repeat.set( 100,100 );
@@ -235,7 +235,7 @@ function addWalls() {
 	let textureLoader = new THREE.TextureLoader();
 
 	// FLOOR
-	let floortext = textureLoader.load( "objects/obj/floor.jpg" );
+	let floortext = textureLoader.load( "objects/Room/floor.jpg" );
 	let floor = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, maxZ * 2, maxX * 2, maxZ * 2),
 		new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: floortext })
@@ -246,7 +246,7 @@ function addWalls() {
 	allObjects.push(floor);
 
 	// CEILING
-	let ceilingtext = textureLoader.load( "objects/obj/ceiling2.jpg" );
+	let ceilingtext = textureLoader.load( "objects/Room/ceiling2.jpg" );
 	let ceiling = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, maxZ * 2, maxX * 2, maxZ * 2),
 		new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: ceilingtext })
@@ -257,7 +257,7 @@ function addWalls() {
 	allObjects.push(ceiling);
 
 	// WALLS
-	let walltext = textureLoader.load( "objects/obj/wall1.jpg" );
+	let walltext = textureLoader.load( "objects/Room/wall1.jpg" );
 
 	let wallLeft = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, wallHeight, 1, 1),
@@ -335,7 +335,7 @@ function addVideofile(videofile, xPos, yPos, zPos, rotation = 0) {
 function addDecoration() {
 	// PLANT
 	const plant = new THREE.Object3D();
-	loader.load('objects/obj/planten.glb', function(gltf) {
+	loader.load('objects/Room/planten.glb', function(gltf) {
 		plant.add(gltf.scene);
 		plant.scale.x = 20; plant.scale.y = 20; plant.scale.z = 20;
 		plant.position.x= 0; plant.position.y = 7; plant.position.z = 10;
@@ -344,7 +344,7 @@ function addDecoration() {
 
 	// TABLE
 	let table = new THREE.Object3D();
-	loader.load('objects/obj/table.glb', function(gltf) {
+	loader.load('objects/Room/table.glb', function(gltf) {
 		table.add(gltf.scene);
 		table.scale.x = 20; table.scale.y = 20; table.scale.z = 20;
 		table.rotation.y += Math.PI / 2;
