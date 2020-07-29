@@ -4,7 +4,7 @@ import * as THREE from '../../public/modules/three.module.js'
 // --------------------------- SETUP ---------------------------
 
 beforeAll(() => {
-  ThreeD.init3D(3, {"5" : {id: 5}, "1" : {id: 1}, "6" : {id: 6}}, document.body);
+  ThreeD.init(3, {"5" : {id: 5}, "1" : {id: 1}, "6" : {id: 6}}, document.body);
 });
 
 beforeEach(async () => {
