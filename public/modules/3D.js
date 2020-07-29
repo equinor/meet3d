@@ -435,7 +435,7 @@ function loadNewObject(resource) {
 
 		let boundingBox = new THREE.Box3().setFromObject(avatar.model);
 		objectSize = boundingBox.getSize(); // Returns Vector3
-
+		
 		scene.add(avatar.model);
 		allObjects.push(avatar.model);
 	}, function () {}, function (e) {
@@ -449,45 +449,9 @@ function loadNewObject(resource) {
 
 function changeUserPosition(id, x, y, z) {
 	let user = UserMap[id];
-
-	//updating Y-rotation
-	let changeX = x - user.avatar.model.position.x;
-	let changeZ = z - user.avatar.model.position.z;
-	let distance = Math.sqrt(changeX ** 2 + changeZ ** 2);
-	if (distance > 0) {
-		let ratioedChangeZ = changeZ / distance;
-		if (changeX >= 0) {
-			user.avatar.model.rotation.y = Math.acos(ratioedChangeZ);
-			//console.log("Rotation : " + Math.acos(ratioedChangeZ) * 180 / Math.PI);
-		} else {
-			user.avatar.model.rotation.y = (0 - Math.acos(ratioedChangeZ));
-			//console.log("Rotation : " + (0 - Math.acos(ratioedChangeZ)) * 180 / Math.PI );
-		}
-		//console.log(user.avatar.model.rotation.y);
-	} else {
-		user.avatar.model.rotation.y = 0;
-	}
-
-	//updating X-rotation
-	let changeY = y - user.avatar.model.position.y;
-	if (changeY != 0) {
-		if (distance > 0) {
-			let hypothenuse = Math.sqrt(distance ** 2 + changeY ** 2);
-			user.avatar.model.rotation.x = (0 - Math.asin(changeY / hypothenuse));
-			//console.log("Rotation : " + (0 - Math.asin(changeY / hypothenuse)) * 180 / Math.PI);
-		} else {
-			if (changeY > 0) {
-				user.avatar.model.rotation.x = - 90 * Math.PI / 180;
-				//console.log("Rotation : - 90");
-			} else if (changeY < 0) {
-				user.avatar.model.rotation.x = 90 * Math.PI / 180;
-				//console.log("Rotation : 90");
-			}
-		}
-		//console.log(user.avatar.model.rotation.x);
-	} else {
-		user.avatar.model.rotation.x = 0;
-	}
+	
+	// Look at where we are heading
+	user.avatar.model.lookAt(x, y, x);
 
 	user.avatar.model.position.x = x;
 	user.avatar.model.position.y = y;
