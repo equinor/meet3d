@@ -442,37 +442,11 @@ function loadNewObject(resource) {
 function changeUserPosition(id, x, y, z) {
 	let user = userMap[id];
 
-	// Updating Y-rotation
-	let changeX = x - user.avatar.model.position.x;
-	let changeZ = z - user.avatar.model.position.z;
-	let distance = Math.sqrt(changeX ** 2 + changeZ ** 2);
-	if (distance > 0) {
-		let ratioedChangeZ = changeZ / distance;
-		if (changeX >= 0) {
-			user.avatar.model.rotation.y = Math.acos(ratioedChangeZ);
-		} else {
-			user.avatar.model.rotation.y = (0 - Math.acos(ratioedChangeZ));
-		}
-	} else {
-		user.avatar.model.rotation.y = 0;
-	}
-
-	// Updating X-rotation
-	let changeY = y - user.avatar.model.position.y;
-	if (changeY != 0) {
-		if (distance > 0) {
-			let hypothenuse = Math.sqrt(distance ** 2 + changeY ** 2);
-			user.avatar.model.rotation.x = (0 - Math.asin(changeY / hypothenuse));
-		} else {
-			if (changeY > 0) {
-				user.avatar.model.rotation.x = - 90 * Math.PI / 180;
-			} else if (changeY < 0) {
-				user.avatar.model.rotation.x = 90 * Math.PI / 180;
-			}
-		}
-	} else {
-		user.avatar.model.rotation.x = 0;
-	}
+	let globalPos = user.avatar.model.localToWorld( new THREE.Vector3(x, y, z) );
+ 
+ 	// Look at where we are heading
+ 	user.avatar.model.lookAt(x, y, z);
+ 	//user.avatar.model.lookAt(globalPos.x, globalPos.y, globalPos.z);
 
 	// Updating coordinates
 	user.avatar.model.position.x = x;
