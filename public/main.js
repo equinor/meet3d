@@ -43,6 +43,7 @@ var connections = {};
 var ourID;
 var myResource;
 const signalServer = 'signaling-server-meet3d-testing.radix.equinor.com'; // The signaling server
+//const signalServer = 'localhost:3000'; // The signaling server
 
 // The configuration containing our STUN and TURN servers.
 const pcConfig = {
@@ -115,12 +116,10 @@ async function init(button) {
     connections[message.id] = {};
     connections[message.id].name = message.name;
 
-    console.log('User ' + message.name + ' joined the room');
+    console.log('User ' + message.name + ' joined the room with model ' + message.model);
 
-    myResource = await ThreeD.reserveResource();
-    console.log("myResource is : " + myResource);
     sendOffer(message.id); // Send the user your local description in order to create a connection
-    if (!ThreeD.newUserJoined(message.id, message.name, '')) // Add the new user to the 3D environment
+    if (!ThreeD.newUserJoined(message.id, message.name, message.model)) // Add the new user to the 3D environment
       console.error("Unable to add " + message.name + " to the 3D environment");
     Client.appendConnectionHTMLList(message.id);
   });

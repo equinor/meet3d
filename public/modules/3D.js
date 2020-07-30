@@ -115,20 +115,6 @@ async function init(id, connectionsObject, div) {
 	update();
 }
 
-// Called to preserve avatar coherence among all users, can only be executed once
-var reserveResource = (function () {
-	var executed = false;
-	var resource;
-  return function() {
-    if (!executed) {
-      executed = true;
-			resource = resourceList.shift();
-			console.log("We have reserved our resource!");
-		}
-		return resource;
-  };
-})();
-
 /**
  * Returns the greatest width and height which can fit on the conference wall
  * whilst maintaining its original aspect ratio.
@@ -404,14 +390,8 @@ async function newUserJoined(id, name, resource) {
 
 	var newUser = {};
 	newUser.name = name;
-
-	if (resourceList.find(element => element == resource)) {
-		newUser.resource = resourceList.splice(resourceList.indexOf(resource), 1);
-		console.log("Adding new user to the 3D environment: " + name + ", with resource: " + avatar.resource);
-	} else {
-		newUser.resource = resourceList.shift();
-		console.log("Adding new user to the 3D environment: " + name + ", without resource");
-	}
+  newUser.resource = resourceList[resource];
+  console.log("Adding new user to the 3D environment: " + name + ", with resource: " + newUser.resource);
 
 	newUser.avatar = loadNewObject(newUser.resource); // Load in their model
 	addText(name, newUser.avatar.model); // Add their name above their model
@@ -609,7 +589,6 @@ function userGotMedia(id, mediaStream) {
 
 // Removes a user from the 3D environment
 function userLeft(id) {
-	resourceList.push(userMap[id].resource);
 	scene.remove(userMap[id].avatar.model);
 	if (userMap[id].audioElement) { // Needed for testing
 		if (userMap[id].audioElement.srcObject) {
@@ -833,7 +812,6 @@ export {
 	ourID,
 	objectScale,
 	newUserJoined,
-	reserveResource,
 	userGotMedia,
 	updatePos,
 	userLeft,

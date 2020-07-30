@@ -4,13 +4,14 @@ var os = require('os');
 
 const maxUsers = 16;
 var users = {};
+var rooms = {}; // Stores a list of the available 3D models for each room
 
 const io = require('socket.io')(3000, { cookie: false });
 
 io.sockets.on('connection', function(socket) {
 
   socket.on('offer', function(data) {
-    users[data.id].socket.emit('offer', {id: socket.id, offer: data.offer, name: data.name, resource: data.resource});
+    users[data.id].socket.emit('offer', {id: socket.id, offer: data.offer, name: data.name, resource: users[socket.id].model});
   });
 
   socket.on('answer', function(data) {
@@ -22,22 +23,26 @@ io.sockets.on('connection', function(socket) {
   });
 
   socket.on('disconnect', function() {
-    if (users[socket.id]) {
-      io.sockets.in(users[socket.id].room).emit('left', socket.id);
-      socket.leave(users[socket.id].room);
+    let user = users[socket.id];
+    if (user) {
+      io.sockets.in(user.room).emit('left', socket.id);
+      socket.leave(user.room);
+      rooms[user.room].unshift(user.model);
     }
   });
 
   socket.on('left', function() {
-    if (users[socket.id]) {
-      io.sockets.in(users[socket.id].room).emit('left', socket.id);
-      socket.leave(users[socket.id].room);
+    let user = users[socket.id];
+    if (user) {
+      io.sockets.in(user.room).emit('left', socket.id);
+      socket.leave(user.room);
+      rooms[user.room].unshift(user.model);
     }
   });
 
   socket.on('ready', function(info) {
     socket.join(info.room); // Add this user to the room
-    io.sockets.in(users[socket.id].room).emit('join', { name: info.name, id: socket.id } );
+    io.sockets.in(users[socket.id].room).emit('join', { name: info.name, id: socket.id, model: users[socket.id].model } );
   });
 
   socket.on('join', function(room) {
@@ -45,7 +50,12 @@ io.sockets.on('connection', function(socket) {
     let numClients = clientsInRoom ? Object.keys(clientsInRoom.sockets).length : 0;
 
     if (numClients < maxUsers) {
-      users[socket.id] = { room: room, socket: socket }; // Add the User object to the list of users
+
+      if (!rooms[room]) {
+        rooms[room] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+      }
+
+      users[socket.id] = { room: room, socket: socket, model: rooms[room].shift() }; // Add the User object to the list of users
       socket.emit('joined', socket.id); // Let the user know they joined the room and what their ID is
     } else { // Someone tried to join a full room
       socket.emit('full');
