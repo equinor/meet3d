@@ -16,17 +16,17 @@ beforeEach(async () => {
   ThreeD.moveRight = false;
   ThreeD.moveLeft = false;
 
-  await ThreeD.newUserJoined(5, "test");
+  await ThreeD.newUserJoined(5, "test", 0);
   let text5 = new THREE.Mesh();
   text5.name = "text";
   ThreeD.userMap[5].avatar.model.add(text5);
 
-  await ThreeD.newUserJoined(1, "test1");
+  await ThreeD.newUserJoined(1, "test1", 1);
   let text1 = new THREE.Mesh();
   text1.name = "text";
   ThreeD.userMap[1].avatar.model.add(text1);
 
-  await ThreeD.newUserJoined(6, "test6");
+  await ThreeD.newUserJoined(6, "test6", 2);
   let text6 = new THREE.Mesh();
   text6.name = "text";
   ThreeD.userMap[6].avatar.model.add(text6);
@@ -98,23 +98,23 @@ test('getDistance - same positions', () => {
 // ---set name---
 test('set name normal', async () => {
   ThreeD.userLeft(5);
-  await ThreeD.newUserJoined(5, "myName");
+  await ThreeD.newUserJoined(5, "myName", 4);
   expect(ThreeD.userMap[5].name).toBe("myName");
 });
 
 test('set name empty', async () => {
   ThreeD.userLeft(5);
-  expect(await ThreeD.newUserJoined(5, '')).toEqual(false);
+  expect(await ThreeD.newUserJoined(5, '', 5)).toEqual(false);
 });
 
 test('set name null', async () => {
   ThreeD.userLeft(5);
-  expect(await ThreeD.newUserJoined(5, null)).toEqual(false);
+  expect(await ThreeD.newUserJoined(5, null, 6)).toEqual(false);
 });
 
 test('set name number', async () => {
   ThreeD.userLeft(5);
-  expect(await ThreeD.newUserJoined(5, 2)).toEqual(false);
+  expect(await ThreeD.newUserJoined(5, 2, 7)).toEqual(false);
 });
 
 // ---getVideoRatio---

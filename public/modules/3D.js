@@ -390,7 +390,6 @@ async function newUserJoined(id, name, resource) {
 	var newUser = {};
 	newUser.name = name;
   newUser.resource = resourceList[resource];
-  console.log("Adding new user to the 3D environment: " + name + ", with resource: " + resource + " aka " + newUser.resource);
 
 	newUser.avatar = await loadNewObject(newUser.resource); // Load in their model
 	addText(name, newUser.avatar.model); // Add their name above their model
