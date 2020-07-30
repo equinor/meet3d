@@ -370,7 +370,6 @@ function removeConnectionHTMLList(id) {
  * file which results in 'receiveFile' being called.
  */
 function dataChannelReceive(id, data) {
-
   if (id === ourID) return;
 
   let message;
@@ -467,7 +466,8 @@ function sendChat() {
 
     for (let id in connections) {
       if (connections[id].name == target) { // If the user is the target
-        connections[id].dataChannel.send(messageJSON);
+        if (connections[id].dataChannel)
+          connections[id].dataChannel.send(messageJSON);
         addChat(username.value + '->' + target, '<whisper>' + messageWhisper + '</whisper>');
         chatSend.value = ''; // Clear the text box
         return;
@@ -807,6 +807,7 @@ function swapViewOnC(event) {
  * Tidies up variables related to a PeerConnection when a user leaves.
  */
 function userLeft(id) {
+  clearFileList(id);
   removeConnectionHTMLList(id);
   if (id == sharing.id) { // If they were sharing their screen then remove it
     sharing.id = null;

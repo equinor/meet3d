@@ -27,7 +27,7 @@ var listener;
 var loader;
 var time;
 
-var objectSize = new THREE.Vector3(); // A Vector3 representing size of each 3D-object
+var objectSize = new THREE.Vector3(0, 20, 0); // A Vector3 representing size of each 3D-object
 
 var moveForward = false;
 var moveBackward = false;
@@ -101,8 +101,8 @@ async function init(id, connectionsObject, div) {
 	controls.getObject().add(listener)
 
 	addVideofile( roomVideo, 0, wallHeight / 2, maxZ - 1, Math.PI );
-	addVideofile( summerInternsVideo, 3 * maxX, 20, - 2 * maxZ, - Math.PI / 8 );
-	addVideofile( shuttleAnimationVideo, - 3 * maxX, 20, - 2 * maxZ, Math.PI / 8 );
+	addVideofile( summerInternsVideo, 3 * maxX, 25, - 2 * maxZ, - Math.PI / 8 );
+	addVideofile( shuttleAnimationVideo, - 3 * maxX, 25, - 2 * maxZ, Math.PI / 8 );
 
 	updateVideofilesPlayed();
 
@@ -114,20 +114,6 @@ async function init(id, connectionsObject, div) {
 
 	update();
 }
-
-// Called to preserve avatar coherence among all users, can only be executed once
-var reserveResource = (function () {
-	var executed = false;
-	var resource;
-  return function() {
-    if (!executed) {
-      executed = true;
-			resource = resourceList.shift();
-			console.log("We have reserved our resource!");
-		}
-		return resource;
-  };
-})();
 
 /**
  * Returns the greatest width and height which can fit on the conference wall
@@ -236,7 +222,6 @@ function addWalls() {
 	let textureLoader = new THREE.TextureLoader();
 
 	// FLOOR
-
 	let floortext = textureLoader.load( "objects/Room/floor.jpg" );
 	floor = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, maxZ * 2, maxX * 2, maxZ * 2),
@@ -307,7 +292,7 @@ function addVideofile(videofile, xPos, yPos, zPos, rotation = 0) {
 
 	let Vtexture = new THREE.VideoTexture(videofile);
 	let geometry = new THREE.PlaneGeometry(50,50,50);
-	let Vmaterial = new THREE.MeshBasicMaterial ({side: THREE.DoubleSide, map: Vtexture}); //FIXME! WANT TO PLACE VIDEO HEREmap: video)
+	let Vmaterial = new THREE.MeshBasicMaterial ({side: THREE.DoubleSide, map: Vtexture});
 	let videoPlane = new THREE.Mesh(geometry, Vmaterial);
 
 	videoPlane.position.x = xPos;
@@ -321,7 +306,12 @@ function addVideofile(videofile, xPos, yPos, zPos, rotation = 0) {
 	vPosAudio.setDistanceModel("exponential");
 	vPosAudio.setDirectionalCone(rotation - Math.PI/2, rotation + Math.PI/2, 0.1); // FIXME This currently does not work
 
-	const audio2 = vPosAudio.context.createMediaStreamSource(videofile.mozCaptureStream());
+	let audio2;
+  if (navigator.userAgent.indexOf('Firefox') > -1) {
+    audio2 = vPosAudio.context.createMediaStreamSource(videofile.mozCaptureStream());
+  } else {
+    audio2 = vPosAudio.context.createMediaStreamSource(videofile.captureStream());
+  }
 
 	try {
 		vPosAudio.setNodeSource(audio2);
@@ -399,16 +389,9 @@ async function newUserJoined(id, name, resource) {
 
 	var newUser = {};
 	newUser.name = name;
+  newUser.resource = resourceList[resource];
 
-	if (resourceList.find(element => element == resource)) {
-		newUser.resource = resourceList.splice(resourceList.indexOf(resource), 1);
-		console.log("Adding new user to the 3D environment: " + name + ", with resource: " + avatar.resource);
-	} else {
-		newUser.resource = resourceList.shift();
-		console.log("Adding new user to the 3D environment: " + name + ", without resource");
-	}
-
-	newUser.avatar = loadNewObject(newUser.resource); // Load in their model
+	newUser.avatar = await loadNewObject(newUser.resource); // Load in their model
 	addText(name, newUser.avatar.model); // Add their name above their model
 	userMap[id] = newUser; // Add new user to userMap
 	updateVideoList(id); // Update which videos to show on the right side of the screen
@@ -416,7 +399,7 @@ async function newUserJoined(id, name, resource) {
 }
 
 // Load 3D-object from file "resource" and add it to scene
-function loadNewObject(resource) {
+async function loadNewObject(resource) {
 	var avatar = {};
 	avatar.resource = resource;
 	avatar.model = new THREE.Object3D();
@@ -429,7 +412,7 @@ function loadNewObject(resource) {
 
 		let boundingBox = new THREE.Box3().setFromObject(avatar.model);
 		objectSize = boundingBox.getSize(); // Returns Vector3
-		
+
 		scene.add(avatar.model);
 		allObjects.push(avatar.model);
 	}, function () {}, function (e) {
@@ -443,7 +426,7 @@ function loadNewObject(resource) {
 
 function changeUserPosition(id, x, y, z) {
 	let user = userMap[id];
-	
+
 	// Look at where we are heading
 	user.avatar.model.lookAt(x, y, z);
 
@@ -604,7 +587,6 @@ function userGotMedia(id, mediaStream) {
 
 // Removes a user from the 3D environment
 function userLeft(id) {
-	resourceList.push(userMap[id].resource);
 	scene.remove(userMap[id].avatar.model);
 	if (userMap[id].audioElement) { // Needed for testing
 		if (userMap[id].audioElement.srcObject) {
@@ -698,7 +680,8 @@ function onWindowResize() {
 function resizeCanvas(newWidth) {
 	if (newWidth >= 0)
 		videoWidth = newWidth;
-	renderer.setSize( window.innerWidth - videoWidth, window.innerHeight - 30 );
+  if (renderer)
+	  renderer.setSize( window.innerWidth - videoWidth, window.innerHeight - 30 );
 }
 
 // Function to update frame
@@ -732,7 +715,7 @@ function update() {
 		controls.moveForward( - velocity.z * delta );
 		controls.getObject().position.y += ( velocity.y * delta );
 
-		if (camera.position.y < floor.position.y) camera.position.y = floor.position.y+1;
+		if (camera.position.y < floor.position.y) camera.position.y = floor.position.y + 1;
 
 		// Only call costly functions if we have moved and some time has passed since the last time we called them
 		if ( direction.lengthSq() && time - prevPosTime > 50 ) {
@@ -740,7 +723,8 @@ function update() {
 			updateVideoList(ourID); // Update which videos to show
 
 			for (let keyId in userMap) { // Makes the usernames point towards the user
-				userMap[keyId].avatar.model.getObjectByName('text').lookAt(camera.position.x, camera.position.y, camera.position.z);
+        if (userMap[keyId].avatar.model.getObjectByName('text'))
+				    userMap[keyId].avatar.model.getObjectByName('text').lookAt(camera.position.x, camera.position.y, camera.position.z);
 			}
 
 			updateVideofilesPlayed();
@@ -813,9 +797,9 @@ function leave() {
 	videoList = [];
 	videoListLength = 0;
 
-	if(roomVideo != undefined) roomVideo.srcObject = null;
-	if(summerInternsVideo != undefined) summerInternsVideo.srcObject = null;
-	if(shuttleAnimationVideo != undefined) shuttleAnimationVideo.srcObject = null;
+	if (roomVideo != undefined) roomVideo.srcObject = null;
+	if (summerInternsVideo != undefined) summerInternsVideo.srcObject = null;
+	if (shuttleAnimationVideo != undefined) shuttleAnimationVideo.srcObject = null;
 }
 
 // These are for testing
@@ -828,7 +812,6 @@ export {
 	ourID,
 	objectScale,
 	newUserJoined,
-	reserveResource,
 	userGotMedia,
 	updatePos,
 	userLeft,
