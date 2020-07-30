@@ -101,8 +101,8 @@ async function init(id, connectionsObject, div) {
 	controls.getObject().add(listener)
 
 	addVideofile( roomVideo, 0, wallHeight / 2, maxZ - 1, Math.PI );
-	addVideofile( summerInternsVideo, 3 * maxX, 20, - 2 * maxZ, - Math.PI / 8 );
-	addVideofile( shuttleAnimationVideo, - 3 * maxX, 20, - 2 * maxZ, Math.PI / 8 );
+	addVideofile( summerInternsVideo, 3 * maxX, 25, - 2 * maxZ, - Math.PI / 8 );
+	addVideofile( shuttleAnimationVideo, - 3 * maxX, 25, - 2 * maxZ, Math.PI / 8 );
 
 	updateVideofilesPlayed();
 
