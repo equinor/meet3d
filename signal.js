@@ -36,7 +36,7 @@ io.sockets.on('connection', function(socket) {
     if (user) {
       io.sockets.in(user.room).emit('left', socket.id);
       socket.leave(user.room);
-      rooms[user.room].unshift(user.model);
+      rooms[user.room].push(user.model);
     }
   });
 
@@ -55,7 +55,7 @@ io.sockets.on('connection', function(socket) {
         rooms[room] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
       }
 
-      users[socket.id] = { room: room, socket: socket, model: rooms[room].shift() }; // Add the User object to the list of users
+      users[socket.id] = { room: room, socket: socket, model: rooms[room].pop() }; // Add the User object to the list of users
       socket.emit('joined', socket.id); // Let the user know they joined the room and what their ID is
     } else { // Someone tried to join a full room
       socket.emit('full');

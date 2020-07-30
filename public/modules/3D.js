@@ -222,7 +222,6 @@ function addWalls() {
 	let textureLoader = new THREE.TextureLoader();
 
 	// FLOOR
-
 	let floortext = textureLoader.load( "objects/Room/floor.jpg" );
 	floor = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, maxZ * 2, maxX * 2, maxZ * 2),
@@ -391,7 +390,7 @@ async function newUserJoined(id, name, resource) {
 	var newUser = {};
 	newUser.name = name;
   newUser.resource = resourceList[resource];
-  console.log("Adding new user to the 3D environment: " + name + ", with resource: " + newUser.resource);
+  console.log("Adding new user to the 3D environment: " + name + ", with resource: " + resource + " aka " + newUser.resource);
 
 	newUser.avatar = await loadNewObject(newUser.resource); // Load in their model
 	addText(name, newUser.avatar.model); // Add their name above their model
