@@ -27,7 +27,7 @@ var listener;
 var loader;
 var time;
 
-var objectSize = new THREE.Vector3(); // A Vector3 representing size of each 3D-object
+var objectSize = new THREE.Vector3(0, 20, 0); // A Vector3 representing size of each 3D-object
 
 var moveForward = false;
 var moveBackward = false;
@@ -292,7 +292,7 @@ function addVideofile(videofile, xPos, yPos, zPos, rotation = 0) {
 
 	let Vtexture = new THREE.VideoTexture(videofile);
 	let geometry = new THREE.PlaneGeometry(50,50,50);
-	let Vmaterial = new THREE.MeshBasicMaterial ({side: THREE.DoubleSide, map: Vtexture}); //FIXME! WANT TO PLACE VIDEO HEREmap: video)
+	let Vmaterial = new THREE.MeshBasicMaterial ({side: THREE.DoubleSide, map: Vtexture});
 	let videoPlane = new THREE.Mesh(geometry, Vmaterial);
 
 	videoPlane.position.x = xPos;
@@ -715,7 +715,7 @@ function update() {
 		controls.moveForward( - velocity.z * delta );
 		controls.getObject().position.y += ( velocity.y * delta );
 
-		if (camera.position.y < floor.position.y) camera.position.y = floor.position.y+1;
+		if (camera.position.y < floor.position.y) camera.position.y = floor.position.y + 1;
 
 		// Only call costly functions if we have moved and some time has passed since the last time we called them
 		if ( direction.lengthSq() && time - prevPosTime > 50 ) {
@@ -797,9 +797,9 @@ function leave() {
 	videoList = [];
 	videoListLength = 0;
 
-	if(roomVideo != undefined) roomVideo.srcObject = null;
-	if(summerInternsVideo != undefined) summerInternsVideo.srcObject = null;
-	if(shuttleAnimationVideo != undefined) shuttleAnimationVideo.srcObject = null;
+	if (roomVideo != undefined) roomVideo.srcObject = null;
+	if (summerInternsVideo != undefined) summerInternsVideo.srcObject = null;
+	if (shuttleAnimationVideo != undefined) shuttleAnimationVideo.srcObject = null;
 }
 
 // These are for testing
