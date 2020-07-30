@@ -316,7 +316,7 @@ function addVideofile(videofile, xPos, yPos, zPos, rotation = 0) {
 	videoPlane.rotation.y = rotation;
 
 	let vPosAudio = new THREE.PositionalAudio(listener);
-	vPosAudio.setRefDistance(50);
+	vPosAudio.setRefDistance(100);
 	vPosAudio.setRolloffFactor(3);
 	vPosAudio.setDistanceModel("exponential");
 	vPosAudio.setDirectionalCone(rotation - Math.PI/2, rotation + Math.PI/2, 0.1); // FIXME This currently does not work
@@ -429,7 +429,7 @@ function loadNewObject(resource) {
 
 		let boundingBox = new THREE.Box3().setFromObject(avatar.model);
 		objectSize = boundingBox.getSize(); // Returns Vector3
-
+		
 		scene.add(avatar.model);
 		allObjects.push(avatar.model);
 	}, function () {}, function (e) {
@@ -443,38 +443,10 @@ function loadNewObject(resource) {
 
 function changeUserPosition(id, x, y, z) {
 	let user = userMap[id];
-
-	// Updating Y-rotation
-	let changeX = x - user.avatar.model.position.x;
-	let changeZ = z - user.avatar.model.position.z;
-	let distance = Math.sqrt(changeX ** 2 + changeZ ** 2);
-	if (distance > 0) {
-	let ratioedChangeZ = changeZ / distance;
-	if (changeX >= 0) {
-	user.avatar.model.rotation.y = Math.acos(ratioedChangeZ);
-	} else {
-	user.avatar.model.rotation.y = (0 - Math.acos(ratioedChangeZ));
-	}
-	} else {
-	user.avatar.model.rotation.y = 0;
-	}
 	
-	// Updating X-rotation
-	let changeY = y - user.avatar.model.position.y;
-	if (changeY != 0) {
-	if (distance > 0) {
-	let hypothenuse = Math.sqrt(distance ** 2 + changeY ** 2);
-	user.avatar.model.rotation.x = (0 - Math.asin(changeY / hypothenuse));
-	} else {
-	if (changeY > 0) {
-	user.avatar.model.rotation.x = - 90 * Math.PI / 180;
-	} else if (changeY < 0) {
-	user.avatar.model.rotation.x = 90 * Math.PI / 180;
-	}
-	}
-	} else {
-	user.avatar.model.rotation.x = 0;
-	}
+	// Look at where we are heading
+	user.avatar.model.lookAt(x, y, z);
+
 	// Updating coordinates
 	user.avatar.model.position.x = x;
 	user.avatar.model.position.y = y;
@@ -827,8 +799,10 @@ function leave() {
 	}
 
 	window.cancelAnimationFrame(requestID); // Stops rendering the scene
+	scene.dispose();
 	scene = null;
 	camera = null;
+	renderer.dispose();
 	renderer = null;
 	controls = null;
 	requestID = undefined;
@@ -838,6 +812,10 @@ function leave() {
 	allObjects = [];
 	videoList = [];
 	videoListLength = 0;
+
+	if(roomVideo != undefined) roomVideo.srcObject = null;
+	if(summerInternsVideo != undefined) summerInternsVideo.srcObject = null;
+	if(shuttleAnimationVideo != undefined) shuttleAnimationVideo.srcObject = null;
 }
 
 // These are for testing
