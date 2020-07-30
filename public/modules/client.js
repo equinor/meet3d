@@ -466,7 +466,8 @@ function sendChat() {
 
     for (let id in connections) {
       if (connections[id].name == target) { // If the user is the target
-        connections[id].dataChannel.send(messageJSON);
+        if (connections[id].dataChannel)
+          connections[id].dataChannel.send(messageJSON);
         addChat(username.value + '->' + target, '<whisper>' + messageWhisper + '</whisper>');
         chatSend.value = ''; // Clear the text box
         return;

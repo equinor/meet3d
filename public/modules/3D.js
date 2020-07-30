@@ -681,7 +681,8 @@ function onWindowResize() {
 function resizeCanvas(newWidth) {
 	if (newWidth >= 0)
 		videoWidth = newWidth;
-	renderer.setSize( window.innerWidth - videoWidth, window.innerHeight - 30 );
+  if (renderer)
+	  renderer.setSize( window.innerWidth - videoWidth, window.innerHeight - 30 );
 }
 
 // Function to update frame

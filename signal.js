@@ -27,7 +27,7 @@ io.sockets.on('connection', function(socket) {
     if (user) {
       io.sockets.in(user.room).emit('left', socket.id);
       socket.leave(user.room);
-      rooms[user.room].unshift(user.model);
+      rooms[user.room].push(user.model);
     }
   });
 
