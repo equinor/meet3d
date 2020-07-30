@@ -321,7 +321,12 @@ function addVideofile(videofile, xPos, yPos, zPos, rotation = 0) {
 	vPosAudio.setDistanceModel("exponential");
 	vPosAudio.setDirectionalCone(rotation - Math.PI/2, rotation + Math.PI/2, 0.1); // FIXME This currently does not work
 
-	const audio2 = vPosAudio.context.createMediaStreamSource(videofile.mozCaptureStream());
+	let audio2;
+  if (navigator.userAgent.indexOf('Firefox') > -1) {
+    audio2 = vPosAudio.context.createMediaStreamSource(videofile.mozCaptureStream());
+  } else {
+    audio2 = vPosAudio.context.createMediaStreamSource(videofile.captureStream());
+  }
 
 	try {
 		vPosAudio.setNodeSource(audio2);
@@ -429,7 +434,7 @@ function loadNewObject(resource) {
 
 		let boundingBox = new THREE.Box3().setFromObject(avatar.model);
 		objectSize = boundingBox.getSize(); // Returns Vector3
-		
+
 		scene.add(avatar.model);
 		allObjects.push(avatar.model);
 	}, function () {}, function (e) {
@@ -443,7 +448,7 @@ function loadNewObject(resource) {
 
 function changeUserPosition(id, x, y, z) {
 	let user = userMap[id];
-	
+
 	// Look at where we are heading
 	user.avatar.model.lookAt(x, y, z);
 
