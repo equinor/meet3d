@@ -370,7 +370,6 @@ function removeConnectionHTMLList(id) {
  * file which results in 'receiveFile' being called.
  */
 function dataChannelReceive(id, data) {
-
   if (id === ourID) return;
 
   let message;
@@ -807,6 +806,7 @@ function swapViewOnC(event) {
  * Tidies up variables related to a PeerConnection when a user leaves.
  */
 function userLeft(id) {
+  clearFileList(id);
   removeConnectionHTMLList(id);
   if (id == sharing.id) { // If they were sharing their screen then remove it
     sharing.id = null;
