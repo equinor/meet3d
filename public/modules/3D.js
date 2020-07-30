@@ -20,6 +20,7 @@ var camera;
 var renderer;
 var controls;
 var tv; // The object which stores the screen sharing video
+var floor;
 
 var requestID;
 var listener;
@@ -50,14 +51,14 @@ var userMap = {}; // JS-object to store the users' 3D information
 var connections; // JS-object to store the user network connections
 var allObjects = []; // Stores all 3D objects so that they can be removed later
 var videoList = []; // The list of remote videos to display
-const resourceList = ["objects/Anglerfish/Anglerfish.glb", "objects/ArmoredCatfish/ArmoredCatfish.glb", "objects/Betta/Betta.glb",
-"objects/BlackLionFish/BlackLionFish.glb", "objects/Blobfish/Blobfish.glb", "objects/BlueGoldfish/BlueGoldfish.glb", "objects/Clownfish/Clownfish.glb",
-"objects/Flatfish/Flatfish.glb", "objects/FlowerHorn/FlowerHorn.glb", "objects/GoblinShark/GoblinShark.glb", "objects/Goldfish/Goldfish.glb",
-"objects/Huphhead/HumphHead.glb", "objects/Koi/Koi.glb", "objects/Lionfish/Lionfish.glb", "objects/MandarinFish/MandarinFish.glb",
-"objects/MoorishIdol/MoorishIdol.glb", "objects/ParrotFish/ParrotFish.glb", "objects/Piranha/Piranha.glb", "objects/Puffer/Puffer.glb",
-"objects/RedSnapper/RedSnapper.glb", "objects/RoyalGramma/RoyalGramma.glb", "objects/Shark/Shark.glb", "objects/Sunfish/Sunfish.glb",
-"objects/Swordfish/Swordfish.glb", "objects/Tang/Tang.glb", "objects/Tetra/Tetra.glb", "objects/Tuna/Tuna.glb", "objects/Turbot/Turbot.glb",
-"objects/YellowTang/YellowTang.glb", "objects/ZebraClownFish/ZebraClownFish.glb"]; //List of 3D-object-files
+const resourceList = ["objects/Fishes/Anglerfish.glb", "objects/Fishes/ArmoredCatfish.glb", "objects/Fishes/Betta.glb",
+"objects/Fishes/BlackLionFish.glb", "objects/Fishes/Blobfish.glb", "objects/Fishes/BlueGoldfish.glb", "objects/Fishes/Clownfish.glb",
+"objects/Fishes/Flatfish.glb", "objects/Fishes/FlowerHorn.glb", "objects/Fishes/GoblinShark.glb", "objects/Fishes/Goldfish.glb",
+"objects/Fishes/HumphHead.glb", "objects/Fishes/Koi.glb", "objects/Fishes/Lionfish.glb", "objects/Fishes/MandarinFish.glb",
+"objects/Fishes/MoorishIdol.glb", "objects/Fishes/ParrotFish.glb", "objects/Fishes/Piranha.glb", "objects/Fishes/Puffer.glb",
+"objects/Fishes/RedSnapper.glb", "objects/Fishes/RoyalGramma.glb", "objects/Fishes/Shark.glb", "objects/Fishes/Sunfish.glb",
+"objects/Fishes/Swordfish.glb", "objects/Fishes/Tang.glb", "objects/Fishes/Tetra.glb", "objects/Fishes/Tuna.glb", "objects/Fishes/Turbot.glb",
+"objects/Fishes/YellowTang.glb", "objects/Fishes/ZebraClownFish.glb"]; //List of 3D-object-files
 
 /**
  * Initialises the 3D environment. This includes creating a renderer, rendering
@@ -192,9 +193,9 @@ async function updateShareScreen(screenTrack, details, name) {
 // Adds a sky which appears unmoving from the user's perspective
 function addSkyBox() {
 	let urls = [
-		"objects/obj/sh_ft.png", "objects/obj/sh_bk.png",
-		"objects/obj/sh_up.png", "objects/obj/sh_dn.png",
-		"objects/obj/sh_rt.png", "objects/obj/sh_lf.png"
+		"objects/Skybox/sh_ft.png", "objects/Skybox/sh_bk.png",
+		"objects/Skybox/sh_up.png", "objects/Skybox/sh_dn.png",
+		"objects/Skybox/sh_rt.png", "objects/Skybox/sh_lf.png"
 	];
 
 	let loader = new THREE.CubeTextureLoader();
@@ -202,7 +203,7 @@ function addSkyBox() {
 
 	//Extra floor to make rooom look real.
 	let textureLoader = new THREE.TextureLoader();
-	let floortext = textureLoader.load( "objects/obj/sh_dn.png" );
+	let floortext = textureLoader.load( "objects/Skybox/sh_dn.png" );
 	floortext.wrapS = THREE.RepeatWrapping;
 	floortext.wrapT = THREE.RepeatWrapping;
 	floortext.repeat.set( 100,100 );
@@ -211,7 +212,7 @@ function addSkyBox() {
 		new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: floortext })
 	);
 	floor.rotation.x += Math.PI / 2;
-	floor.position.y = 0;
+	floor.position.y = -0.5;
 	scene.add(floor);
 }
 
@@ -235,18 +236,19 @@ function addWalls() {
 	let textureLoader = new THREE.TextureLoader();
 
 	// FLOOR
-	let floortext = textureLoader.load( "objects/obj/floor.jpg" );
-	let floor = new THREE.Mesh(
+
+	let floortext = textureLoader.load( "objects/Room/floor.jpg" );
+	floor = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, maxZ * 2, maxX * 2, maxZ * 2),
 		new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: floortext })
 	);
 	floor.rotation.x += Math.PI / 2; //can rotate the floor/plane
-	floor.position.y = 1;
+	floor.position.y = 0;
 	scene.add(floor);
 	allObjects.push(floor);
 
 	// CEILING
-	let ceilingtext = textureLoader.load( "objects/obj/ceiling2.jpg" );
+	let ceilingtext = textureLoader.load( "objects/Room/ceiling2.jpg" );
 	let ceiling = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, maxZ * 2, maxX * 2, maxZ * 2),
 		new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: ceilingtext })
@@ -257,7 +259,7 @@ function addWalls() {
 	allObjects.push(ceiling);
 
 	// WALLS
-	let walltext = textureLoader.load( "objects/obj/wall1.jpg" );
+	let walltext = textureLoader.load( "objects/Room/wall1.jpg" );
 
 	let wallLeft = new THREE.Mesh(
 		new THREE.PlaneGeometry(maxX * 2, wallHeight, 1, 1),
@@ -314,7 +316,7 @@ function addVideofile(videofile, xPos, yPos, zPos, rotation = 0) {
 	videoPlane.rotation.y = rotation;
 
 	let vPosAudio = new THREE.PositionalAudio(listener);
-	vPosAudio.setRefDistance(50);
+	vPosAudio.setRefDistance(100);
 	vPosAudio.setRolloffFactor(3);
 	vPosAudio.setDistanceModel("exponential");
 	vPosAudio.setDirectionalCone(rotation - Math.PI/2, rotation + Math.PI/2, 0.1); // FIXME This currently does not work
@@ -335,7 +337,7 @@ function addVideofile(videofile, xPos, yPos, zPos, rotation = 0) {
 function addDecoration() {
 	// PLANT
 	const plant = new THREE.Object3D();
-	loader.load('objects/obj/planten.glb', function(gltf) {
+	loader.load('objects/Room/planten.glb', function(gltf) {
 		plant.add(gltf.scene);
 		plant.scale.x = 20; plant.scale.y = 20; plant.scale.z = 20;
 		plant.position.x= 0; plant.position.y = 7; plant.position.z = 10;
@@ -344,7 +346,7 @@ function addDecoration() {
 
 	// TABLE
 	let table = new THREE.Object3D();
-	loader.load('objects/obj/table.glb', function(gltf) {
+	loader.load('objects/Room/table.glb', function(gltf) {
 		table.add(gltf.scene);
 		table.scale.x = 20; table.scale.y = 20; table.scale.z = 20;
 		table.rotation.y += Math.PI / 2;
@@ -427,7 +429,7 @@ function loadNewObject(resource) {
 
 		let boundingBox = new THREE.Box3().setFromObject(avatar.model);
 		objectSize = boundingBox.getSize(); // Returns Vector3
-
+		
 		scene.add(avatar.model);
 		allObjects.push(avatar.model);
 	}, function () {}, function (e) {
@@ -441,38 +443,9 @@ function loadNewObject(resource) {
 
 function changeUserPosition(id, x, y, z) {
 	let user = userMap[id];
-
-	// Updating Y-rotation
-	let changeX = x - user.avatar.model.position.x;
-	let changeZ = z - user.avatar.model.position.z;
-	let distance = Math.sqrt(changeX ** 2 + changeZ ** 2);
-	if (distance > 0) {
-		let ratioedChangeZ = changeZ / distance;
-		if (changeX >= 0) {
-			user.avatar.model.rotation.y = Math.acos(ratioedChangeZ);
-		} else {
-			user.avatar.model.rotation.y = (0 - Math.acos(ratioedChangeZ));
-		}
-	} else {
-		user.avatar.model.rotation.y = 0;
-	}
-
-	// Updating X-rotation
-	let changeY = y - user.avatar.model.position.y;
-	if (changeY != 0) {
-		if (distance > 0) {
-			let hypothenuse = Math.sqrt(distance ** 2 + changeY ** 2);
-			user.avatar.model.rotation.x = (0 - Math.asin(changeY / hypothenuse));
-		} else {
-			if (changeY > 0) {
-				user.avatar.model.rotation.x = - 90 * Math.PI / 180;
-			} else if (changeY < 0) {
-				user.avatar.model.rotation.x = 90 * Math.PI / 180;
-			}
-		}
-	} else {
-		user.avatar.model.rotation.x = 0;
-	}
+	
+	// Look at where we are heading
+	user.avatar.model.lookAt(x, y, z);
 
 	// Updating coordinates
 	user.avatar.model.position.x = x;
@@ -759,6 +732,8 @@ function update() {
 		controls.moveForward( - velocity.z * delta );
 		controls.getObject().position.y += ( velocity.y * delta );
 
+		if (camera.position.y < floor.position.y) camera.position.y = floor.position.y+1;
+
 		// Only call costly functions if we have moved and some time has passed since the last time we called them
 		if ( direction.lengthSq() && time - prevPosTime > 50 ) {
 			changePos(camera.position.x, camera.position.y, camera.position.z); // Update our position for others
@@ -824,8 +799,10 @@ function leave() {
 	}
 
 	window.cancelAnimationFrame(requestID); // Stops rendering the scene
+	scene.dispose();
 	scene = null;
 	camera = null;
+	renderer.dispose();
 	renderer = null;
 	controls = null;
 	requestID = undefined;
@@ -835,6 +812,10 @@ function leave() {
 	allObjects = [];
 	videoList = [];
 	videoListLength = 0;
+
+	if(roomVideo != undefined) roomVideo.srcObject = null;
+	if(summerInternsVideo != undefined) summerInternsVideo.srcObject = null;
+	if(shuttleAnimationVideo != undefined) shuttleAnimationVideo.srcObject = null;
 }
 
 // These are for testing
