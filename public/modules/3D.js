@@ -812,9 +812,10 @@ function leave() {
 	allObjects = [];
 	videoList = [];
 	videoListLength = 0;
-	roomVideo.srcObject = null;
-	summerInternsVideo.srcObject = null;
-	shuttleAnimationVideo.srcObject = null;
+
+	if(roomVideo != undefined) roomVideo.srcObject = null;
+	if(summerInternsVideo != undefined) summerInternsVideo.srcObject = null;
+	if(shuttleAnimationVideo != undefined) shuttleAnimationVideo.srcObject = null;
 }
 
 // These are for testing
