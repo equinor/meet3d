@@ -393,7 +393,7 @@ async function newUserJoined(id, name, resource) {
   newUser.resource = resourceList[resource];
   console.log("Adding new user to the 3D environment: " + name + ", with resource: " + newUser.resource);
 
-	newUser.avatar = loadNewObject(newUser.resource); // Load in their model
+	newUser.avatar = await loadNewObject(newUser.resource); // Load in their model
 	addText(name, newUser.avatar.model); // Add their name above their model
 	userMap[id] = newUser; // Add new user to userMap
 	updateVideoList(id); // Update which videos to show on the right side of the screen
@@ -401,7 +401,7 @@ async function newUserJoined(id, name, resource) {
 }
 
 // Load 3D-object from file "resource" and add it to scene
-function loadNewObject(resource) {
+async function loadNewObject(resource) {
 	var avatar = {};
 	avatar.resource = resource;
 	avatar.model = new THREE.Object3D();
@@ -724,7 +724,8 @@ function update() {
 			updateVideoList(ourID); // Update which videos to show
 
 			for (let keyId in userMap) { // Makes the usernames point towards the user
-				userMap[keyId].avatar.model.getObjectByName('text').lookAt(camera.position.x, camera.position.y, camera.position.z);
+        if (userMap[keyId].avatar.model.getObjectByName('text'))
+				    userMap[keyId].avatar.model.getObjectByName('text').lookAt(camera.position.x, camera.position.y, camera.position.z);
 			}
 
 			updateVideofilesPlayed();
