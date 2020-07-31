@@ -203,6 +203,7 @@ async function shareCamera(button) {
 function stopShareCamera(button) {
 
   let cameraLi = document.getElementById("ourVideo");
+  let cameradisp = document.getElementById("ourVideostream");
   if (!cameraLi) {
     return; // We are not sharing our camera anyways
   }
@@ -222,6 +223,7 @@ function stopShareCamera(button) {
   tracks.forEach(track => track.stop()); // Stop the webcamera video track
   cameraLi.children[0].srcObject = null;
   cameraLi.innerHTML = ''; // Delete the video element
+  cameradisp.remove();
 
   videoElement.children[0].removeChild(cameraLi);
   if (videoElement.children[0].children.length == 0) {
@@ -666,10 +668,13 @@ function addVideoStream(id, track) {
   streamElement2.srcObject = stream;
   streamElement.srcObject = stream;
 
-  videoPageElement.appendChild(streamElement2);
+  streamElement2.width = cameraConstraints.video.width;
+  streamElement2.height = cameraConstraints.video.height;
 
   streamElement.width = cameraConstraints.video.width;
   streamElement.height = cameraConstraints.video.height;
+
+  videoPageElement.appendChild(streamElement2);
 
   let nameTag = document.createElement("nametag");
   if (id !== ourID) {
@@ -709,9 +714,11 @@ function videoDisplay() {
  */
 function removeVideoStream(id) {
   let cameraLi = document.getElementById(connections[id].stream.id);
+  let cameradisp = document.getElementById(connections[id].stream.id + 1);
   cameraLi.children[0].srcObject = null;
   screenShare.hidden = true;
   cameraLi.innerHTML = '';
+  cameradisp.remove();
   videoElement.children[0].removeChild(cameraLi);
 
   connections[id].stream = null;
